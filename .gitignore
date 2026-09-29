@@ -1,0 +1,47 @@
+### Maven ###
+target/
+dependency-reduced-pom.xml
+*.class
+*.jar
+*.war
+*.log
+
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+
+### Eclipse ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### Mac OS ###
+.DS_Store
+
+### Kotlin ###
+.kotlin
+
+### Credenciales ###
+# db.properties contiene usuario/contraseña de la BD.
+# Se ignora para no exponer credenciales en el repo.
+# Usar db.properties.example como plantilla.
+reuse-dbmanager/src/main/resources/db.properties
