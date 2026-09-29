@@ -1,7 +1,6 @@
 package pe.edu.pucp.reuse.dao.impl;
 
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -16,7 +15,8 @@ import pe.edu.pucp.reuse.modelo.usuarios.UsuarioPUCP;
 
 /**
  * Base de todos los DAO: mapea las columnas de borrado logico y auditoria y
- * decide que conexion usar.
+ * decide que conexion usar. Todos los DAO invocan procedimientos almacenados
+ * ({call ...}) con CallableStatement; el SQL vive en la base de datos.
  * <p>
  * Si la capa de negocio abrio una transaccion (TransactionsManager.iniciar()),
  * el DAO usa esa misma conexion y NO la cierra: la cierra TransactionsManager
@@ -58,17 +58,8 @@ public abstract class RegistroDAOImpl<T extends Registro> {
         return (usuario == null || usuario.isBlank()) ? USUARIO_SISTEMA : usuario;
     }
 
-    protected static int leerIdGenerado(PreparedStatement cmd) throws SQLException {
-        try (ResultSet rs = cmd.getGeneratedKeys()) {
-            if (rs.next()) {
-                return rs.getInt(1);
-            }
-        }
-        throw new SQLException("La base de datos no devolvio el id generado");
-    }
-
     /**
-     * Usuario referenciado por una FK. El SELECT debe traer, con JOIN a usuario:
+     * Usuario referenciado por una FK. El procedimiento debe devolver, con JOIN a usuario:
      * prefijo_id, prefijo_codigo, prefijo_nombres y prefijo_apellido.
      */
     protected static UsuarioPUCP mapearUsuarioReferencia(ResultSet rs, String prefijo) throws SQLException {
@@ -85,7 +76,7 @@ public abstract class RegistroDAOImpl<T extends Registro> {
     }
 
     /**
-     * Anuncio referenciado por una FK. El SELECT debe traer, con JOIN a anuncio:
+     * Anuncio referenciado por una FK. El procedimiento debe devolver, con JOIN a anuncio:
      * anuncio_id, anuncio_titulo, anuncio_precio, anuncio_estado y anuncio_id_vendedor.
      */
     protected static Anuncio mapearAnuncioReferencia(ResultSet rs) throws SQLException {

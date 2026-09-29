@@ -1,10 +1,10 @@
 package pe.edu.pucp.reuse.dao.impl;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.Types;
 
 import pe.edu.pucp.reuse.modelo.enums.EstadoRevisionReporte;
 import pe.edu.pucp.reuse.modelo.moderacion.Reporte;
@@ -17,60 +17,44 @@ import pe.edu.pucp.reuse.modelo.usuarios.AdministradorPUCP;
  */
 public abstract class ReporteDAOImpl<T extends Reporte> extends RegistroDAOImpl<T> {
 
-    // Columnas del supertipo que deben ir en el SELECT de cada subtipo.
-    protected static final String COLUMNAS_REPORTE = """
-            r.id_reporte, r.descripcion, r.fecha_registro, r.estado_revision, r.fecha_revision,
-            d.id_usuario AS denunciante_id, d.codigo_pucp AS denunciante_codigo,
-            d.nombres AS denunciante_nombres, d.apellido_paterno AS denunciante_apellido,
-            rv.id_usuario AS revisor_id, rv.codigo_pucp AS revisor_codigo,
-            rv.nombres AS revisor_nombres, rv.apellido_paterno AS revisor_apellido,
-            r.activo, r.fecha_creacion, r.fecha_modificacion, r.usuario_creacion, r.usuario_modificacion
-            """;
-
     // fecha_registro no se envia: la asigna la base de datos. Todo reporte nace PENDIENTE.
     protected int insertarReporte(Connection conn, T reporte) throws SQLException {
-        String sql = """
-                INSERT INTO reporte (descripcion, estado_revision, id_denunciante, activo, usuario_creacion)
-                VALUES (?, ?, ?, ?, ?)
-                """;
-        try (PreparedStatement cmd = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            cmd.setString(1, reporte.getDescripcion());
-            cmd.setString(2, reporte.getEstadoRevision().name());
-            cmd.setInt(3, reporte.getDenunciante().getIdUsuario());
-            cmd.setBoolean(4, reporte.isActivo());
-            cmd.setString(5, usuarioAuditoria(reporte.getUsuarioCreacion()));
-            if (cmd.executeUpdate() == 0) {
-                throw new SQLException("No se pudo insert el reporte");
-            }
-            reporte.setIdReporte(leerIdGenerado(cmd));
+        String sql = "{call insertar_reporte(?, ?, ?, ?, ?, ?)}";
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setString("p_descripcion", reporte.getDescripcion());
+            cmd.setString("p_estado_revision", reporte.getEstadoRevision().name());
+            cmd.setInt("p_id_denunciante", reporte.getDenunciante().getIdUsuario());
+            cmd.setBoolean("p_activo", reporte.isActivo());
+            cmd.setString("p_usuario_creacion", usuarioAuditoria(reporte.getUsuarioCreacion()));
+            cmd.registerOutParameter("p_id", Types.INTEGER);
+            cmd.execute();
+            reporte.setIdReporte(cmd.getInt("p_id"));
             return reporte.getIdReporte();
         }
     }
 
     // El estado de revision no se modifica aqui: solo cambia con resolver().
     protected int modificarReporte(Connection conn, T reporte) throws SQLException {
-        String sql = """
-                UPDATE reporte
-                SET descripcion = ?, id_denunciante = ?, activo = ?, usuario_modificacion = ?
-                WHERE id_reporte = ?
-                """;
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setString(1, reporte.getDescripcion());
-            cmd.setInt(2, reporte.getDenunciante().getIdUsuario());
-            cmd.setBoolean(3, reporte.isActivo());
-            cmd.setString(4, usuarioAuditoria(reporte.getUsuarioModificacion()));
-            cmd.setInt(5, reporte.getIdReporte());
-            return cmd.executeUpdate();
+        String sql = "{call modificar_reporte(?, ?, ?, ?, ?, ?)}";
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", reporte.getIdReporte());
+            cmd.setString("p_descripcion", reporte.getDescripcion());
+            cmd.setInt("p_id_denunciante", reporte.getDenunciante().getIdUsuario());
+            cmd.setBoolean("p_activo", reporte.isActivo());
+            cmd.setString("p_usuario_modificacion", usuarioAuditoria(reporte.getUsuarioModificacion()));
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
+            return cmd.getInt("p_filas");
         }
     }
 
     protected int eliminarReporte(Connection conn, int idReporte) throws SQLException {
-        String sql = """
-                UPDATE reporte SET activo = 0 WHERE id_reporte = ?
-                """;
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, idReporte);
-            return cmd.executeUpdate();
+        String sql = "{call eliminar_reporte(?, ?)}";
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", idReporte);
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
+            return cmd.getInt("p_filas");
         }
     }
 
@@ -82,17 +66,15 @@ public abstract class ReporteDAOImpl<T extends Reporte> extends RegistroDAOImpl<
         if (estado != EstadoRevisionReporte.SANCIONADO && estado != EstadoRevisionReporte.DESESTIMADO) {
             throw new IllegalArgumentException("Un reporte solo se resuelve SANCIONADO o DESESTIMADO");
         }
-        String sql = """
-                UPDATE reporte
-                SET estado_revision = ?, fecha_revision = CURRENT_TIMESTAMP, id_revisor = ?
-                WHERE id_reporte = ? AND estado_revision = 'PENDIENTE'
-                """;
+        String sql = "{call resolver_reporte(?, ?, ?, ?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setString(1, estado.name());
-            cmd.setInt(2, idRevisor);
-            cmd.setInt(3, idReporte);
-            return cmd.executeUpdate();
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", idReporte);
+            cmd.setString("p_estado_revision", estado.name());
+            cmd.setInt("p_id_revisor", idRevisor);
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
+            return cmd.getInt("p_filas");
         } finally {
             cerrarConexion(conn);
         }

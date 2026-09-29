@@ -1,10 +1,9 @@
 package pe.edu.pucp.reuse.dao.impl;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.sql.Types;
 
 import pe.edu.pucp.reuse.modelo.academico.Carrera;
@@ -13,86 +12,65 @@ import pe.edu.pucp.reuse.modelo.enums.EstadoCuenta;
 import pe.edu.pucp.reuse.modelo.usuarios.UsuarioPUCP;
 
 /**
- * Columnas y SQL de la tabla usuario, compartidos por UsuarioDAOImpl y
+ * Llamadas y mapeo de la tabla usuario, compartidos por UsuarioDAOImpl y
  * AdministradorDAOImpl (administrador es un subtipo de usuario).
- * La carrera y su facultad se traen con JOIN: la facultad se obtiene
- * navegando por la carrera, no se guarda en usuario.
+ * Los procedimientos traen la carrera y su facultad con JOIN: la facultad se
+ * obtiene navegando por la carrera, no se guarda en usuario.
  */
 public abstract class UsuarioBaseDAOImpl<T extends UsuarioPUCP> extends RegistroDAOImpl<T> {
 
-    protected static final String SELECT_USUARIO = """
-            SELECT u.id_usuario, u.codigo_pucp, u.nombres, u.apellido_paterno, u.apellido_materno,
-                   u.correo_institucional, u.contrasena, u.id_carrera, u.verificado, u.estado_cuenta,
-                   u.reputacion, u.contador_reportes, u.foto_perfil, u.fecha_registro,
-                   c.nombre AS carrera_nombre, c.id_facultad, f.nombre AS facultad_nombre,
-                   u.activo, u.fecha_creacion, u.fecha_modificacion, u.usuario_creacion, u.usuario_modificacion
-            FROM usuario u
-            LEFT JOIN carrera c ON c.id_carrera = u.id_carrera
-            LEFT JOIN facultad f ON f.id_facultad = c.id_facultad
-            """;
-
     // reputacion, contador_reportes y fecha_registro no se envian: los asigna la base
-    // de datos o los mantiene la capa de negocio con metodos propios.
+    // de datos o los mantiene la capa de negocio con procedimientos propios.
     protected int insertarUsuario(Connection conn, T usuario) throws SQLException {
-        String sql = """
-                INSERT INTO usuario (codigo_pucp, nombres, apellido_paterno, apellido_materno,
-                                     correo_institucional, contrasena, id_carrera, verificado,
-                                     estado_cuenta, foto_perfil, activo, usuario_creacion)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """;
-        try (PreparedStatement cmd = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        String sql = "{call insertar_usuario(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}";
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
             asignarDatosUsuario(cmd, usuario);
-            cmd.setString(12, usuarioAuditoria(usuario.getUsuarioCreacion()));
-            if (cmd.executeUpdate() == 0) {
-                throw new SQLException("No se pudo insert el usuario");
-            }
-            usuario.setIdUsuario(leerIdGenerado(cmd));
+            cmd.setString("p_usuario_creacion", usuarioAuditoria(usuario.getUsuarioCreacion()));
+            cmd.registerOutParameter("p_id", Types.INTEGER);
+            cmd.execute();
+            usuario.setIdUsuario(cmd.getInt("p_id"));
             return usuario.getIdUsuario();
         }
     }
 
     protected int modificarUsuario(Connection conn, T usuario) throws SQLException {
-        String sql = """
-                UPDATE usuario
-                SET codigo_pucp = ?, nombres = ?, apellido_paterno = ?, apellido_materno = ?,
-                    correo_institucional = ?, contrasena = ?, id_carrera = ?, verificado = ?,
-                    estado_cuenta = ?, foto_perfil = ?, activo = ?, usuario_modificacion = ?
-                WHERE id_usuario = ?
-                """;
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
+        String sql = "{call modificar_usuario(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}";
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", usuario.getIdUsuario());
             asignarDatosUsuario(cmd, usuario);
-            cmd.setString(12, usuarioAuditoria(usuario.getUsuarioModificacion()));
-            cmd.setInt(13, usuario.getIdUsuario());
-            return cmd.executeUpdate();
+            cmd.setString("p_usuario_modificacion", usuarioAuditoria(usuario.getUsuarioModificacion()));
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
+            return cmd.getInt("p_filas");
         }
     }
 
     protected int eliminarUsuario(Connection conn, int idUsuario) throws SQLException {
-        String sql = """
-                UPDATE usuario SET activo = 0 WHERE id_usuario = ?
-                """;
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, idUsuario);
-            return cmd.executeUpdate();
+        String sql = "{call eliminar_usuario(?, ?)}";
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", idUsuario);
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
+            return cmd.getInt("p_filas");
         }
     }
 
-    private void asignarDatosUsuario(PreparedStatement cmd, T usuario) throws SQLException {
-        cmd.setString(1, usuario.getCodigoPUCP());
-        cmd.setString(2, usuario.getNombres());
-        cmd.setString(3, usuario.getApellidoPaterno());
-        cmd.setString(4, usuario.getApellidoMaterno());
-        cmd.setString(5, usuario.getCorreoInstitucional());
-        cmd.setString(6, usuario.getContrasena());
+    private void asignarDatosUsuario(CallableStatement cmd, T usuario) throws SQLException {
+        cmd.setString("p_codigo_pucp", usuario.getCodigoPUCP());
+        cmd.setString("p_nombres", usuario.getNombres());
+        cmd.setString("p_apellido_paterno", usuario.getApellidoPaterno());
+        cmd.setString("p_apellido_materno", usuario.getApellidoMaterno());
+        cmd.setString("p_correo_institucional", usuario.getCorreoInstitucional());
+        cmd.setString("p_contrasena", usuario.getContrasena());
         if (usuario.getCarrera() != null) {
-            cmd.setInt(7, usuario.getCarrera().getIdCarrera());
+            cmd.setInt("p_id_carrera", usuario.getCarrera().getIdCarrera());
         } else {
-            cmd.setNull(7, Types.INTEGER);
+            cmd.setNull("p_id_carrera", Types.INTEGER);
         }
-        cmd.setBoolean(8, usuario.isVerificado());
-        cmd.setString(9, usuario.getEstadoCuenta().name());
-        cmd.setString(10, usuario.getFotoPerfil());
-        cmd.setBoolean(11, usuario.isActivo());
+        cmd.setBoolean("p_verificado", usuario.isVerificado());
+        cmd.setString("p_estado_cuenta", usuario.getEstadoCuenta().name());
+        cmd.setString("p_foto_perfil", usuario.getFotoPerfil());
+        cmd.setBoolean("p_activo", usuario.isActivo());
     }
 
     @Override

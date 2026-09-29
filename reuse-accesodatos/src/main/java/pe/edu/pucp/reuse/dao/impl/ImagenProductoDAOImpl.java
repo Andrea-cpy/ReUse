@@ -1,10 +1,10 @@
 package pe.edu.pucp.reuse.dao.impl;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.Types;
 import java.util.ArrayList;
 
 import pe.edu.pucp.reuse.dao.ImagenProductoDAO;
@@ -12,36 +12,23 @@ import pe.edu.pucp.reuse.modelo.catalogo.ImagenProducto;
 
 public class ImagenProductoDAOImpl extends RegistroDAOImpl<ImagenProducto> implements ImagenProductoDAO {
 
-    private static final String SELECT_BASE = """
-            SELECT i.id_imagen, i.url, i.peso_bytes, i.formato,
-                   a.id_anuncio AS anuncio_id, a.titulo AS anuncio_titulo, a.precio AS anuncio_precio,
-                   a.estado AS anuncio_estado, a.id_vendedor AS anuncio_id_vendedor,
-                   i.activo, i.fecha_creacion, i.fecha_modificacion, i.usuario_creacion, i.usuario_modificacion
-            FROM imagen_producto i
-            JOIN anuncio a ON a.id_anuncio = i.id_anuncio
-            """;
-
     @Override
     public int insert(ImagenProducto imagen) throws SQLException {
         if (imagen == null) {
             throw new IllegalArgumentException("La imagen no puede ser nula");
         }
-        String sql = """
-                INSERT INTO imagen_producto (url, peso_bytes, formato, id_anuncio, activo, usuario_creacion)
-                VALUES (?, ?, ?, ?, ?, ?)
-                """;
+        String sql = "{call insertar_imagen_producto(?, ?, ?, ?, ?, ?, ?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            cmd.setString(1, imagen.getUrl());
-            cmd.setLong(2, imagen.getPesoBytes());
-            cmd.setString(3, imagen.getFormato());
-            cmd.setInt(4, imagen.getAnuncio().getIdAnuncio());
-            cmd.setBoolean(5, imagen.isActivo());
-            cmd.setString(6, usuarioAuditoria(imagen.getUsuarioCreacion()));
-            if (cmd.executeUpdate() == 0) {
-                throw new SQLException("No se pudo insert la imagen");
-            }
-            imagen.setIdImagen(leerIdGenerado(cmd));
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setString("p_url", imagen.getUrl());
+            cmd.setLong("p_peso_bytes", imagen.getPesoBytes());
+            cmd.setString("p_formato", imagen.getFormato());
+            cmd.setInt("p_id_anuncio", imagen.getAnuncio().getIdAnuncio());
+            cmd.setBoolean("p_activo", imagen.isActivo());
+            cmd.setString("p_usuario_creacion", usuarioAuditoria(imagen.getUsuarioCreacion()));
+            cmd.registerOutParameter("p_id", Types.INTEGER);
+            cmd.execute();
+            imagen.setIdImagen(cmd.getInt("p_id"));
             return imagen.getIdImagen();
         } finally {
             cerrarConexion(conn);
@@ -53,21 +40,19 @@ public class ImagenProductoDAOImpl extends RegistroDAOImpl<ImagenProducto> imple
         if (imagen == null) {
             throw new IllegalArgumentException("La imagen no puede ser nula");
         }
-        String sql = """
-                UPDATE imagen_producto
-                SET url = ?, peso_bytes = ?, formato = ?, id_anuncio = ?, activo = ?, usuario_modificacion = ?
-                WHERE id_imagen = ?
-                """;
+        String sql = "{call modificar_imagen_producto(?, ?, ?, ?, ?, ?, ?, ?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setString(1, imagen.getUrl());
-            cmd.setLong(2, imagen.getPesoBytes());
-            cmd.setString(3, imagen.getFormato());
-            cmd.setInt(4, imagen.getAnuncio().getIdAnuncio());
-            cmd.setBoolean(5, imagen.isActivo());
-            cmd.setString(6, usuarioAuditoria(imagen.getUsuarioModificacion()));
-            cmd.setInt(7, imagen.getIdImagen());
-            return cmd.executeUpdate();
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", imagen.getIdImagen());
+            cmd.setString("p_url", imagen.getUrl());
+            cmd.setLong("p_peso_bytes", imagen.getPesoBytes());
+            cmd.setString("p_formato", imagen.getFormato());
+            cmd.setInt("p_id_anuncio", imagen.getAnuncio().getIdAnuncio());
+            cmd.setBoolean("p_activo", imagen.isActivo());
+            cmd.setString("p_usuario_modificacion", usuarioAuditoria(imagen.getUsuarioModificacion()));
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
+            return cmd.getInt("p_filas");
         } finally {
             cerrarConexion(conn);
         }
@@ -75,13 +60,13 @@ public class ImagenProductoDAOImpl extends RegistroDAOImpl<ImagenProducto> imple
 
     @Override
     public int delete(int idImagen) throws SQLException {
-        String sql = """
-                UPDATE imagen_producto SET activo = 0 WHERE id_imagen = ?
-                """;
+        String sql = "{call eliminar_imagen_producto(?, ?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, idImagen);
-            return cmd.executeUpdate();
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", idImagen);
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
+            return cmd.getInt("p_filas");
         } finally {
             cerrarConexion(conn);
         }
@@ -89,10 +74,10 @@ public class ImagenProductoDAOImpl extends RegistroDAOImpl<ImagenProducto> imple
 
     @Override
     public ImagenProducto findById(int idImagen) throws SQLException {
-        String sql = SELECT_BASE + "WHERE i.id_imagen = ?";
+        String sql = "{call buscar_imagen_producto_por_id(?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, idImagen);
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", idImagen);
             try (ResultSet rs = cmd.executeQuery()) {
                 return rs.next() ? mapear(rs, new ImagenProducto()) : null;
             }
@@ -103,9 +88,9 @@ public class ImagenProductoDAOImpl extends RegistroDAOImpl<ImagenProducto> imple
 
     @Override
     public ArrayList<ImagenProducto> findAll() throws SQLException {
-        String sql = SELECT_BASE + "WHERE i.activo = 1 ORDER BY i.id_anuncio, i.id_imagen";
+        String sql = "{call listar_imagenes_producto()}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql);
+        try (CallableStatement cmd = conn.prepareCall(sql);
              ResultSet rs = cmd.executeQuery()) {
             ArrayList<ImagenProducto> imagenes = new ArrayList<>();
             while (rs.next()) {
@@ -119,10 +104,10 @@ public class ImagenProductoDAOImpl extends RegistroDAOImpl<ImagenProducto> imple
 
     @Override
     public ArrayList<ImagenProducto> listarPorAnuncio(int idAnuncio) throws SQLException {
-        String sql = SELECT_BASE + "WHERE i.id_anuncio = ? AND i.activo = 1 ORDER BY i.id_imagen";
+        String sql = "{call listar_imagenes_por_anuncio(?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, idAnuncio);
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id_anuncio", idAnuncio);
             try (ResultSet rs = cmd.executeQuery()) {
                 ArrayList<ImagenProducto> imagenes = new ArrayList<>();
                 while (rs.next()) {
@@ -137,13 +122,13 @@ public class ImagenProductoDAOImpl extends RegistroDAOImpl<ImagenProducto> imple
 
     @Override
     public int eliminarPorAnuncio(int idAnuncio) throws SQLException {
-        String sql = """
-                UPDATE imagen_producto SET activo = 0 WHERE id_anuncio = ?
-                """;
+        String sql = "{call eliminar_imagenes_por_anuncio(?, ?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, idAnuncio);
-            return cmd.executeUpdate();
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id_anuncio", idAnuncio);
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
+            return cmd.getInt("p_filas");
         } finally {
             cerrarConexion(conn);
         }

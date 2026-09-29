@@ -1,9 +1,10 @@
 package pe.edu.pucp.reuse.dao.impl;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
 
 import pe.edu.pucp.reuse.dao.UsuarioDAO;
@@ -51,10 +52,10 @@ public class UsuarioDAOImpl extends UsuarioBaseDAOImpl<UsuarioPUCP> implements U
 
     @Override
     public UsuarioPUCP findById(int idUsuario) throws SQLException {
-        String sql = SELECT_USUARIO + "WHERE u.id_usuario = ?";
+        String sql = "{call buscar_usuario_por_id(?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, idUsuario);
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", idUsuario);
             try (ResultSet rs = cmd.executeQuery()) {
                 return rs.next() ? mapear(rs, new UsuarioPUCP()) : null;
             }
@@ -65,9 +66,9 @@ public class UsuarioDAOImpl extends UsuarioBaseDAOImpl<UsuarioPUCP> implements U
 
     @Override
     public ArrayList<UsuarioPUCP> findAll() throws SQLException {
-        String sql = SELECT_USUARIO + "WHERE u.activo = 1 ORDER BY u.apellido_paterno, u.nombres";
+        String sql = "{call listar_usuarios()}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql);
+        try (CallableStatement cmd = conn.prepareCall(sql);
              ResultSet rs = cmd.executeQuery()) {
             ArrayList<UsuarioPUCP> usuarios = new ArrayList<>();
             while (rs.next()) {
@@ -84,10 +85,10 @@ public class UsuarioDAOImpl extends UsuarioBaseDAOImpl<UsuarioPUCP> implements U
         if (correoInstitucional == null) {
             throw new IllegalArgumentException("El correo no puede ser nulo");
         }
-        String sql = SELECT_USUARIO + "WHERE u.correo_institucional = ?";
+        String sql = "{call buscar_usuario_por_correo(?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setString(1, correoInstitucional);
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setString("p_correo_institucional", correoInstitucional);
             try (ResultSet rs = cmd.executeQuery()) {
                 return rs.next() ? mapear(rs, new UsuarioPUCP()) : null;
             }
@@ -101,10 +102,10 @@ public class UsuarioDAOImpl extends UsuarioBaseDAOImpl<UsuarioPUCP> implements U
         if (codigoPUCP == null) {
             throw new IllegalArgumentException("El codigo PUCP no puede ser nulo");
         }
-        String sql = SELECT_USUARIO + "WHERE u.codigo_pucp = ?";
+        String sql = "{call buscar_usuario_por_codigo(?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setString(1, codigoPUCP);
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setString("p_codigo_pucp", codigoPUCP);
             try (ResultSet rs = cmd.executeQuery()) {
                 return rs.next() ? mapear(rs, new UsuarioPUCP()) : null;
             }
@@ -118,14 +119,14 @@ public class UsuarioDAOImpl extends UsuarioBaseDAOImpl<UsuarioPUCP> implements U
         if (estadoCuenta == null) {
             throw new IllegalArgumentException("El estado de cuenta no puede ser nulo");
         }
-        String sql = """
-                UPDATE usuario SET estado_cuenta = ? WHERE id_usuario = ?
-                """;
+        String sql = "{call actualizar_estado_cuenta(?, ?, ?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setString(1, estadoCuenta.name());
-            cmd.setInt(2, idUsuario);
-            return cmd.executeUpdate();
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", idUsuario);
+            cmd.setString("p_estado_cuenta", estadoCuenta.name());
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
+            return cmd.getInt("p_filas");
         } finally {
             cerrarConexion(conn);
         }
@@ -133,16 +134,14 @@ public class UsuarioDAOImpl extends UsuarioBaseDAOImpl<UsuarioPUCP> implements U
 
     @Override
     public int actualizarContadorReportes(int idUsuario, int variacion) throws SQLException {
-        String sql = """
-                UPDATE usuario
-                SET contador_reportes = GREATEST(contador_reportes + ?, 0)
-                WHERE id_usuario = ?
-                """;
+        String sql = "{call actualizar_contador_reportes(?, ?, ?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, variacion);
-            cmd.setInt(2, idUsuario);
-            return cmd.executeUpdate();
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", idUsuario);
+            cmd.setInt("p_variacion", variacion);
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
+            return cmd.getInt("p_filas");
         } finally {
             cerrarConexion(conn);
         }
@@ -150,18 +149,13 @@ public class UsuarioDAOImpl extends UsuarioBaseDAOImpl<UsuarioPUCP> implements U
 
     @Override
     public int recalcularReputacion(int idUsuario) throws SQLException {
-        String sql = """
-                UPDATE usuario
-                SET reputacion = (SELECT COALESCE(ROUND(AVG(c.puntaje), 2), 0)
-                                  FROM calificacion c
-                                  WHERE c.id_calificado = ? AND c.activo = 1)
-                WHERE id_usuario = ?
-                """;
+        String sql = "{call recalcular_reputacion(?, ?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, idUsuario);
-            cmd.setInt(2, idUsuario);
-            return cmd.executeUpdate();
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", idUsuario);
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
+            return cmd.getInt("p_filas");
         } finally {
             cerrarConexion(conn);
         }
@@ -172,47 +166,14 @@ public class UsuarioDAOImpl extends UsuarioBaseDAOImpl<UsuarioPUCP> implements U
         if (metrica == null) {
             throw new IllegalArgumentException("La metrica no puede ser nula");
         }
-        String sql = switch (metrica) {
-            case VENTAS_COMPLETADAS -> """
-                    SELECT COUNT(*) FROM transaccion t
-                    JOIN anuncio a ON a.id_anuncio = t.id_anuncio
-                    WHERE a.id_vendedor = ? AND t.estado = 'COMPLETADA' AND t.activo = 1
-                    """;
-            case COMPRAS_COMPLETADAS -> """
-                    SELECT COUNT(*) FROM transaccion t
-                    WHERE t.id_comprador = ? AND t.estado = 'COMPLETADA' AND t.activo = 1
-                    """;
-            case TRANSACCIONES_COMPLETADAS -> """
-                    SELECT COUNT(*) FROM transaccion t
-                    JOIN anuncio a ON a.id_anuncio = t.id_anuncio
-                    WHERE (a.id_vendedor = ? OR t.id_comprador = ?)
-                      AND t.estado = 'COMPLETADA' AND t.activo = 1
-                    """;
-            case CALIFICACION_PROMEDIO -> """
-                    SELECT COALESCE(AVG(c.puntaje), 0) FROM calificacion c
-                    WHERE c.id_calificado = ? AND c.activo = 1
-                    """;
-            case REPORTES_SANCIONADOS -> """
-                    SELECT COUNT(*) FROM reporte r
-                    JOIN reporte_usuario ru ON ru.id_reporte = r.id_reporte
-                    WHERE ru.id_denunciado = ? AND r.estado_revision = 'SANCIONADO' AND r.activo = 1
-                    """;
-            case INASISTENCIAS_SANCIONADAS -> """
-                    SELECT COUNT(*) FROM reporte r
-                    JOIN reporte_usuario ru ON ru.id_reporte = r.id_reporte
-                    WHERE ru.id_denunciado = ? AND r.estado_revision = 'SANCIONADO' AND r.activo = 1
-                      AND ru.motivo = 'NO_SE_PRESENTO_A_LA_CITA'
-                    """;
-        };
+        String sql = "{call obtener_metrica_usuario(?, ?, ?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, idUsuario);
-            if (metrica == TipoMetricaInsignia.TRANSACCIONES_COMPLETADAS) {
-                cmd.setInt(2, idUsuario);
-            }
-            try (ResultSet rs = cmd.executeQuery()) {
-                return rs.next() ? rs.getDouble(1) : 0;
-            }
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", idUsuario);
+            cmd.setString("p_metrica", metrica.name());
+            cmd.registerOutParameter("p_valor", Types.DOUBLE);
+            cmd.execute();
+            return cmd.getDouble("p_valor");
         } finally {
             cerrarConexion(conn);
         }

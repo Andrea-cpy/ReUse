@@ -1,10 +1,9 @@
 package pe.edu.pucp.reuse.dao.impl;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
 
@@ -18,53 +17,30 @@ import pe.edu.pucp.reuse.modelo.transacciones.Transaccion;
 
 public class TransaccionDAOImpl extends RegistroDAOImpl<Transaccion> implements TransaccionDAO {
 
-    // La cita se trae con LEFT JOIN: cita_entrega.id_transaccion es UNIQUE (a lo mas una cita).
-    private static final String SELECT_BASE = """
-            SELECT t.id_transaccion, t.fecha_inicio, t.fecha_fin, t.estado,
-                   t.confirmacion_comprador, t.confirmacion_vendedor,
-                   a.id_anuncio AS anuncio_id, a.titulo AS anuncio_titulo, a.precio AS anuncio_precio,
-                   a.estado AS anuncio_estado, a.id_vendedor AS anuncio_id_vendedor,
-                   u.id_usuario AS comprador_id, u.codigo_pucp AS comprador_codigo,
-                   u.nombres AS comprador_nombres, u.apellido_paterno AS comprador_apellido,
-                   t.id_oferta, o.monto_propuesto AS oferta_monto, o.estado AS oferta_estado,
-                   ce.id_cita, ce.fecha_hora AS cita_fecha_hora, ce.estado AS cita_estado,
-                   t.activo, t.fecha_creacion, t.fecha_modificacion, t.usuario_creacion, t.usuario_modificacion
-            FROM transaccion t
-            JOIN anuncio a ON a.id_anuncio = t.id_anuncio
-            JOIN usuario u ON u.id_usuario = t.id_comprador
-            LEFT JOIN oferta o ON o.id_oferta = t.id_oferta
-            LEFT JOIN cita_entrega ce ON ce.id_transaccion = t.id_transaccion AND ce.activo = 1
-            """;
-
     // fecha_inicio no se envia: la asigna la base de datos (DEFAULT CURRENT_TIMESTAMP).
     @Override
     public int insert(Transaccion transaccion) throws SQLException {
         if (transaccion == null) {
             throw new IllegalArgumentException("La transaccion no puede ser nula");
         }
-        String sql = """
-                INSERT INTO transaccion (estado, confirmacion_comprador, confirmacion_vendedor, id_anuncio,
-                                         id_comprador, id_oferta, activo, usuario_creacion)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """;
+        String sql = "{call insertar_transaccion(?, ?, ?, ?, ?, ?, ?, ?, ?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            cmd.setString(1, transaccion.getEstado().name());
-            cmd.setBoolean(2, transaccion.isConfirmacionComprador());
-            cmd.setBoolean(3, transaccion.isConfirmacionVendedor());
-            cmd.setInt(4, transaccion.getAnuncio().getIdAnuncio());
-            cmd.setInt(5, transaccion.getComprador().getIdUsuario());
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setString("p_estado", transaccion.getEstado().name());
+            cmd.setBoolean("p_confirmacion_comprador", transaccion.isConfirmacionComprador());
+            cmd.setBoolean("p_confirmacion_vendedor", transaccion.isConfirmacionVendedor());
+            cmd.setInt("p_id_anuncio", transaccion.getAnuncio().getIdAnuncio());
+            cmd.setInt("p_id_comprador", transaccion.getComprador().getIdUsuario());
             if (transaccion.getOferta() != null) {
-                cmd.setInt(6, transaccion.getOferta().getIdOferta());
+                cmd.setInt("p_id_oferta", transaccion.getOferta().getIdOferta());
             } else {
-                cmd.setNull(6, Types.INTEGER);
+                cmd.setNull("p_id_oferta", Types.INTEGER);
             }
-            cmd.setBoolean(7, transaccion.isActivo());
-            cmd.setString(8, usuarioAuditoria(transaccion.getUsuarioCreacion()));
-            if (cmd.executeUpdate() == 0) {
-                throw new SQLException("No se pudo insert la transaccion");
-            }
-            transaccion.setIdTransaccion(leerIdGenerado(cmd));
+            cmd.setBoolean("p_activo", transaccion.isActivo());
+            cmd.setString("p_usuario_creacion", usuarioAuditoria(transaccion.getUsuarioCreacion()));
+            cmd.registerOutParameter("p_id", Types.INTEGER);
+            cmd.execute();
+            transaccion.setIdTransaccion(cmd.getInt("p_id"));
             return transaccion.getIdTransaccion();
         } finally {
             cerrarConexion(conn);
@@ -77,28 +53,25 @@ public class TransaccionDAOImpl extends RegistroDAOImpl<Transaccion> implements 
         if (transaccion == null) {
             throw new IllegalArgumentException("La transaccion no puede ser nula");
         }
-        String sql = """
-                UPDATE transaccion
-                SET estado = ?, confirmacion_comprador = ?, confirmacion_vendedor = ?, id_anuncio = ?,
-                    id_comprador = ?, id_oferta = ?, activo = ?, usuario_modificacion = ?
-                WHERE id_transaccion = ?
-                """;
+        String sql = "{call modificar_transaccion(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setString(1, transaccion.getEstado().name());
-            cmd.setBoolean(2, transaccion.isConfirmacionComprador());
-            cmd.setBoolean(3, transaccion.isConfirmacionVendedor());
-            cmd.setInt(4, transaccion.getAnuncio().getIdAnuncio());
-            cmd.setInt(5, transaccion.getComprador().getIdUsuario());
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", transaccion.getIdTransaccion());
+            cmd.setString("p_estado", transaccion.getEstado().name());
+            cmd.setBoolean("p_confirmacion_comprador", transaccion.isConfirmacionComprador());
+            cmd.setBoolean("p_confirmacion_vendedor", transaccion.isConfirmacionVendedor());
+            cmd.setInt("p_id_anuncio", transaccion.getAnuncio().getIdAnuncio());
+            cmd.setInt("p_id_comprador", transaccion.getComprador().getIdUsuario());
             if (transaccion.getOferta() != null) {
-                cmd.setInt(6, transaccion.getOferta().getIdOferta());
+                cmd.setInt("p_id_oferta", transaccion.getOferta().getIdOferta());
             } else {
-                cmd.setNull(6, Types.INTEGER);
+                cmd.setNull("p_id_oferta", Types.INTEGER);
             }
-            cmd.setBoolean(7, transaccion.isActivo());
-            cmd.setString(8, usuarioAuditoria(transaccion.getUsuarioModificacion()));
-            cmd.setInt(9, transaccion.getIdTransaccion());
-            return cmd.executeUpdate();
+            cmd.setBoolean("p_activo", transaccion.isActivo());
+            cmd.setString("p_usuario_modificacion", usuarioAuditoria(transaccion.getUsuarioModificacion()));
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
+            return cmd.getInt("p_filas");
         } finally {
             cerrarConexion(conn);
         }
@@ -106,13 +79,13 @@ public class TransaccionDAOImpl extends RegistroDAOImpl<Transaccion> implements 
 
     @Override
     public int delete(int idTransaccion) throws SQLException {
-        String sql = """
-                UPDATE transaccion SET activo = 0 WHERE id_transaccion = ?
-                """;
+        String sql = "{call eliminar_transaccion(?, ?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, idTransaccion);
-            return cmd.executeUpdate();
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", idTransaccion);
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
+            return cmd.getInt("p_filas");
         } finally {
             cerrarConexion(conn);
         }
@@ -120,10 +93,10 @@ public class TransaccionDAOImpl extends RegistroDAOImpl<Transaccion> implements 
 
     @Override
     public Transaccion findById(int idTransaccion) throws SQLException {
-        String sql = SELECT_BASE + "WHERE t.id_transaccion = ?";
+        String sql = "{call buscar_transaccion_por_id(?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, idTransaccion);
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", idTransaccion);
             try (ResultSet rs = cmd.executeQuery()) {
                 return rs.next() ? mapear(rs, new Transaccion()) : null;
             }
@@ -134,9 +107,9 @@ public class TransaccionDAOImpl extends RegistroDAOImpl<Transaccion> implements 
 
     @Override
     public ArrayList<Transaccion> findAll() throws SQLException {
-        String sql = SELECT_BASE + "WHERE t.activo = 1 ORDER BY t.fecha_inicio DESC";
+        String sql = "{call listar_transacciones()}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql);
+        try (CallableStatement cmd = conn.prepareCall(sql);
              ResultSet rs = cmd.executeQuery()) {
             ArrayList<Transaccion> transacciones = new ArrayList<>();
             while (rs.next()) {
@@ -153,14 +126,14 @@ public class TransaccionDAOImpl extends RegistroDAOImpl<Transaccion> implements 
         if (estado == null) {
             throw new IllegalArgumentException("El estado no puede ser nulo");
         }
-        String sql = """
-                UPDATE transaccion SET estado = ? WHERE id_transaccion = ?
-                """;
+        String sql = "{call cambiar_estado_transaccion(?, ?, ?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setString(1, estado.name());
-            cmd.setInt(2, idTransaccion);
-            return cmd.executeUpdate();
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", idTransaccion);
+            cmd.setString("p_estado", estado.name());
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
+            return cmd.getInt("p_filas");
         } finally {
             cerrarConexion(conn);
         }
@@ -171,14 +144,14 @@ public class TransaccionDAOImpl extends RegistroDAOImpl<Transaccion> implements 
         if (estadoFinal != EstadoTransaccion.COMPLETADA && estadoFinal != EstadoTransaccion.CANCELADA) {
             throw new IllegalArgumentException("Una transaccion solo finaliza COMPLETADA o CANCELADA");
         }
-        String sql = """
-                UPDATE transaccion SET estado = ?, fecha_fin = CURRENT_TIMESTAMP WHERE id_transaccion = ?
-                """;
+        String sql = "{call finalizar_transaccion(?, ?, ?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setString(1, estadoFinal.name());
-            cmd.setInt(2, idTransaccion);
-            return cmd.executeUpdate();
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", idTransaccion);
+            cmd.setString("p_estado", estadoFinal.name());
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
+            return cmd.getInt("p_filas");
         } finally {
             cerrarConexion(conn);
         }
@@ -186,13 +159,14 @@ public class TransaccionDAOImpl extends RegistroDAOImpl<Transaccion> implements 
 
     @Override
     public int registrarConfirmacion(int idTransaccion, boolean delComprador) throws SQLException {
-        String sql = delComprador
-                ? "UPDATE transaccion SET confirmacion_comprador = 1 WHERE id_transaccion = ?"
-                : "UPDATE transaccion SET confirmacion_vendedor = 1 WHERE id_transaccion = ?";
+        String sql = "{call registrar_confirmacion_transaccion(?, ?, ?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, idTransaccion);
-            return cmd.executeUpdate();
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", idTransaccion);
+            cmd.setBoolean("p_del_comprador", delComprador);
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
+            return cmd.getInt("p_filas");
         } finally {
             cerrarConexion(conn);
         }
@@ -200,10 +174,10 @@ public class TransaccionDAOImpl extends RegistroDAOImpl<Transaccion> implements 
 
     @Override
     public ArrayList<Transaccion> listarPorAnuncio(int idAnuncio) throws SQLException {
-        String sql = SELECT_BASE + "WHERE t.id_anuncio = ? AND t.activo = 1 ORDER BY t.fecha_inicio";
+        String sql = "{call listar_transacciones_por_anuncio(?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, idAnuncio);
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id_anuncio", idAnuncio);
             try (ResultSet rs = cmd.executeQuery()) {
                 ArrayList<Transaccion> transacciones = new ArrayList<>();
                 while (rs.next()) {

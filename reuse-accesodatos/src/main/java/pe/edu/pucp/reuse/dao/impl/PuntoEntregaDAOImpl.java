@@ -1,10 +1,10 @@
 package pe.edu.pucp.reuse.dao.impl;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.Types;
 import java.util.ArrayList;
 
 import pe.edu.pucp.reuse.dao.PuntoEntregaDAO;
@@ -12,32 +12,22 @@ import pe.edu.pucp.reuse.modelo.transacciones.PuntoEntrega;
 
 public class PuntoEntregaDAOImpl extends RegistroDAOImpl<PuntoEntrega> implements PuntoEntregaDAO {
 
-    private static final String SELECT_BASE = """
-            SELECT id_punto_entrega, nombre, referencia, ubicacion,
-                   activo, fecha_creacion, fecha_modificacion, usuario_creacion, usuario_modificacion
-            FROM punto_entrega
-            """;
-
     @Override
     public int insert(PuntoEntrega punto) throws SQLException {
         if (punto == null) {
             throw new IllegalArgumentException("El punto de entrega no puede ser nulo");
         }
-        String sql = """
-                INSERT INTO punto_entrega (nombre, referencia, ubicacion, activo, usuario_creacion)
-                VALUES (?, ?, ?, ?, ?)
-                """;
+        String sql = "{call insertar_punto_entrega(?, ?, ?, ?, ?, ?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            cmd.setString(1, punto.getNombre());
-            cmd.setString(2, punto.getReferencia());
-            cmd.setString(3, punto.getUbicacion());
-            cmd.setBoolean(4, punto.isActivo());
-            cmd.setString(5, usuarioAuditoria(punto.getUsuarioCreacion()));
-            if (cmd.executeUpdate() == 0) {
-                throw new SQLException("No se pudo insert el punto de entrega");
-            }
-            punto.setIdPuntoEntrega(leerIdGenerado(cmd));
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setString("p_nombre", punto.getNombre());
+            cmd.setString("p_referencia", punto.getReferencia());
+            cmd.setString("p_ubicacion", punto.getUbicacion());
+            cmd.setBoolean("p_activo", punto.isActivo());
+            cmd.setString("p_usuario_creacion", usuarioAuditoria(punto.getUsuarioCreacion()));
+            cmd.registerOutParameter("p_id", Types.INTEGER);
+            cmd.execute();
+            punto.setIdPuntoEntrega(cmd.getInt("p_id"));
             return punto.getIdPuntoEntrega();
         } finally {
             cerrarConexion(conn);
@@ -49,20 +39,18 @@ public class PuntoEntregaDAOImpl extends RegistroDAOImpl<PuntoEntrega> implement
         if (punto == null) {
             throw new IllegalArgumentException("El punto de entrega no puede ser nulo");
         }
-        String sql = """
-                UPDATE punto_entrega
-                SET nombre = ?, referencia = ?, ubicacion = ?, activo = ?, usuario_modificacion = ?
-                WHERE id_punto_entrega = ?
-                """;
+        String sql = "{call modificar_punto_entrega(?, ?, ?, ?, ?, ?, ?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setString(1, punto.getNombre());
-            cmd.setString(2, punto.getReferencia());
-            cmd.setString(3, punto.getUbicacion());
-            cmd.setBoolean(4, punto.isActivo());
-            cmd.setString(5, usuarioAuditoria(punto.getUsuarioModificacion()));
-            cmd.setInt(6, punto.getIdPuntoEntrega());
-            return cmd.executeUpdate();
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", punto.getIdPuntoEntrega());
+            cmd.setString("p_nombre", punto.getNombre());
+            cmd.setString("p_referencia", punto.getReferencia());
+            cmd.setString("p_ubicacion", punto.getUbicacion());
+            cmd.setBoolean("p_activo", punto.isActivo());
+            cmd.setString("p_usuario_modificacion", usuarioAuditoria(punto.getUsuarioModificacion()));
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
+            return cmd.getInt("p_filas");
         } finally {
             cerrarConexion(conn);
         }
@@ -70,13 +58,13 @@ public class PuntoEntregaDAOImpl extends RegistroDAOImpl<PuntoEntrega> implement
 
     @Override
     public int delete(int idPuntoEntrega) throws SQLException {
-        String sql = """
-                UPDATE punto_entrega SET activo = 0 WHERE id_punto_entrega = ?
-                """;
+        String sql = "{call eliminar_punto_entrega(?, ?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, idPuntoEntrega);
-            return cmd.executeUpdate();
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", idPuntoEntrega);
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
+            return cmd.getInt("p_filas");
         } finally {
             cerrarConexion(conn);
         }
@@ -84,10 +72,10 @@ public class PuntoEntregaDAOImpl extends RegistroDAOImpl<PuntoEntrega> implement
 
     @Override
     public PuntoEntrega findById(int idPuntoEntrega) throws SQLException {
-        String sql = SELECT_BASE + "WHERE id_punto_entrega = ?";
+        String sql = "{call buscar_punto_entrega_por_id(?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, idPuntoEntrega);
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", idPuntoEntrega);
             try (ResultSet rs = cmd.executeQuery()) {
                 return rs.next() ? mapear(rs, new PuntoEntrega()) : null;
             }
@@ -98,9 +86,9 @@ public class PuntoEntregaDAOImpl extends RegistroDAOImpl<PuntoEntrega> implement
 
     @Override
     public ArrayList<PuntoEntrega> findAll() throws SQLException {
-        String sql = SELECT_BASE + "WHERE activo = 1 ORDER BY nombre";
+        String sql = "{call listar_puntos_entrega()}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql);
+        try (CallableStatement cmd = conn.prepareCall(sql);
              ResultSet rs = cmd.executeQuery()) {
             ArrayList<PuntoEntrega> puntos = new ArrayList<>();
             while (rs.next()) {
@@ -117,10 +105,10 @@ public class PuntoEntregaDAOImpl extends RegistroDAOImpl<PuntoEntrega> implement
         if (nombre == null) {
             throw new IllegalArgumentException("El nombre no puede ser nulo");
         }
-        String sql = SELECT_BASE + "WHERE nombre = ?";
+        String sql = "{call buscar_punto_entrega_por_nombre(?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setString(1, nombre);
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setString("p_nombre", nombre);
             try (ResultSet rs = cmd.executeQuery()) {
                 return rs.next() ? mapear(rs, new PuntoEntrega()) : null;
             }

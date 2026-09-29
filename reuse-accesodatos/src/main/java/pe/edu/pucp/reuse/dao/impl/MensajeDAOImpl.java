@@ -1,10 +1,10 @@
 package pe.edu.pucp.reuse.dao.impl;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.Types;
 import java.util.ArrayList;
 
 import pe.edu.pucp.reuse.dao.MensajeDAO;
@@ -14,39 +14,24 @@ import pe.edu.pucp.reuse.modelo.mensajeria.Mensaje;
 
 public class MensajeDAOImpl extends RegistroDAOImpl<Mensaje> implements MensajeDAO {
 
-    private static final String SELECT_BASE = """
-            SELECT me.id_mensaje, me.contenido, me.fecha_hora, me.leido,
-                   me.id_chat, ch.estado AS chat_estado,
-                   u.id_usuario AS emisor_id, u.codigo_pucp AS emisor_codigo,
-                   u.nombres AS emisor_nombres, u.apellido_paterno AS emisor_apellido,
-                   me.activo, me.fecha_creacion, me.fecha_modificacion, me.usuario_creacion, me.usuario_modificacion
-            FROM mensaje me
-            JOIN canal_chat ch ON ch.id_chat = me.id_chat
-            JOIN usuario u ON u.id_usuario = me.id_emisor
-            """;
-
     // fecha_hora no se envia: la asigna la base de datos (DEFAULT CURRENT_TIMESTAMP).
     @Override
     public int insert(Mensaje mensaje) throws SQLException {
         if (mensaje == null) {
             throw new IllegalArgumentException("El mensaje no puede ser nulo");
         }
-        String sql = """
-                INSERT INTO mensaje (contenido, leido, id_chat, id_emisor, activo, usuario_creacion)
-                VALUES (?, ?, ?, ?, ?, ?)
-                """;
+        String sql = "{call insertar_mensaje(?, ?, ?, ?, ?, ?, ?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            cmd.setString(1, mensaje.getContenido());
-            cmd.setBoolean(2, mensaje.isLeido());
-            cmd.setInt(3, mensaje.getCanalChat().getIdChat());
-            cmd.setInt(4, mensaje.getEmisor().getIdUsuario());
-            cmd.setBoolean(5, mensaje.isActivo());
-            cmd.setString(6, usuarioAuditoria(mensaje.getUsuarioCreacion()));
-            if (cmd.executeUpdate() == 0) {
-                throw new SQLException("No se pudo insert el mensaje");
-            }
-            mensaje.setIdMensaje(leerIdGenerado(cmd));
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setString("p_contenido", mensaje.getContenido());
+            cmd.setBoolean("p_leido", mensaje.isLeido());
+            cmd.setInt("p_id_chat", mensaje.getCanalChat().getIdChat());
+            cmd.setInt("p_id_emisor", mensaje.getEmisor().getIdUsuario());
+            cmd.setBoolean("p_activo", mensaje.isActivo());
+            cmd.setString("p_usuario_creacion", usuarioAuditoria(mensaje.getUsuarioCreacion()));
+            cmd.registerOutParameter("p_id", Types.INTEGER);
+            cmd.execute();
+            mensaje.setIdMensaje(cmd.getInt("p_id"));
             return mensaje.getIdMensaje();
         } finally {
             cerrarConexion(conn);
@@ -58,21 +43,19 @@ public class MensajeDAOImpl extends RegistroDAOImpl<Mensaje> implements MensajeD
         if (mensaje == null) {
             throw new IllegalArgumentException("El mensaje no puede ser nulo");
         }
-        String sql = """
-                UPDATE mensaje
-                SET contenido = ?, leido = ?, id_chat = ?, id_emisor = ?, activo = ?, usuario_modificacion = ?
-                WHERE id_mensaje = ?
-                """;
+        String sql = "{call modificar_mensaje(?, ?, ?, ?, ?, ?, ?, ?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setString(1, mensaje.getContenido());
-            cmd.setBoolean(2, mensaje.isLeido());
-            cmd.setInt(3, mensaje.getCanalChat().getIdChat());
-            cmd.setInt(4, mensaje.getEmisor().getIdUsuario());
-            cmd.setBoolean(5, mensaje.isActivo());
-            cmd.setString(6, usuarioAuditoria(mensaje.getUsuarioModificacion()));
-            cmd.setInt(7, mensaje.getIdMensaje());
-            return cmd.executeUpdate();
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", mensaje.getIdMensaje());
+            cmd.setString("p_contenido", mensaje.getContenido());
+            cmd.setBoolean("p_leido", mensaje.isLeido());
+            cmd.setInt("p_id_chat", mensaje.getCanalChat().getIdChat());
+            cmd.setInt("p_id_emisor", mensaje.getEmisor().getIdUsuario());
+            cmd.setBoolean("p_activo", mensaje.isActivo());
+            cmd.setString("p_usuario_modificacion", usuarioAuditoria(mensaje.getUsuarioModificacion()));
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
+            return cmd.getInt("p_filas");
         } finally {
             cerrarConexion(conn);
         }
@@ -80,13 +63,13 @@ public class MensajeDAOImpl extends RegistroDAOImpl<Mensaje> implements MensajeD
 
     @Override
     public int delete(int idMensaje) throws SQLException {
-        String sql = """
-                UPDATE mensaje SET activo = 0 WHERE id_mensaje = ?
-                """;
+        String sql = "{call eliminar_mensaje(?, ?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, idMensaje);
-            return cmd.executeUpdate();
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", idMensaje);
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
+            return cmd.getInt("p_filas");
         } finally {
             cerrarConexion(conn);
         }
@@ -94,10 +77,10 @@ public class MensajeDAOImpl extends RegistroDAOImpl<Mensaje> implements MensajeD
 
     @Override
     public Mensaje findById(int idMensaje) throws SQLException {
-        String sql = SELECT_BASE + "WHERE me.id_mensaje = ?";
+        String sql = "{call buscar_mensaje_por_id(?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, idMensaje);
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", idMensaje);
             try (ResultSet rs = cmd.executeQuery()) {
                 return rs.next() ? mapear(rs, new Mensaje()) : null;
             }
@@ -108,9 +91,9 @@ public class MensajeDAOImpl extends RegistroDAOImpl<Mensaje> implements MensajeD
 
     @Override
     public ArrayList<Mensaje> findAll() throws SQLException {
-        String sql = SELECT_BASE + "WHERE me.activo = 1 ORDER BY me.fecha_hora";
+        String sql = "{call listar_mensajes()}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql);
+        try (CallableStatement cmd = conn.prepareCall(sql);
              ResultSet rs = cmd.executeQuery()) {
             ArrayList<Mensaje> mensajes = new ArrayList<>();
             while (rs.next()) {
@@ -124,10 +107,10 @@ public class MensajeDAOImpl extends RegistroDAOImpl<Mensaje> implements MensajeD
 
     @Override
     public ArrayList<Mensaje> listarPorChat(int idChat) throws SQLException {
-        String sql = SELECT_BASE + "WHERE me.id_chat = ? AND me.activo = 1 ORDER BY me.fecha_hora";
+        String sql = "{call listar_mensajes_por_chat(?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, idChat);
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id_chat", idChat);
             try (ResultSet rs = cmd.executeQuery()) {
                 ArrayList<Mensaje> mensajes = new ArrayList<>();
                 while (rs.next()) {

@@ -1,9 +1,10 @@
 package pe.edu.pucp.reuse.dao.impl;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
 
 import pe.edu.pucp.reuse.dao.ReporteAnuncioDAO;
@@ -12,17 +13,6 @@ import pe.edu.pucp.reuse.modelo.enums.MotivoReporteAnuncio;
 import pe.edu.pucp.reuse.modelo.moderacion.ReporteAnuncio;
 
 public class ReporteAnuncioDAOImpl extends ReporteDAOImpl<ReporteAnuncio> implements ReporteAnuncioDAO {
-
-    private static final String SELECT_BASE = "SELECT " + COLUMNAS_REPORTE + """
-                   , ra.motivo,
-                   a.id_anuncio AS anuncio_id, a.titulo AS anuncio_titulo, a.precio AS anuncio_precio,
-                   a.estado AS anuncio_estado, a.id_vendedor AS anuncio_id_vendedor
-            FROM reporte r
-            JOIN reporte_anuncio ra ON ra.id_reporte = r.id_reporte
-            JOIN usuario d ON d.id_usuario = r.id_denunciante
-            LEFT JOIN usuario rv ON rv.id_usuario = r.id_revisor
-            JOIN anuncio a ON a.id_anuncio = ra.id_anuncio
-            """;
 
     @Override
     public int insert(ReporteAnuncio reporte) throws SQLException {
@@ -33,19 +23,14 @@ public class ReporteAnuncioDAOImpl extends ReporteDAOImpl<ReporteAnuncio> implem
         Connection conn = TransactionsManager.getConnection();
         insertarReporte(conn, reporte);
 
-        String sql = """
-                INSERT INTO reporte_anuncio (id_reporte, motivo, id_anuncio, activo, usuario_creacion)
-                VALUES (?, ?, ?, ?, ?)
-                """;
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, reporte.getIdReporte());
-            cmd.setString(2, reporte.getMotivo().name());
-            cmd.setInt(3, reporte.getAnuncio().getIdAnuncio());
-            cmd.setBoolean(4, reporte.isActivo());
-            cmd.setString(5, usuarioAuditoria(reporte.getUsuarioCreacion()));
-            if (cmd.executeUpdate() == 0) {
-                throw new SQLException("No se pudo insert el reporte de anuncio");
-            }
+        String sql = "{call insertar_reporte_anuncio(?, ?, ?, ?, ?)}";
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id_reporte", reporte.getIdReporte());
+            cmd.setString("p_motivo", reporte.getMotivo().name());
+            cmd.setInt("p_id_anuncio", reporte.getAnuncio().getIdAnuncio());
+            cmd.setBoolean("p_activo", reporte.isActivo());
+            cmd.setString("p_usuario_creacion", usuarioAuditoria(reporte.getUsuarioCreacion()));
+            cmd.execute();
         }
         return reporte.getIdReporte();
     }
@@ -58,18 +43,15 @@ public class ReporteAnuncioDAOImpl extends ReporteDAOImpl<ReporteAnuncio> implem
         Connection conn = TransactionsManager.getConnection();
         int filas = modificarReporte(conn, reporte);
 
-        String sql = """
-                UPDATE reporte_anuncio
-                SET motivo = ?, id_anuncio = ?, activo = ?, usuario_modificacion = ?
-                WHERE id_reporte = ?
-                """;
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setString(1, reporte.getMotivo().name());
-            cmd.setInt(2, reporte.getAnuncio().getIdAnuncio());
-            cmd.setBoolean(3, reporte.isActivo());
-            cmd.setString(4, usuarioAuditoria(reporte.getUsuarioModificacion()));
-            cmd.setInt(5, reporte.getIdReporte());
-            cmd.executeUpdate();
+        String sql = "{call modificar_reporte_anuncio(?, ?, ?, ?, ?, ?)}";
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id_reporte", reporte.getIdReporte());
+            cmd.setString("p_motivo", reporte.getMotivo().name());
+            cmd.setInt("p_id_anuncio", reporte.getAnuncio().getIdAnuncio());
+            cmd.setBoolean("p_activo", reporte.isActivo());
+            cmd.setString("p_usuario_modificacion", usuarioAuditoria(reporte.getUsuarioModificacion()));
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
         }
         return filas;
     }
@@ -77,12 +59,12 @@ public class ReporteAnuncioDAOImpl extends ReporteDAOImpl<ReporteAnuncio> implem
     @Override
     public int delete(int idReporte) throws SQLException {
         Connection conn = TransactionsManager.getConnection();
-        String sql = """
-                UPDATE reporte_anuncio SET activo = 0 WHERE id_reporte = ?
-                """;
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, idReporte);
-            if (cmd.executeUpdate() == 0) {
+        String sql = "{call eliminar_reporte_anuncio(?, ?)}";
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id_reporte", idReporte);
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
+            if (cmd.getInt("p_filas") == 0) {
                 return 0;
             }
         }
@@ -91,10 +73,10 @@ public class ReporteAnuncioDAOImpl extends ReporteDAOImpl<ReporteAnuncio> implem
 
     @Override
     public ReporteAnuncio findById(int idReporte) throws SQLException {
-        String sql = SELECT_BASE + "WHERE r.id_reporte = ?";
+        String sql = "{call buscar_reporte_anuncio_por_id(?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, idReporte);
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", idReporte);
             try (ResultSet rs = cmd.executeQuery()) {
                 return rs.next() ? mapear(rs, new ReporteAnuncio()) : null;
             }
@@ -105,9 +87,9 @@ public class ReporteAnuncioDAOImpl extends ReporteDAOImpl<ReporteAnuncio> implem
 
     @Override
     public ArrayList<ReporteAnuncio> findAll() throws SQLException {
-        String sql = SELECT_BASE + "WHERE r.activo = 1 ORDER BY r.fecha_registro DESC";
+        String sql = "{call listar_reportes_anuncio()}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql);
+        try (CallableStatement cmd = conn.prepareCall(sql);
              ResultSet rs = cmd.executeQuery()) {
             ArrayList<ReporteAnuncio> reportes = new ArrayList<>();
             while (rs.next()) {

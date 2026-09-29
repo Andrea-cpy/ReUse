@@ -1,10 +1,10 @@
 package pe.edu.pucp.reuse.dao.impl;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.Types;
 import java.util.ArrayList;
 
 import pe.edu.pucp.reuse.dao.InsigniaDAO;
@@ -15,33 +15,23 @@ import pe.edu.pucp.reuse.modelo.gamificacion.ReglaInsignia;
 
 public class InsigniaDAOImpl extends RegistroDAOImpl<Insignia> implements InsigniaDAO {
 
-    private static final String SELECT_BASE = """
-            SELECT id_insignia, nombre, descripcion, icono, tipo,
-                   activo, fecha_creacion, fecha_modificacion, usuario_creacion, usuario_modificacion
-            FROM insignia
-            """;
-
     @Override
     public int insert(Insignia insignia) throws SQLException {
         if (insignia == null) {
             throw new IllegalArgumentException("La insignia no puede ser nula");
         }
-        String sql = """
-                INSERT INTO insignia (nombre, descripcion, icono, tipo, activo, usuario_creacion)
-                VALUES (?, ?, ?, ?, ?, ?)
-                """;
+        String sql = "{call insertar_insignia(?, ?, ?, ?, ?, ?, ?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            cmd.setString(1, insignia.getNombre());
-            cmd.setString(2, insignia.getDescripcion());
-            cmd.setString(3, insignia.getIcono());
-            cmd.setString(4, insignia.getTipo().name());
-            cmd.setBoolean(5, insignia.isActivo());
-            cmd.setString(6, usuarioAuditoria(insignia.getUsuarioCreacion()));
-            if (cmd.executeUpdate() == 0) {
-                throw new SQLException("No se pudo insert la insignia");
-            }
-            insignia.setIdInsignia(leerIdGenerado(cmd));
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setString("p_nombre", insignia.getNombre());
+            cmd.setString("p_descripcion", insignia.getDescripcion());
+            cmd.setString("p_icono", insignia.getIcono());
+            cmd.setString("p_tipo", insignia.getTipo().name());
+            cmd.setBoolean("p_activo", insignia.isActivo());
+            cmd.setString("p_usuario_creacion", usuarioAuditoria(insignia.getUsuarioCreacion()));
+            cmd.registerOutParameter("p_id", Types.INTEGER);
+            cmd.execute();
+            insignia.setIdInsignia(cmd.getInt("p_id"));
             return insignia.getIdInsignia();
         } finally {
             cerrarConexion(conn);
@@ -53,21 +43,19 @@ public class InsigniaDAOImpl extends RegistroDAOImpl<Insignia> implements Insign
         if (insignia == null) {
             throw new IllegalArgumentException("La insignia no puede ser nula");
         }
-        String sql = """
-                UPDATE insignia
-                SET nombre = ?, descripcion = ?, icono = ?, tipo = ?, activo = ?, usuario_modificacion = ?
-                WHERE id_insignia = ?
-                """;
+        String sql = "{call modificar_insignia(?, ?, ?, ?, ?, ?, ?, ?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setString(1, insignia.getNombre());
-            cmd.setString(2, insignia.getDescripcion());
-            cmd.setString(3, insignia.getIcono());
-            cmd.setString(4, insignia.getTipo().name());
-            cmd.setBoolean(5, insignia.isActivo());
-            cmd.setString(6, usuarioAuditoria(insignia.getUsuarioModificacion()));
-            cmd.setInt(7, insignia.getIdInsignia());
-            return cmd.executeUpdate();
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", insignia.getIdInsignia());
+            cmd.setString("p_nombre", insignia.getNombre());
+            cmd.setString("p_descripcion", insignia.getDescripcion());
+            cmd.setString("p_icono", insignia.getIcono());
+            cmd.setString("p_tipo", insignia.getTipo().name());
+            cmd.setBoolean("p_activo", insignia.isActivo());
+            cmd.setString("p_usuario_modificacion", usuarioAuditoria(insignia.getUsuarioModificacion()));
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
+            return cmd.getInt("p_filas");
         } finally {
             cerrarConexion(conn);
         }
@@ -75,13 +63,13 @@ public class InsigniaDAOImpl extends RegistroDAOImpl<Insignia> implements Insign
 
     @Override
     public int delete(int idInsignia) throws SQLException {
-        String sql = """
-                UPDATE insignia SET activo = 0 WHERE id_insignia = ?
-                """;
+        String sql = "{call eliminar_insignia(?, ?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, idInsignia);
-            return cmd.executeUpdate();
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", idInsignia);
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
+            return cmd.getInt("p_filas");
         } finally {
             cerrarConexion(conn);
         }
@@ -90,11 +78,11 @@ public class InsigniaDAOImpl extends RegistroDAOImpl<Insignia> implements Insign
     // Incluye el detalle: las reglas activas de la insignia.
     @Override
     public Insignia findById(int idInsignia) throws SQLException {
-        String sql = SELECT_BASE + "WHERE id_insignia = ?";
+        String sql = "{call buscar_insignia_por_id(?)}";
         Insignia insignia;
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, idInsignia);
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", idInsignia);
             try (ResultSet rs = cmd.executeQuery()) {
                 if (!rs.next()) {
                     return null;
@@ -113,9 +101,9 @@ public class InsigniaDAOImpl extends RegistroDAOImpl<Insignia> implements Insign
 
     @Override
     public ArrayList<Insignia> findAll() throws SQLException {
-        String sql = SELECT_BASE + "WHERE activo = 1 ORDER BY nombre";
+        String sql = "{call listar_insignias()}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql);
+        try (CallableStatement cmd = conn.prepareCall(sql);
              ResultSet rs = cmd.executeQuery()) {
             ArrayList<Insignia> insignias = new ArrayList<>();
             while (rs.next()) {
@@ -132,10 +120,10 @@ public class InsigniaDAOImpl extends RegistroDAOImpl<Insignia> implements Insign
         if (nombre == null) {
             throw new IllegalArgumentException("El nombre no puede ser nulo");
         }
-        String sql = SELECT_BASE + "WHERE nombre = ?";
+        String sql = "{call buscar_insignia_por_nombre(?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setString(1, nombre);
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setString("p_nombre", nombre);
             try (ResultSet rs = cmd.executeQuery()) {
                 return rs.next() ? mapear(rs, new Insignia()) : null;
             }

@@ -1,11 +1,11 @@
 package pe.edu.pucp.reuse.dao.impl;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.ArrayList;
 
 import pe.edu.pucp.reuse.dao.CitaEntregaDAO;
@@ -17,39 +17,24 @@ import pe.edu.pucp.reuse.modelo.transacciones.Transaccion;
 
 public class CitaEntregaDAOImpl extends RegistroDAOImpl<CitaEntrega> implements CitaEntregaDAO {
 
-    private static final String SELECT_BASE = """
-            SELECT ce.id_cita, ce.fecha_hora, ce.estado,
-                   ce.id_punto_entrega, p.nombre AS punto_nombre, p.activo AS punto_activo,
-                   ce.id_transaccion, t.estado AS transaccion_estado,
-                   ce.activo, ce.fecha_creacion, ce.fecha_modificacion, ce.usuario_creacion, ce.usuario_modificacion
-            FROM cita_entrega ce
-            JOIN punto_entrega p ON p.id_punto_entrega = ce.id_punto_entrega
-            JOIN transaccion t ON t.id_transaccion = ce.id_transaccion
-            """;
-
     // fecha_hora si se envia: es la fecha acordada por los usuarios, no una marca de tiempo.
     @Override
     public int insert(CitaEntrega cita) throws SQLException {
         if (cita == null) {
             throw new IllegalArgumentException("La cita no puede ser nula");
         }
-        String sql = """
-                INSERT INTO cita_entrega (fecha_hora, estado, id_punto_entrega, id_transaccion, activo,
-                                          usuario_creacion)
-                VALUES (?, ?, ?, ?, ?, ?)
-                """;
+        String sql = "{call insertar_cita_entrega(?, ?, ?, ?, ?, ?, ?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            cmd.setTimestamp(1, Timestamp.valueOf(cita.getFechaHora()));
-            cmd.setString(2, cita.getEstado().name());
-            cmd.setInt(3, cita.getPuntoEntrega().getIdPuntoEntrega());
-            cmd.setInt(4, cita.getTransaccion().getIdTransaccion());
-            cmd.setBoolean(5, cita.isActivo());
-            cmd.setString(6, usuarioAuditoria(cita.getUsuarioCreacion()));
-            if (cmd.executeUpdate() == 0) {
-                throw new SQLException("No se pudo insert la cita de entrega");
-            }
-            cita.setIdCita(leerIdGenerado(cmd));
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setTimestamp("p_fecha_hora", Timestamp.valueOf(cita.getFechaHora()));
+            cmd.setString("p_estado", cita.getEstado().name());
+            cmd.setInt("p_id_punto_entrega", cita.getPuntoEntrega().getIdPuntoEntrega());
+            cmd.setInt("p_id_transaccion", cita.getTransaccion().getIdTransaccion());
+            cmd.setBoolean("p_activo", cita.isActivo());
+            cmd.setString("p_usuario_creacion", usuarioAuditoria(cita.getUsuarioCreacion()));
+            cmd.registerOutParameter("p_id", Types.INTEGER);
+            cmd.execute();
+            cita.setIdCita(cmd.getInt("p_id"));
             return cita.getIdCita();
         } finally {
             cerrarConexion(conn);
@@ -61,22 +46,19 @@ public class CitaEntregaDAOImpl extends RegistroDAOImpl<CitaEntrega> implements 
         if (cita == null) {
             throw new IllegalArgumentException("La cita no puede ser nula");
         }
-        String sql = """
-                UPDATE cita_entrega
-                SET fecha_hora = ?, estado = ?, id_punto_entrega = ?, id_transaccion = ?, activo = ?,
-                    usuario_modificacion = ?
-                WHERE id_cita = ?
-                """;
+        String sql = "{call modificar_cita_entrega(?, ?, ?, ?, ?, ?, ?, ?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setTimestamp(1, Timestamp.valueOf(cita.getFechaHora()));
-            cmd.setString(2, cita.getEstado().name());
-            cmd.setInt(3, cita.getPuntoEntrega().getIdPuntoEntrega());
-            cmd.setInt(4, cita.getTransaccion().getIdTransaccion());
-            cmd.setBoolean(5, cita.isActivo());
-            cmd.setString(6, usuarioAuditoria(cita.getUsuarioModificacion()));
-            cmd.setInt(7, cita.getIdCita());
-            return cmd.executeUpdate();
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", cita.getIdCita());
+            cmd.setTimestamp("p_fecha_hora", Timestamp.valueOf(cita.getFechaHora()));
+            cmd.setString("p_estado", cita.getEstado().name());
+            cmd.setInt("p_id_punto_entrega", cita.getPuntoEntrega().getIdPuntoEntrega());
+            cmd.setInt("p_id_transaccion", cita.getTransaccion().getIdTransaccion());
+            cmd.setBoolean("p_activo", cita.isActivo());
+            cmd.setString("p_usuario_modificacion", usuarioAuditoria(cita.getUsuarioModificacion()));
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
+            return cmd.getInt("p_filas");
         } finally {
             cerrarConexion(conn);
         }
@@ -84,13 +66,13 @@ public class CitaEntregaDAOImpl extends RegistroDAOImpl<CitaEntrega> implements 
 
     @Override
     public int delete(int idCita) throws SQLException {
-        String sql = """
-                UPDATE cita_entrega SET activo = 0 WHERE id_cita = ?
-                """;
+        String sql = "{call eliminar_cita_entrega(?, ?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, idCita);
-            return cmd.executeUpdate();
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", idCita);
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
+            return cmd.getInt("p_filas");
         } finally {
             cerrarConexion(conn);
         }
@@ -98,10 +80,10 @@ public class CitaEntregaDAOImpl extends RegistroDAOImpl<CitaEntrega> implements 
 
     @Override
     public CitaEntrega findById(int idCita) throws SQLException {
-        String sql = SELECT_BASE + "WHERE ce.id_cita = ?";
+        String sql = "{call buscar_cita_entrega_por_id(?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, idCita);
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", idCita);
             try (ResultSet rs = cmd.executeQuery()) {
                 return rs.next() ? mapear(rs, new CitaEntrega()) : null;
             }
@@ -112,9 +94,9 @@ public class CitaEntregaDAOImpl extends RegistroDAOImpl<CitaEntrega> implements 
 
     @Override
     public ArrayList<CitaEntrega> findAll() throws SQLException {
-        String sql = SELECT_BASE + "WHERE ce.activo = 1 ORDER BY ce.fecha_hora";
+        String sql = "{call listar_citas_entrega()}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql);
+        try (CallableStatement cmd = conn.prepareCall(sql);
              ResultSet rs = cmd.executeQuery()) {
             ArrayList<CitaEntrega> citas = new ArrayList<>();
             while (rs.next()) {
@@ -128,10 +110,10 @@ public class CitaEntregaDAOImpl extends RegistroDAOImpl<CitaEntrega> implements 
 
     @Override
     public CitaEntrega obtenerPorTransaccion(int idTransaccion) throws SQLException {
-        String sql = SELECT_BASE + "WHERE ce.id_transaccion = ? AND ce.activo = 1";
+        String sql = "{call buscar_cita_por_transaccion(?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, idTransaccion);
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id_transaccion", idTransaccion);
             try (ResultSet rs = cmd.executeQuery()) {
                 return rs.next() ? mapear(rs, new CitaEntrega()) : null;
             }
@@ -145,14 +127,14 @@ public class CitaEntregaDAOImpl extends RegistroDAOImpl<CitaEntrega> implements 
         if (estado == null) {
             throw new IllegalArgumentException("El estado no puede ser nulo");
         }
-        String sql = """
-                UPDATE cita_entrega SET estado = ? WHERE id_cita = ?
-                """;
+        String sql = "{call cambiar_estado_cita(?, ?, ?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setString(1, estado.name());
-            cmd.setInt(2, idCita);
-            return cmd.executeUpdate();
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", idCita);
+            cmd.setString("p_estado", estado.name());
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
+            return cmd.getInt("p_filas");
         } finally {
             cerrarConexion(conn);
         }

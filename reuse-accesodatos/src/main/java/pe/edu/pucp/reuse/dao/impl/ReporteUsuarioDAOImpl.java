@@ -1,7 +1,7 @@
 package pe.edu.pucp.reuse.dao.impl;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -15,17 +15,6 @@ import pe.edu.pucp.reuse.modelo.transacciones.Transaccion;
 
 public class ReporteUsuarioDAOImpl extends ReporteDAOImpl<ReporteUsuario> implements ReporteUsuarioDAO {
 
-    private static final String SELECT_BASE = "SELECT " + COLUMNAS_REPORTE + """
-                   , ru.motivo, ru.id_transaccion,
-                   dn.id_usuario AS denunciado_id, dn.codigo_pucp AS denunciado_codigo,
-                   dn.nombres AS denunciado_nombres, dn.apellido_paterno AS denunciado_apellido
-            FROM reporte r
-            JOIN reporte_usuario ru ON ru.id_reporte = r.id_reporte
-            JOIN usuario d ON d.id_usuario = r.id_denunciante
-            LEFT JOIN usuario rv ON rv.id_usuario = r.id_revisor
-            JOIN usuario dn ON dn.id_usuario = ru.id_denunciado
-            """;
-
     @Override
     public int insert(ReporteUsuario reporte) throws SQLException {
         if (reporte == null) {
@@ -35,25 +24,19 @@ public class ReporteUsuarioDAOImpl extends ReporteDAOImpl<ReporteUsuario> implem
         Connection conn = TransactionsManager.getConnection();
         insertarReporte(conn, reporte);
 
-        String sql = """
-                INSERT INTO reporte_usuario (id_reporte, motivo, id_denunciado, id_transaccion, activo,
-                                             usuario_creacion)
-                VALUES (?, ?, ?, ?, ?, ?)
-                """;
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, reporte.getIdReporte());
-            cmd.setString(2, reporte.getMotivo().name());
-            cmd.setInt(3, reporte.getDenunciado().getIdUsuario());
+        String sql = "{call insertar_reporte_usuario(?, ?, ?, ?, ?, ?)}";
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id_reporte", reporte.getIdReporte());
+            cmd.setString("p_motivo", reporte.getMotivo().name());
+            cmd.setInt("p_id_denunciado", reporte.getDenunciado().getIdUsuario());
             if (reporte.getTransaccion() != null) {
-                cmd.setInt(4, reporte.getTransaccion().getIdTransaccion());
+                cmd.setInt("p_id_transaccion", reporte.getTransaccion().getIdTransaccion());
             } else {
-                cmd.setNull(4, Types.INTEGER);
+                cmd.setNull("p_id_transaccion", Types.INTEGER);
             }
-            cmd.setBoolean(5, reporte.isActivo());
-            cmd.setString(6, usuarioAuditoria(reporte.getUsuarioCreacion()));
-            if (cmd.executeUpdate() == 0) {
-                throw new SQLException("No se pudo insert el reporte de usuario");
-            }
+            cmd.setBoolean("p_activo", reporte.isActivo());
+            cmd.setString("p_usuario_creacion", usuarioAuditoria(reporte.getUsuarioCreacion()));
+            cmd.execute();
         }
         return reporte.getIdReporte();
     }
@@ -66,23 +49,20 @@ public class ReporteUsuarioDAOImpl extends ReporteDAOImpl<ReporteUsuario> implem
         Connection conn = TransactionsManager.getConnection();
         int filas = modificarReporte(conn, reporte);
 
-        String sql = """
-                UPDATE reporte_usuario
-                SET motivo = ?, id_denunciado = ?, id_transaccion = ?, activo = ?, usuario_modificacion = ?
-                WHERE id_reporte = ?
-                """;
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setString(1, reporte.getMotivo().name());
-            cmd.setInt(2, reporte.getDenunciado().getIdUsuario());
+        String sql = "{call modificar_reporte_usuario(?, ?, ?, ?, ?, ?, ?)}";
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id_reporte", reporte.getIdReporte());
+            cmd.setString("p_motivo", reporte.getMotivo().name());
+            cmd.setInt("p_id_denunciado", reporte.getDenunciado().getIdUsuario());
             if (reporte.getTransaccion() != null) {
-                cmd.setInt(3, reporte.getTransaccion().getIdTransaccion());
+                cmd.setInt("p_id_transaccion", reporte.getTransaccion().getIdTransaccion());
             } else {
-                cmd.setNull(3, Types.INTEGER);
+                cmd.setNull("p_id_transaccion", Types.INTEGER);
             }
-            cmd.setBoolean(4, reporte.isActivo());
-            cmd.setString(5, usuarioAuditoria(reporte.getUsuarioModificacion()));
-            cmd.setInt(6, reporte.getIdReporte());
-            cmd.executeUpdate();
+            cmd.setBoolean("p_activo", reporte.isActivo());
+            cmd.setString("p_usuario_modificacion", usuarioAuditoria(reporte.getUsuarioModificacion()));
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
         }
         return filas;
     }
@@ -90,12 +70,12 @@ public class ReporteUsuarioDAOImpl extends ReporteDAOImpl<ReporteUsuario> implem
     @Override
     public int delete(int idReporte) throws SQLException {
         Connection conn = TransactionsManager.getConnection();
-        String sql = """
-                UPDATE reporte_usuario SET activo = 0 WHERE id_reporte = ?
-                """;
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, idReporte);
-            if (cmd.executeUpdate() == 0) {
+        String sql = "{call eliminar_reporte_usuario(?, ?)}";
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id_reporte", idReporte);
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
+            if (cmd.getInt("p_filas") == 0) {
                 return 0;
             }
         }
@@ -104,10 +84,10 @@ public class ReporteUsuarioDAOImpl extends ReporteDAOImpl<ReporteUsuario> implem
 
     @Override
     public ReporteUsuario findById(int idReporte) throws SQLException {
-        String sql = SELECT_BASE + "WHERE r.id_reporte = ?";
+        String sql = "{call buscar_reporte_usuario_por_id(?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, idReporte);
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", idReporte);
             try (ResultSet rs = cmd.executeQuery()) {
                 return rs.next() ? mapear(rs, new ReporteUsuario()) : null;
             }
@@ -118,9 +98,9 @@ public class ReporteUsuarioDAOImpl extends ReporteDAOImpl<ReporteUsuario> implem
 
     @Override
     public ArrayList<ReporteUsuario> findAll() throws SQLException {
-        String sql = SELECT_BASE + "WHERE r.activo = 1 ORDER BY r.fecha_registro DESC";
+        String sql = "{call listar_reportes_usuario()}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql);
+        try (CallableStatement cmd = conn.prepareCall(sql);
              ResultSet rs = cmd.executeQuery()) {
             ArrayList<ReporteUsuario> reportes = new ArrayList<>();
             while (rs.next()) {
@@ -134,20 +114,14 @@ public class ReporteUsuarioDAOImpl extends ReporteDAOImpl<ReporteUsuario> implem
 
     @Override
     public int contarSancionesRecientes(int idDenunciado, int dias) throws SQLException {
-        String sql = """
-                SELECT COUNT(*)
-                FROM reporte r
-                JOIN reporte_usuario ru ON ru.id_reporte = r.id_reporte
-                WHERE ru.id_denunciado = ? AND r.estado_revision = 'SANCIONADO' AND r.activo = 1
-                  AND r.fecha_revision >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL ? DAY)
-                """;
+        String sql = "{call contar_sanciones_recientes(?, ?, ?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, idDenunciado);
-            cmd.setInt(2, dias);
-            try (ResultSet rs = cmd.executeQuery()) {
-                return rs.next() ? rs.getInt(1) : 0;
-            }
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id_denunciado", idDenunciado);
+            cmd.setInt("p_dias", dias);
+            cmd.registerOutParameter("p_total", Types.INTEGER);
+            cmd.execute();
+            return cmd.getInt("p_total");
         } finally {
             cerrarConexion(conn);
         }

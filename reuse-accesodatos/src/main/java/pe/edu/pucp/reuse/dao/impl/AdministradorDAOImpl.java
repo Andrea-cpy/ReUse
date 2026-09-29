@@ -1,9 +1,10 @@
 package pe.edu.pucp.reuse.dao.impl;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
 
 import pe.edu.pucp.reuse.dao.AdministradorDAO;
@@ -11,10 +12,6 @@ import pe.edu.pucp.reuse.dao.transacciones.TransactionsManager;
 import pe.edu.pucp.reuse.modelo.usuarios.AdministradorPUCP;
 
 public class AdministradorDAOImpl extends UsuarioBaseDAOImpl<AdministradorPUCP> implements AdministradorDAO {
-
-    private static final String SELECT_ADMINISTRADOR = SELECT_USUARIO + """
-            JOIN administrador a ON a.id_usuario = u.id_usuario
-            """;
 
     @Override
     public int insert(AdministradorPUCP administrador) throws SQLException {
@@ -25,17 +22,12 @@ public class AdministradorDAOImpl extends UsuarioBaseDAOImpl<AdministradorPUCP> 
         Connection conn = TransactionsManager.getConnection();
         insertarUsuario(conn, administrador);
 
-        String sql = """
-                INSERT INTO administrador (id_usuario, activo, usuario_creacion)
-                VALUES (?, ?, ?)
-                """;
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, administrador.getIdUsuario());
-            cmd.setBoolean(2, administrador.isActivo());
-            cmd.setString(3, usuarioAuditoria(administrador.getUsuarioCreacion()));
-            if (cmd.executeUpdate() == 0) {
-                throw new SQLException("No se pudo insert el administrador");
-            }
+        String sql = "{call insertar_administrador(?, ?, ?)}";
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id_usuario", administrador.getIdUsuario());
+            cmd.setBoolean("p_activo", administrador.isActivo());
+            cmd.setString("p_usuario_creacion", usuarioAuditoria(administrador.getUsuarioCreacion()));
+            cmd.execute();
         }
         return administrador.getIdUsuario();
     }
@@ -48,16 +40,13 @@ public class AdministradorDAOImpl extends UsuarioBaseDAOImpl<AdministradorPUCP> 
         Connection conn = TransactionsManager.getConnection();
         int filas = modificarUsuario(conn, administrador);
 
-        String sql = """
-                UPDATE administrador
-                SET activo = ?, usuario_modificacion = ?
-                WHERE id_usuario = ?
-                """;
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setBoolean(1, administrador.isActivo());
-            cmd.setString(2, usuarioAuditoria(administrador.getUsuarioModificacion()));
-            cmd.setInt(3, administrador.getIdUsuario());
-            cmd.executeUpdate();
+        String sql = "{call modificar_administrador(?, ?, ?, ?)}";
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id_usuario", administrador.getIdUsuario());
+            cmd.setBoolean("p_activo", administrador.isActivo());
+            cmd.setString("p_usuario_modificacion", usuarioAuditoria(administrador.getUsuarioModificacion()));
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
         }
         return filas;
     }
@@ -65,12 +54,12 @@ public class AdministradorDAOImpl extends UsuarioBaseDAOImpl<AdministradorPUCP> 
     @Override
     public int delete(int idUsuario) throws SQLException {
         Connection conn = TransactionsManager.getConnection();
-        String sql = """
-                UPDATE administrador SET activo = 0 WHERE id_usuario = ?
-                """;
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, idUsuario);
-            if (cmd.executeUpdate() == 0) {
+        String sql = "{call eliminar_administrador(?, ?)}";
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id_usuario", idUsuario);
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
+            if (cmd.getInt("p_filas") == 0) {
                 return 0;
             }
         }
@@ -79,10 +68,10 @@ public class AdministradorDAOImpl extends UsuarioBaseDAOImpl<AdministradorPUCP> 
 
     @Override
     public AdministradorPUCP findById(int idUsuario) throws SQLException {
-        String sql = SELECT_ADMINISTRADOR + "WHERE u.id_usuario = ?";
+        String sql = "{call buscar_administrador_por_id(?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, idUsuario);
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", idUsuario);
             try (ResultSet rs = cmd.executeQuery()) {
                 return rs.next() ? mapear(rs, new AdministradorPUCP()) : null;
             }
@@ -93,9 +82,9 @@ public class AdministradorDAOImpl extends UsuarioBaseDAOImpl<AdministradorPUCP> 
 
     @Override
     public ArrayList<AdministradorPUCP> findAll() throws SQLException {
-        String sql = SELECT_ADMINISTRADOR + "WHERE a.activo = 1 ORDER BY u.apellido_paterno, u.nombres";
+        String sql = "{call listar_administradores()}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql);
+        try (CallableStatement cmd = conn.prepareCall(sql);
              ResultSet rs = cmd.executeQuery()) {
             ArrayList<AdministradorPUCP> administradores = new ArrayList<>();
             while (rs.next()) {

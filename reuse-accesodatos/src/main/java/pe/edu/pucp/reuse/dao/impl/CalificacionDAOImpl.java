@@ -1,10 +1,10 @@
 package pe.edu.pucp.reuse.dao.impl;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.Types;
 import java.util.ArrayList;
 
 import pe.edu.pucp.reuse.dao.CalificacionDAO;
@@ -15,45 +15,26 @@ import pe.edu.pucp.reuse.modelo.transacciones.Transaccion;
 
 public class CalificacionDAOImpl extends RegistroDAOImpl<Calificacion> implements CalificacionDAO {
 
-    private static final String SELECT_BASE = """
-            SELECT ca.id_calificacion, ca.puntaje, ca.comentario, ca.fecha, ca.tipo,
-                   ca.id_transaccion, t.estado AS transaccion_estado,
-                   cr.id_usuario AS calificador_id, cr.codigo_pucp AS calificador_codigo,
-                   cr.nombres AS calificador_nombres, cr.apellido_paterno AS calificador_apellido,
-                   cd.id_usuario AS calificado_id, cd.codigo_pucp AS calificado_codigo,
-                   cd.nombres AS calificado_nombres, cd.apellido_paterno AS calificado_apellido,
-                   ca.activo, ca.fecha_creacion, ca.fecha_modificacion, ca.usuario_creacion, ca.usuario_modificacion
-            FROM calificacion ca
-            JOIN transaccion t ON t.id_transaccion = ca.id_transaccion
-            JOIN usuario cr ON cr.id_usuario = ca.id_calificador
-            JOIN usuario cd ON cd.id_usuario = ca.id_calificado
-            """;
-
     // La fecha no se envia: la asigna la base de datos.
     @Override
     public int insert(Calificacion calificacion) throws SQLException {
         if (calificacion == null) {
             throw new IllegalArgumentException("La calificacion no puede ser nula");
         }
-        String sql = """
-                INSERT INTO calificacion (puntaje, comentario, tipo, id_transaccion, id_calificador,
-                                          id_calificado, activo, usuario_creacion)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """;
+        String sql = "{call insertar_calificacion(?, ?, ?, ?, ?, ?, ?, ?, ?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            cmd.setInt(1, calificacion.getPuntaje());
-            cmd.setString(2, calificacion.getComentario());
-            cmd.setString(3, calificacion.getTipoCalificacion().name());
-            cmd.setInt(4, calificacion.getTransaccion().getIdTransaccion());
-            cmd.setInt(5, calificacion.getCalificador().getIdUsuario());
-            cmd.setInt(6, calificacion.getCalificado().getIdUsuario());
-            cmd.setBoolean(7, calificacion.isActivo());
-            cmd.setString(8, usuarioAuditoria(calificacion.getUsuarioCreacion()));
-            if (cmd.executeUpdate() == 0) {
-                throw new SQLException("No se pudo insert la calificacion");
-            }
-            calificacion.setIdCalificacion(leerIdGenerado(cmd));
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_puntaje", calificacion.getPuntaje());
+            cmd.setString("p_comentario", calificacion.getComentario());
+            cmd.setString("p_tipo", calificacion.getTipoCalificacion().name());
+            cmd.setInt("p_id_transaccion", calificacion.getTransaccion().getIdTransaccion());
+            cmd.setInt("p_id_calificador", calificacion.getCalificador().getIdUsuario());
+            cmd.setInt("p_id_calificado", calificacion.getCalificado().getIdUsuario());
+            cmd.setBoolean("p_activo", calificacion.isActivo());
+            cmd.setString("p_usuario_creacion", usuarioAuditoria(calificacion.getUsuarioCreacion()));
+            cmd.registerOutParameter("p_id", Types.INTEGER);
+            cmd.execute();
+            calificacion.setIdCalificacion(cmd.getInt("p_id"));
             return calificacion.getIdCalificacion();
         } finally {
             cerrarConexion(conn);
@@ -65,24 +46,21 @@ public class CalificacionDAOImpl extends RegistroDAOImpl<Calificacion> implement
         if (calificacion == null) {
             throw new IllegalArgumentException("La calificacion no puede ser nula");
         }
-        String sql = """
-                UPDATE calificacion
-                SET puntaje = ?, comentario = ?, tipo = ?, id_transaccion = ?, id_calificador = ?,
-                    id_calificado = ?, activo = ?, usuario_modificacion = ?
-                WHERE id_calificacion = ?
-                """;
+        String sql = "{call modificar_calificacion(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, calificacion.getPuntaje());
-            cmd.setString(2, calificacion.getComentario());
-            cmd.setString(3, calificacion.getTipoCalificacion().name());
-            cmd.setInt(4, calificacion.getTransaccion().getIdTransaccion());
-            cmd.setInt(5, calificacion.getCalificador().getIdUsuario());
-            cmd.setInt(6, calificacion.getCalificado().getIdUsuario());
-            cmd.setBoolean(7, calificacion.isActivo());
-            cmd.setString(8, usuarioAuditoria(calificacion.getUsuarioModificacion()));
-            cmd.setInt(9, calificacion.getIdCalificacion());
-            return cmd.executeUpdate();
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", calificacion.getIdCalificacion());
+            cmd.setInt("p_puntaje", calificacion.getPuntaje());
+            cmd.setString("p_comentario", calificacion.getComentario());
+            cmd.setString("p_tipo", calificacion.getTipoCalificacion().name());
+            cmd.setInt("p_id_transaccion", calificacion.getTransaccion().getIdTransaccion());
+            cmd.setInt("p_id_calificador", calificacion.getCalificador().getIdUsuario());
+            cmd.setInt("p_id_calificado", calificacion.getCalificado().getIdUsuario());
+            cmd.setBoolean("p_activo", calificacion.isActivo());
+            cmd.setString("p_usuario_modificacion", usuarioAuditoria(calificacion.getUsuarioModificacion()));
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
+            return cmd.getInt("p_filas");
         } finally {
             cerrarConexion(conn);
         }
@@ -90,13 +68,13 @@ public class CalificacionDAOImpl extends RegistroDAOImpl<Calificacion> implement
 
     @Override
     public int delete(int idCalificacion) throws SQLException {
-        String sql = """
-                UPDATE calificacion SET activo = 0 WHERE id_calificacion = ?
-                """;
+        String sql = "{call eliminar_calificacion(?, ?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, idCalificacion);
-            return cmd.executeUpdate();
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", idCalificacion);
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
+            return cmd.getInt("p_filas");
         } finally {
             cerrarConexion(conn);
         }
@@ -104,10 +82,10 @@ public class CalificacionDAOImpl extends RegistroDAOImpl<Calificacion> implement
 
     @Override
     public Calificacion findById(int idCalificacion) throws SQLException {
-        String sql = SELECT_BASE + "WHERE ca.id_calificacion = ?";
+        String sql = "{call buscar_calificacion_por_id(?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, idCalificacion);
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", idCalificacion);
             try (ResultSet rs = cmd.executeQuery()) {
                 return rs.next() ? mapear(rs, new Calificacion()) : null;
             }
@@ -118,9 +96,9 @@ public class CalificacionDAOImpl extends RegistroDAOImpl<Calificacion> implement
 
     @Override
     public ArrayList<Calificacion> findAll() throws SQLException {
-        String sql = SELECT_BASE + "WHERE ca.activo = 1 ORDER BY ca.fecha DESC";
+        String sql = "{call listar_calificaciones()}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql);
+        try (CallableStatement cmd = conn.prepareCall(sql);
              ResultSet rs = cmd.executeQuery()) {
             ArrayList<Calificacion> calificaciones = new ArrayList<>();
             while (rs.next()) {
@@ -135,11 +113,11 @@ public class CalificacionDAOImpl extends RegistroDAOImpl<Calificacion> implement
     @Override
     public Calificacion obtenerPorTransaccionYCalificador(int idTransaccion, int idCalificador)
             throws SQLException {
-        String sql = SELECT_BASE + "WHERE ca.id_transaccion = ? AND ca.id_calificador = ? AND ca.activo = 1";
+        String sql = "{call buscar_calificacion_por_transaccion_y_calificador(?, ?)}";
         Connection conn = abrirConexion();
-        try (PreparedStatement cmd = conn.prepareStatement(sql)) {
-            cmd.setInt(1, idTransaccion);
-            cmd.setInt(2, idCalificador);
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id_transaccion", idTransaccion);
+            cmd.setInt("p_id_calificador", idCalificador);
             try (ResultSet rs = cmd.executeQuery()) {
                 return rs.next() ? mapear(rs, new Calificacion()) : null;
             }
