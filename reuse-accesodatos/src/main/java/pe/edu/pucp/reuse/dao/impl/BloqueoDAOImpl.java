@@ -13,7 +13,6 @@ import pe.edu.pucp.reuse.modelo.moderacion.Bloqueo;
 
 public class BloqueoDAOImpl extends RegistroDAOImpl<Bloqueo> implements BloqueoDAO {
 
-    // La fecha del bloqueo no se envia: la asigna la base de datos.
     @Override
     public int insert(Bloqueo bloqueo) throws SQLException {
         if (bloqueo == null) {

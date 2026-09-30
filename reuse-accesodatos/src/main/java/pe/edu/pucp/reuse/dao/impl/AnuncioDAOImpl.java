@@ -17,7 +17,6 @@ import pe.edu.pucp.reuse.modelo.enums.EstadoAnuncio;
 
 public class AnuncioDAOImpl extends RegistroDAOImpl<Anuncio> implements AnuncioDAO {
 
-    // fecha_publicacion no se envia: la asigna la base de datos (DEFAULT CURRENT_TIMESTAMP).
     @Override
     public int insert(Anuncio anuncio) throws SQLException {
         if (anuncio == null) {
@@ -44,7 +43,6 @@ public class AnuncioDAOImpl extends RegistroDAOImpl<Anuncio> implements AnuncioD
         }
     }
 
-    // El vendedor de un anuncio no cambia, por eso no es parametro de modificar_anuncio.
     @Override
     public int update(Anuncio anuncio) throws SQLException {
         if (anuncio == null) {
@@ -84,7 +82,6 @@ public class AnuncioDAOImpl extends RegistroDAOImpl<Anuncio> implements AnuncioD
         }
     }
 
-    // Incluye el detalle: las imagenes activas del anuncio.
     @Override
     public Anuncio findById(int idAnuncio) throws SQLException {
         String sql = "{call buscar_anuncio_por_id(?)}";
@@ -108,7 +105,6 @@ public class AnuncioDAOImpl extends RegistroDAOImpl<Anuncio> implements AnuncioD
         return anuncio;
     }
 
-    // Solo cabeceras (sin imagenes) para que el listado sea una sola llamada.
     @Override
     public ArrayList<Anuncio> findAll() throws SQLException {
         String sql = "{call listar_anuncios()}";

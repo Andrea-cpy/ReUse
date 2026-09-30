@@ -17,7 +17,6 @@ import pe.edu.pucp.reuse.modelo.transacciones.Transaccion;
 
 public class CitaEntregaDAOImpl extends RegistroDAOImpl<CitaEntrega> implements CitaEntregaDAO {
 
-    // fecha_hora si se envia: es la fecha acordada por los usuarios, no una marca de tiempo.
     @Override
     public int insert(CitaEntrega cita) throws SQLException {
         if (cita == null) {

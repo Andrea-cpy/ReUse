@@ -15,7 +15,6 @@ import pe.edu.pucp.reuse.modelo.transacciones.Transaccion;
 
 public class CalificacionDAOImpl extends RegistroDAOImpl<Calificacion> implements CalificacionDAO {
 
-    // La fecha no se envia: la asigna la base de datos.
     @Override
     public int insert(Calificacion calificacion) throws SQLException {
         if (calificacion == null) {

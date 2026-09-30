@@ -18,7 +18,6 @@ public class AdministradorDAOImpl extends UsuarioBaseDAOImpl<AdministradorPUCP> 
         if (administrador == null) {
             throw new IllegalArgumentException("El administrador no puede ser nulo");
         }
-        // Dos tablas: usa la conexion de la transaccion abierta por la BL y no la cierra.
         Connection conn = TransactionsManager.getConnection();
         insertarUsuario(conn, administrador);
 

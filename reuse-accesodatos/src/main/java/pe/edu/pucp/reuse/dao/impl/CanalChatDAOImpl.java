@@ -13,7 +13,6 @@ import pe.edu.pucp.reuse.modelo.mensajeria.CanalChat;
 
 public class CanalChatDAOImpl extends RegistroDAOImpl<CanalChat> implements CanalChatDAO {
 
-    // fecha_solicitud no se envia: la asigna la base de datos.
     @Override
     public int insert(CanalChat chat) throws SQLException {
         if (chat == null) {
