@@ -20,7 +20,7 @@ public class BloqueoBLImpl extends BaseBLImpl implements BloqueoBL {
     private final CanalChatDAO chatDAO = new CanalChatDAOImpl();
 
     /**
-     * RF-10: registra el bloqueo y cierra (BLOQUEADO) los chats abiertos entre
+     * Registra el bloqueo y cierra (BLOQUEADO) los chats abiertos entre
      * ambos usuarios en la misma transaccion.
      */
     @Override

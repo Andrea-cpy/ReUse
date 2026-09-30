@@ -19,7 +19,7 @@ import pe.edu.pucp.reuse.modelo.usuarios.UsuarioPUCP;
 
 public class ReporteUsuarioBLImpl extends BaseBLImpl implements ReporteUsuarioBL {
 
-    // RF-13: suspension automatica al acumular 4 o mas sanciones en 90 dias.
+    // Suspension automatica al acumular 4 o mas sanciones en 90 dias.
     private static final int SANCIONES_PARA_SUSPENDER = 4;
     private static final int DIAS_VENTANA_SANCIONES = 90;
 
@@ -27,7 +27,7 @@ public class ReporteUsuarioBLImpl extends BaseBLImpl implements ReporteUsuarioBL
     private final AdministradorDAO administradorDAO = new AdministradorDAOImpl();
 
     /**
-     * RF-04: registra la denuncia (reporte + reporte_usuario) y aumenta el
+     * Registra la denuncia (reporte + reporte_usuario) y aumenta el
      * contador de reportes del denunciado, todo en una transaccion.
      */
     @Override

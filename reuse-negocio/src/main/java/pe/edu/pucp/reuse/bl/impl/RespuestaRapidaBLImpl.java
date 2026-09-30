@@ -9,7 +9,7 @@ import pe.edu.pucp.reuse.dao.RespuestaRapidaDAO;
 import pe.edu.pucp.reuse.dao.impl.RespuestaRapidaDAOImpl;
 import pe.edu.pucp.reuse.modelo.mensajeria.RespuestaRapida;
 
-// RF-16: atajos de texto predefinidos por cada usuario.
+// Atajos de texto predefinidos por cada usuario.
 public class RespuestaRapidaBLImpl extends BaseBLImpl implements RespuestaRapidaBL {
 
     private static final int MAXIMO_POR_USUARIO = 10;

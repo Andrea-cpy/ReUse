@@ -16,14 +16,14 @@ import pe.edu.pucp.reuse.modelo.usuarios.UsuarioPUCP;
 
 public class UsuarioBLImpl extends BaseBLImpl implements UsuarioBL {
 
-    // RNF-02: solo correos institucionales @pucp.edu.pe.
+    // Solo correos institucionales @pucp.edu.pe.
     private static final Pattern PATRON_CORREO = Pattern.compile("^[A-Za-z0-9._%+-]+@pucp\\.edu\\.pe$");
     private static final Pattern PATRON_CODIGO = Pattern.compile("^\\d{8}$");
     private static final int LONGITUD_MINIMA_CONTRASENA = 8;
 
     private final CarreraDAO carreraDAO = new CarreraDAOImpl();
 
-    // RF-01: toda cuenta nueva queda pendiente de verificacion.
+    // Toda cuenta nueva queda pendiente de verificacion.
     @Override
     public int insert(UsuarioPUCP usuario) throws BLException {
         validarDatosPersonales(usuario);
@@ -177,7 +177,7 @@ public class UsuarioBLImpl extends BaseBLImpl implements UsuarioBL {
         }
     }
 
-    // Obs. 2 de la JP: el UNIQUE de la BD es la ultima defensa; aqui se da un mensaje claro antes.
+    // El UNIQUE de la BD es la ultima defensa; aqui se da un mensaje claro antes.
     void validarUnicidad(UsuarioPUCP usuario) throws BLException {
         try {
             UsuarioPUCP porCorreo = usuarioDAO.obtenerPorCorreo(usuario.getCorreoInstitucional());

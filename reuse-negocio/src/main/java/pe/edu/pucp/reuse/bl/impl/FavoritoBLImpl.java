@@ -15,7 +15,7 @@ public class FavoritoBLImpl extends BaseBLImpl implements FavoritoBL {
 
     private final FavoritoDAO favoritoDAO = new FavoritoDAOImpl();
 
-    // RF-07: guardar un anuncio en favoritos (una sola vez y no el propio).
+    // Guardar un anuncio en favoritos (una sola vez y no el propio).
     @Override
     public int insert(Favorito favorito) throws BLException {
         validarDatos(favorito);
@@ -41,7 +41,7 @@ public class FavoritoBLImpl extends BaseBLImpl implements FavoritoBL {
         }
     }
 
-    // RF-07: quitar de favoritos.
+    // Quitar de favoritos.
     @Override
     public int delete(int idFavorito) throws BLException {
         validarExiste(idFavorito);

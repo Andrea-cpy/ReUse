@@ -73,7 +73,7 @@ public class AnuncioBLImpl extends BaseBLImpl implements AnuncioBL {
         }
     }
 
-    // RF-02: solo se eliminan anuncios sin transacciones; se eliminan tambien sus imagenes.
+    // Solo se eliminan anuncios sin transacciones; se eliminan tambien sus imagenes.
     @Override
     public int delete(int idAnuncio) throws BLException {
         buscarAnuncio(idAnuncio);

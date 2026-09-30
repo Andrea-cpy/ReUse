@@ -20,7 +20,7 @@ public class CanalChatBLImpl extends BaseBLImpl implements CanalChatBL {
     private final CanalChatDAO chatDAO = new CanalChatDAOImpl();
     private final BloqueoDAO bloqueoDAO = new BloqueoDAOImpl();
 
-    // RF-09: solicitud de contacto inicial; el chat nace PENDIENTE.
+    // Solicitud de contacto inicial; el chat nace PENDIENTE.
     @Override
     public int insert(CanalChat chat) throws BLException {
         if (chat == null) {
@@ -126,7 +126,7 @@ public class CanalChatBLImpl extends BaseBLImpl implements CanalChatBL {
         }
     }
 
-    // RF-10: el bloqueo es bidireccional.
+    // El bloqueo es bidireccional.
     private void validarSinBloqueo(int idUsuarioA, int idUsuarioB) throws BLException {
         try {
             if (bloqueoDAO.obtenerActivoEntre(idUsuarioA, idUsuarioB) != null) {

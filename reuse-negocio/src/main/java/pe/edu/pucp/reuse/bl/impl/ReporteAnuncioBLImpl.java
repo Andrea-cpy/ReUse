@@ -23,8 +23,8 @@ public class ReporteAnuncioBLImpl extends BaseBLImpl implements ReporteAnuncioBL
     private final AdministradorDAO administradorDAO = new AdministradorDAOImpl();
 
     /**
-     * RF-04 y RF-14: registra la denuncia (reporte + reporte_anuncio) y, si el
-     * anuncio estaba DISPONIBLE, lo deja OBSERVADO; todo en una transaccion.
+     * Registra la denuncia (reporte + reporte_anuncio) y, si el anuncio
+     * estaba DISPONIBLE, lo deja OBSERVADO; todo en una transaccion.
      */
     @Override
     public int insert(ReporteAnuncio reporte) throws BLException {
@@ -105,7 +105,7 @@ public class ReporteAnuncioBLImpl extends BaseBLImpl implements ReporteAnuncioBL
         }
     }
 
-    // RF-14: el anuncio sancionado se archiva (sale del catalogo sin borrarse fisicamente).
+    // El anuncio sancionado se archiva (sale del catalogo sin borrarse fisicamente).
     @Override
     public void sancionar(int idReporte, int idAdministrador) throws BLException {
         ReporteAnuncio reporte = buscarReportePendiente(idReporte);

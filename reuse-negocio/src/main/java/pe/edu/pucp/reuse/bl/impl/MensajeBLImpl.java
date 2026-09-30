@@ -25,7 +25,7 @@ public class MensajeBLImpl extends BaseBLImpl implements MensajeBL {
     private final CanalChatDAO chatDAO = new CanalChatDAOImpl();
     private final RespuestaRapidaDAO respuestaDAO = new RespuestaRapidaDAOImpl();
 
-    // RF-08: solo se escribe en un chat ACTIVO y solo lo hacen el comprador o el vendedor.
+    // Solo se escribe en un chat ACTIVO y solo lo hacen el comprador o el vendedor.
     @Override
     public int insert(Mensaje mensaje) throws BLException {
         validarDatos(mensaje);

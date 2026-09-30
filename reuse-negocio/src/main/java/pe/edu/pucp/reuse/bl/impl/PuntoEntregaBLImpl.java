@@ -9,7 +9,7 @@ import pe.edu.pucp.reuse.dao.PuntoEntregaDAO;
 import pe.edu.pucp.reuse.dao.impl.PuntoEntregaDAOImpl;
 import pe.edu.pucp.reuse.modelo.transacciones.PuntoEntrega;
 
-// RF-05: administracion de los puntos seguros de entrega dentro del campus.
+// Administracion de los puntos seguros de entrega dentro del campus.
 public class PuntoEntregaBLImpl extends BaseBLImpl implements PuntoEntregaBL {
 
     private final PuntoEntregaDAO puntoDAO = new PuntoEntregaDAOImpl();

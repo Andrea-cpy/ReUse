@@ -145,7 +145,7 @@ public class OfertaBLImpl extends BaseBLImpl implements OfertaBL {
         }
     }
 
-    // RF-17: monto mayor a cero y no mayor al precio publicado; no se oferta por el propio anuncio.
+    // Monto mayor a cero y no mayor al precio publicado; no se oferta por el propio anuncio.
     private void validarDatos(Oferta oferta) throws BLException {
         if (oferta == null) {
             throw new BLException("La oferta no puede ser nula");

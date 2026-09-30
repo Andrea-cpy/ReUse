@@ -21,7 +21,7 @@ public class CitaEntregaBLImpl extends BaseBLImpl implements CitaEntregaBL {
     private final CitaEntregaDAO citaDAO = new CitaEntregaDAOImpl();
     private final PuntoEntregaDAO puntoDAO = new PuntoEntregaDAOImpl();
 
-    // RF-03: proponer una cita para una transaccion en negociacion.
+    // Proponer una cita para una transaccion en negociacion.
     @Override
     public int insert(CitaEntrega cita) throws BLException {
         validarDatos(cita);
@@ -40,7 +40,7 @@ public class CitaEntregaBLImpl extends BaseBLImpl implements CitaEntregaBL {
         }
     }
 
-    // RF-03: renegociar fecha o punto mientras la cita siga PROPUESTA.
+    // Renegociar fecha o punto mientras la cita siga PROPUESTA.
     @Override
     public int update(CitaEntrega cita) throws BLException {
         validarDatos(cita);

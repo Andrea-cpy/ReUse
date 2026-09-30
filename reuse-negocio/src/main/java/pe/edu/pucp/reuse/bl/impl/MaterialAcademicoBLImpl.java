@@ -104,7 +104,7 @@ public class MaterialAcademicoBLImpl extends BaseBLImpl implements MaterialAcade
         if (material.getCategoria() == null) {
             throw new BLException("El material debe tener una categoria");
         }
-        // Obs. 5 de la JP: un material se relaciona con una o mas carreras.
+        // Un material se relaciona con una o mas carreras.
         if (material.getCarreras().isEmpty()) {
             throw new BLException("El material debe estar asociado al menos a una carrera");
         }
