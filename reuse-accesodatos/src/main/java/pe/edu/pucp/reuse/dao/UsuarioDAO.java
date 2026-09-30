@@ -20,6 +20,6 @@ public interface UsuarioDAO extends DAO<UsuarioPUCP> {
     // Recalcula la reputacion como el promedio de las calificaciones recibidas.
     int recalcularReputacion(int idUsuario) throws SQLException;
 
-    // Valor real de una metrica (RF-18), calculado con consultas de agregacion.
+    // Valor real de una metrica, calculado con consultas de agregacion.
     double obtenerMetrica(int idUsuario, TipoMetricaInsignia metrica) throws SQLException;
 }

@@ -13,6 +13,6 @@ public interface ReporteUsuarioDAO extends DAO<ReporteUsuario> {
 
     int resolver(int idReporte, EstadoRevisionReporte estado, int idRevisor) throws SQLException;
 
-    // RF-13: sanciones recibidas por el usuario en los ultimos "dias" dias.
+    // Sanciones recibidas por el usuario en los ultimos "dias" dias.
     int contarSancionesRecientes(int idDenunciado, int dias) throws SQLException;
 }

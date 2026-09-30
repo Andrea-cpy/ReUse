@@ -13,7 +13,7 @@ public interface CanalChatDAO extends DAO<CanalChat> {
     // CERRADO o BLOQUEADO; registra fecha_cierre con la hora de la BD.
     int cerrar(int idChat, EstadoCanalChat estadoCierre) throws SQLException;
 
-    // RF-10: bloquea los chats pendientes o activos entre dos usuarios (en ambos sentidos).
+    // Bloquea los chats pendientes o activos entre dos usuarios (en ambos sentidos).
     int bloquearChatsEntre(int idUsuarioA, int idUsuarioB) throws SQLException;
 
     // Chat PENDIENTE o ACTIVO de un comprador sobre un anuncio.
