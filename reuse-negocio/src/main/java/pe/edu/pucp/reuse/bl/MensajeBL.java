@@ -8,6 +8,6 @@ public interface MensajeBL extends RegistroBL<Mensaje> {
 
     ArrayList<Mensaje> listarPorChat(int idChat) throws BLException;
 
-    // RF-16: envia como mensaje el texto de una respuesta rapida del emisor.
+    // Envia como mensaje el texto de una respuesta rapida del emisor.
     int enviarRespuestaRapida(int idChat, int idEmisor, int idRespuestaRapida) throws BLException;
 }

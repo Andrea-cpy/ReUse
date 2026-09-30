@@ -3,7 +3,7 @@ package pe.edu.pucp.reuse.bl;
 import pe.edu.pucp.reuse.modelo.moderacion.ReporteAnuncio;
 
 /**
- * RF-14: al reportar, un anuncio DISPONIBLE pasa a OBSERVADO. Al sancionar se
+ * Al reportar, un anuncio DISPONIBLE pasa a OBSERVADO. Al sancionar se
  * archiva; al desestimar vuelve a DISPONIBLE.
  */
 public interface ReporteAnuncioBL extends RegistroBL<ReporteAnuncio> {
