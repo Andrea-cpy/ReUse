@@ -75,7 +75,6 @@ public class UsuarioPUCP extends Registro {
         this.insignias = new ArrayList<>();
     }
 
-    // El id y la fecha de registro los genera la base de datos.
     public UsuarioPUCP(String codigoPUCP, String nombres, String apellidoPaterno, String apellidoMaterno,
                        String correoInstitucional, String contrasena, Carrera carrera) {
         this();
@@ -88,7 +87,6 @@ public class UsuarioPUCP extends Registro {
         this.carrera = carrera;
     }
 
-    // La facultad no se guarda en el usuario: se obtiene navegando por la carrera.
     public Facultad getFacultad() {
         return carrera == null ? null : carrera.getFacultad();
     }
@@ -235,7 +233,6 @@ public class UsuarioPUCP extends Registro {
         return Collections.unmodifiableList(comprasRealizadas);
     }
 
-    // Las ventas se obtienen navegando por los anuncios publicados.
     public List<Transaccion> getVentasRealizadas() {
         List<Transaccion> ventas = new ArrayList<>();
         for (Anuncio anuncio : anunciosPublicados) {
@@ -264,7 +261,6 @@ public class UsuarioPUCP extends Registro {
         return Collections.unmodifiableList(chatsComoComprador);
     }
 
-    // Los chats como vendedor se obtienen navegando por los anuncios publicados.
     public List<CanalChat> getChatsComoVendedor() {
         List<CanalChat> chats = new ArrayList<>();
         for (Anuncio anuncio : anunciosPublicados) {
@@ -383,7 +379,6 @@ public class UsuarioPUCP extends Registro {
         }
     }
 
-    // contadorReportes ya no se calcula aqui: lo mantiene la capa de negocio en la base de datos.
     public void agregarReporteRecibido(ReporteUsuario reporteUsuario) {
         if (reporteUsuario == null || reportesRecibidos.contains(reporteUsuario)) {
             return;

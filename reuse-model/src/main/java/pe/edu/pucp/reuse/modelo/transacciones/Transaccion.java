@@ -12,11 +12,6 @@ import pe.edu.pucp.reuse.modelo.gamificacion.Calificacion;
 import pe.edu.pucp.reuse.modelo.moderacion.ReporteUsuario;
 import pe.edu.pucp.reuse.modelo.usuarios.UsuarioPUCP;
 
-/**
- * Las transiciones de estado (confirmar cita, confirmar entrega, cancelar)
- * se hacen en la capa de negocio (TransaccionBL) dentro de una transaccion
- * de base de datos, porque modifican varias tablas a la vez.
- */
 public class Transaccion extends Registro {
 
     private int idTransaccion;
@@ -41,7 +36,6 @@ public class Transaccion extends Registro {
         this.reportes = new ArrayList<>();
     }
 
-    // El id y la fecha de inicio los genera la base de datos.
     public Transaccion(Anuncio anuncio, UsuarioPUCP comprador) {
         this();
         setAnuncio(anuncio);
@@ -52,7 +46,6 @@ public class Transaccion extends Registro {
         return estado == EstadoTransaccion.COMPLETADA;
     }
 
-    // El vendedor no se duplica: se obtiene navegando por el anuncio.
     public UsuarioPUCP getVendedor() {
         return anuncio == null ? null : anuncio.getVendedor();
     }

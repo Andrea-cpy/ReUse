@@ -19,7 +19,6 @@ public class Mensaje extends Registro {
         this.leido = false;
     }
 
-    // El id y la fecha y hora del mensaje los genera la base de datos.
     public Mensaje(String contenido, CanalChat canalChat, UsuarioPUCP emisor) {
         this();
         this.contenido = contenido;

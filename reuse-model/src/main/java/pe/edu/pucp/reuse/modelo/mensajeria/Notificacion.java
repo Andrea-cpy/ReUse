@@ -21,7 +21,6 @@ public class Notificacion extends Registro {
         this.estado = EstadoNotificacion.NO_LEIDA;
     }
 
-    // El id y la fecha y hora los genera la base de datos.
     public Notificacion(String mensaje, TipoNotificacion tipo, UsuarioPUCP destinatario) {
         this();
         this.mensaje = mensaje;

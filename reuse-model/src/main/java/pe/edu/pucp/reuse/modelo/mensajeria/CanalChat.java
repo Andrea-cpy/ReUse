@@ -10,10 +10,6 @@ import pe.edu.pucp.reuse.modelo.catalogo.Anuncio;
 import pe.edu.pucp.reuse.modelo.enums.EstadoCanalChat;
 import pe.edu.pucp.reuse.modelo.usuarios.UsuarioPUCP;
 
-/**
- * Las transiciones del chat (aceptar, rechazar, bloquear, cerrar) se validan
- * en la capa de negocio (CanalChatBL); las fechas las asigna la base de datos.
- */
 public class CanalChat extends Registro {
 
     private int idChat;
@@ -37,7 +33,6 @@ public class CanalChat extends Registro {
         setComprador(comprador);
     }
 
-    // El vendedor no se duplica: se obtiene navegando por el anuncio.
     public UsuarioPUCP getVendedor() {
         return anuncio == null ? null : anuncio.getVendedor();
     }

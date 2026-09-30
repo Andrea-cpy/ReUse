@@ -8,7 +8,6 @@ import pe.edu.pucp.reuse.modelo.enums.EstadoCita;
 public class CitaEntrega extends Registro {
 
     private int idCita;
-    // Fecha y hora acordadas por comprador y vendedor (dato del negocio, no de auditoria).
     private LocalDateTime fechaHora;
     private EstadoCita estado;
 

@@ -17,7 +17,6 @@ public class AdministradorPUCP extends UsuarioPUCP {
         setEstadoCuenta(EstadoCuenta.ACTIVA);
     }
 
-    // Un administrador no tiene carrera.
     public AdministradorPUCP(String codigoPUCP, String nombres, String apellidoPaterno, String apellidoMaterno,
                              String correoInstitucional, String contrasena) {
         super(codigoPUCP, nombres, apellidoPaterno, apellidoMaterno, correoInstitucional, contrasena, null);

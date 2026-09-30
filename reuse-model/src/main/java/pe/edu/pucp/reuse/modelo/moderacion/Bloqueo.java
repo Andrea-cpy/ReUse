@@ -19,7 +19,6 @@ public class Bloqueo extends Registro {
         this.estado = EstadoBloqueo.ACTIVO;
     }
 
-    // El id y la fecha del bloqueo los genera la base de datos.
     public Bloqueo(UsuarioPUCP bloqueador, UsuarioPUCP bloqueado) {
         this();
         setBloqueador(bloqueador);

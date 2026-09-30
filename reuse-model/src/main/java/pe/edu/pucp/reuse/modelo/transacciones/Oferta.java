@@ -22,7 +22,6 @@ public class Oferta extends Registro {
         this.estado = EstadoOferta.PENDIENTE;
     }
 
-    // El id y la fecha de la oferta los genera la base de datos.
     public Oferta(double montoPropuesto, UsuarioPUCP comprador, Anuncio anuncio) {
         this();
         this.montoPropuesto = montoPropuesto;

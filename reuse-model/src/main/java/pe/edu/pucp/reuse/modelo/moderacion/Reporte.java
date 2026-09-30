@@ -7,11 +7,6 @@ import pe.edu.pucp.reuse.modelo.enums.EstadoRevisionReporte;
 import pe.edu.pucp.reuse.modelo.usuarios.AdministradorPUCP;
 import pe.edu.pucp.reuse.modelo.usuarios.UsuarioPUCP;
 
-/**
- * Supertipo de los reportes (tabla reporte). Resolver un reporte (sancionar o
- * desestimar) lo hace la capa de negocio en una transaccion, porque ademas
- * puede suspender al usuario (RF-13) o archivar el anuncio (RF-14).
- */
 public abstract class Reporte extends Registro {
 
     private int idReporte;
@@ -27,7 +22,6 @@ public abstract class Reporte extends Registro {
         this.estadoRevision = EstadoRevisionReporte.PENDIENTE;
     }
 
-    // El id y la fecha de registro los genera la base de datos.
     protected Reporte(String descripcion, UsuarioPUCP denunciante) {
         this();
         this.descripcion = descripcion;

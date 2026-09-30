@@ -25,7 +25,6 @@ public class ReglaInsignia extends Registro {
         setInsignia(insignia);
     }
 
-    // El valor real de la metrica lo calcula la base de datos (UsuarioDAO.obtenerMetrica).
     public boolean seCumpleCon(double valorReal) {
         return operador.comparar(valorReal, valorObjetivo);
     }
