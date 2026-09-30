@@ -122,7 +122,7 @@ public class Principal {
     }
 
     // ================================================================
-    // 1. FACULTAD y CARRERA: catalogos que reemplazan a los enums (Obs. 1)
+    // 1. Facultad y Carrera
     // ================================================================
     private static void probarFacultadesYCarreras() throws BLException {
         titulo("1. FACULTAD y CARRERA (tablas en lugar de ENUM)");
@@ -163,7 +163,7 @@ public class Principal {
     }
 
     // ================================================================
-    // 2. USUARIO (Entidad 1): correo @pucp.edu.pe, UNIQUE, fecha de la BD
+    // 2. Usuario
     // ================================================================
     private static UsuarioPUCP[] probarUsuarios() throws BLException {
         titulo("2. USUARIO");
@@ -214,7 +214,7 @@ public class Principal {
     }
 
     // ================================================================
-    // 3. MATERIAL ACADEMICO: relacion N:M con carreras (Obs. 5), en transaccion
+    // 3. Material academico
     // ================================================================
     private static MaterialAcademico probarMateriales() throws BLException {
         titulo("3. MATERIAL ACADEMICO (una o mas carreras)");
@@ -251,7 +251,7 @@ public class Principal {
     }
 
     // ================================================================
-    // 4. ANUNCIO (Entidad 2): anuncio + imagenes en una transaccion
+    // 4. Anuncio
     // ================================================================
     private static Anuncio probarAnuncios(UsuarioPUCP vendedor, UsuarioPUCP comprador, MaterialAcademico material)
             throws BLException {
@@ -294,7 +294,7 @@ public class Principal {
                 + anuncioBL.findById(temporal.getIdAnuncio()).isActivo()
                 + ", en listado=" + contiene(anuncioBL.findAll(), Anuncio::getIdAnuncio, temporal.getIdAnuncio()));
 
-        // RF-07 favoritos y RF-09/RF-08 solicitud de contacto y chat.
+        // Favoritos, solicitud de contacto y chat.
         favoritoBL.insert(new Favorito(comprador, recuperado));
         rechazo("Guardar dos veces el mismo favorito", () -> favoritoBL.insert(new Favorito(comprador, recuperado)));
         System.out.println("Favoritos comprador: " + favoritoBL.listarPorUsuario(comprador.getIdUsuario()).size());
@@ -311,7 +311,7 @@ public class Principal {
     }
 
     // ================================================================
-    // 5. OFERTA (Entidad 3): aceptar = 3 escrituras en una transaccion
+    // 5. Oferta
     // ================================================================
     private static int probarOfertas(UsuarioPUCP vendedor, UsuarioPUCP comprador, Anuncio anuncio)
             throws BLException {
@@ -345,7 +345,7 @@ public class Principal {
     }
 
     // ================================================================
-    // 6. CITA DE ENTREGA y 7. TRANSACCION (Entidad 4): commit y rollback
+    // 6. Cita de entrega y 7. Transaccion
     // ================================================================
     private static void probarCitasYTransacciones(UsuarioPUCP vendedor, UsuarioPUCP comprador,
                                                   MaterialAcademico material, Anuncio anuncio, int idTransaccion)
@@ -406,7 +406,7 @@ public class Principal {
                 + " | anuncio " + anuncioBL.findById(anuncio.getIdAnuncio()).getEstado()
                 + " | competidora: " + describir(transaccionBL.findById(t2.getIdTransaccion())));
 
-        // RF-11: se necesitan ambas confirmaciones.
+        // Se necesitan ambas confirmaciones para completar la entrega.
         transaccionBL.confirmarEntrega(idTransaccion, comprador.getIdUsuario());
         System.out.println("Confirma comprador:  " + describir(transaccionBL.findById(idTransaccion)));
         transaccionBL.confirmarEntrega(idTransaccion, vendedor.getIdUsuario());
@@ -415,7 +415,7 @@ public class Principal {
                 + " | anuncio " + anuncioBL.findById(anuncio.getIdAnuncio()).getEstado());
 
         rechazo("Eliminar una transaccion COMPLETADA", () -> transaccionBL.delete(idTransaccion));
-        rechazo("Eliminar un anuncio con transacciones (RF-02)", () -> anuncioBL.delete(anuncio.getIdAnuncio()));
+        rechazo("Eliminar un anuncio con transacciones", () -> anuncioBL.delete(anuncio.getIdAnuncio()));
         transaccionBL.delete(t2.getIdTransaccion());
         System.out.println("Eliminada (logico):  transaccion " + t2.getIdTransaccion() + " activo="
                 + transaccionBL.findById(t2.getIdTransaccion()).isActivo() + ", en listado="
@@ -467,7 +467,7 @@ public class Principal {
     }
 
     // ================================================================
-    // 8. CALIFICACION, REPUTACION e INSIGNIAS (RF-15, RF-18)
+    // 8. Calificacion, reputacion e insignias
     // ================================================================
     private static void probarCalificacionEInsignia(UsuarioPUCP vendedor, UsuarioPUCP comprador, int idTransaccion)
             throws BLException {
