@@ -44,7 +44,6 @@ public class Anuncio extends Registro {
         this.reportes = new ArrayList<>();
     }
 
-    // El id y la fecha de publicacion los genera la base de datos.
     public Anuncio(String titulo, double precio, String descripcion, CondicionMaterial condicion,
                    UsuarioPUCP vendedor, MaterialAcademico materialAcademico) {
         this();
