@@ -14,6 +14,18 @@ public interface UsuarioDAO extends DAO<UsuarioPUCP> {
 
     int actualizarEstadoCuenta(int idUsuario, EstadoCuenta estadoCuenta) throws SQLException;
 
+    // Marca la cuenta como verificada y ACTIVA.
+    int verificarCuenta(int idUsuario) throws SQLException;
+
+    // hash: contrasena ya hasheada con BCrypt en la capa de negocio.
+    int cambiarContrasena(int idUsuario, String hash) throws SQLException;
+
+    // Anuncios DISPONIBLE o RESERVADO publicados por el usuario.
+    int contarAnunciosVigentes(int idUsuario) throws SQLException;
+
+    // Transacciones EN_NEGOCIACION o CITA_CONFIRMADA como comprador o vendedor.
+    int contarTransaccionesEnCurso(int idUsuario) throws SQLException;
+
     // variacion: +1 al registrar un reporte contra el usuario, -1 al anularlo.
     int actualizarContadorReportes(int idUsuario, int variacion) throws SQLException;
 

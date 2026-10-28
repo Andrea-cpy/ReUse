@@ -63,6 +63,13 @@ public class MaterialAcademicoBLImpl extends BaseBLImpl implements MaterialAcade
     @Override
     public int delete(int idMaterial) throws BLException {
         validarExiste(idMaterial);
+        try {
+            if (materialDAO.contarAnuncios(idMaterial) > 0) {
+                throw new BLException("No se puede eliminar un material que tiene anuncios activos");
+            }
+        } catch (SQLException e) {
+            throw new BLException("No se pudo verificar los anuncios del material", e);
+        }
 
         TransactionsManager.iniciar();
         try {

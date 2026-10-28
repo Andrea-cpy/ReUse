@@ -133,6 +133,11 @@ public class InsigniaDAOImpl extends RegistroDAOImpl<Insignia> implements Insign
     }
 
     @Override
+    public int contarOtorgamientos(int idInsignia) throws SQLException {
+        return contar("{call contar_otorgamientos_insignia(?, ?)}", idInsignia);
+    }
+
+    @Override
     protected Insignia mapear(ResultSet rs, Insignia insignia) throws SQLException {
         super.mapear(rs, insignia);
         insignia.setIdInsignia(rs.getInt("id_insignia"));

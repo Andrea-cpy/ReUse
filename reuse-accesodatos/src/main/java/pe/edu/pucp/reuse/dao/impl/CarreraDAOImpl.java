@@ -135,6 +135,16 @@ public class CarreraDAOImpl extends RegistroDAOImpl<Carrera> implements CarreraD
     }
 
     @Override
+    public int contarUsuarios(int idCarrera) throws SQLException {
+        return contar("{call contar_usuarios_carrera(?, ?)}", idCarrera);
+    }
+
+    @Override
+    public int contarMateriales(int idCarrera) throws SQLException {
+        return contar("{call contar_materiales_carrera(?, ?)}", idCarrera);
+    }
+
+    @Override
     protected Carrera mapear(ResultSet rs, Carrera carrera) throws SQLException {
         super.mapear(rs, carrera);
         carrera.setIdCarrera(rs.getInt("id_carrera"));

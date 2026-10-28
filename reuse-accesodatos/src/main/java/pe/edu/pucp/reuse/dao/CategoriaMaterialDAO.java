@@ -7,4 +7,6 @@ import pe.edu.pucp.reuse.modelo.catalogo.CategoriaMaterial;
 public interface CategoriaMaterialDAO extends DAO<CategoriaMaterial> {
 
     CategoriaMaterial obtenerPorNombre(String nombre) throws SQLException;
+
+    int contarMateriales(int idCategoria) throws SQLException;
 }

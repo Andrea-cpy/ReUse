@@ -1,5 +1,7 @@
 package pe.edu.pucp.reuse.dao;
 
+import java.sql.SQLException;
+
 import pe.edu.pucp.reuse.modelo.usuarios.AdministradorPUCP;
 
 /**
@@ -8,4 +10,7 @@ import pe.edu.pucp.reuse.modelo.usuarios.AdministradorPUCP;
  * transaccion abierta por la capa de negocio.
  */
 public interface AdministradorDAO extends DAO<AdministradorPUCP> {
+
+    // Reportes PENDIENTE asignados al administrador como revisor.
+    int contarReportesPendientes(int idUsuario) throws SQLException;
 }

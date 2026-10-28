@@ -10,4 +10,9 @@ public interface CarreraDAO extends DAO<Carrera> {
     Carrera obtenerPorNombre(String nombre) throws SQLException;
 
     ArrayList<Carrera> listarPorFacultad(int idFacultad) throws SQLException;
+
+    int contarUsuarios(int idCarrera) throws SQLException;
+
+    // Materiales activos asociados a la carrera (material_carrera).
+    int contarMateriales(int idCarrera) throws SQLException;
 }

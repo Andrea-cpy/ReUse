@@ -39,10 +39,9 @@ public class AdministradorDAOImpl extends UsuarioBaseDAOImpl<AdministradorPUCP> 
         Connection conn = TransactionsManager.getConnection();
         int filas = modificarUsuario(conn, administrador);
 
-        String sql = "{call modificar_administrador(?, ?, ?, ?)}";
+        String sql = "{call modificar_administrador(?, ?, ?)}";
         try (CallableStatement cmd = conn.prepareCall(sql)) {
             cmd.setInt("p_id_usuario", administrador.getIdUsuario());
-            cmd.setBoolean("p_activo", administrador.isActivo());
             cmd.setString("p_usuario_modificacion", usuarioAuditoria(administrador.getUsuarioModificacion()));
             cmd.registerOutParameter("p_filas", Types.INTEGER);
             cmd.execute();
@@ -93,5 +92,10 @@ public class AdministradorDAOImpl extends UsuarioBaseDAOImpl<AdministradorPUCP> 
         } finally {
             cerrarConexion(conn);
         }
+    }
+
+    @Override
+    public int contarReportesPendientes(int idUsuario) throws SQLException {
+        return contar("{call contar_reportes_pendientes_administrador(?, ?)}", idUsuario);
     }
 }

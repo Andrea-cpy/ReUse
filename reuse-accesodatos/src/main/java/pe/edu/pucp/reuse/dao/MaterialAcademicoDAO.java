@@ -1,5 +1,7 @@
 package pe.edu.pucp.reuse.dao;
 
+import java.sql.SQLException;
+
 import pe.edu.pucp.reuse.modelo.catalogo.MaterialAcademico;
 
 /**
@@ -8,4 +10,6 @@ import pe.edu.pucp.reuse.modelo.catalogo.MaterialAcademico;
  * transaccion abierta por la capa de negocio.
  */
 public interface MaterialAcademicoDAO extends DAO<MaterialAcademico> {
+
+    int contarAnuncios(int idMaterial) throws SQLException;
 }

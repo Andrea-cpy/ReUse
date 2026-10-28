@@ -41,9 +41,12 @@ public class PuntoEntregaBLImpl extends BaseBLImpl implements PuntoEntregaBL {
     public int delete(int idPuntoEntrega) throws BLException {
         validarExiste(idPuntoEntrega);
         try {
+            if (puntoDAO.contarCitasPendientes(idPuntoEntrega) > 0) {
+                throw new BLException("No se puede eliminar un punto de entrega con citas PROPUESTA o CONFIRMADA");
+            }
             return puntoDAO.delete(idPuntoEntrega);
         } catch (SQLException e) {
-            throw new BLException("No se pudo delete el punto de entrega", e);
+            throw new BLException("No se pudo eliminar el punto de entrega", e);
         }
     }
 

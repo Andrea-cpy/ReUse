@@ -118,6 +118,11 @@ public class PuntoEntregaDAOImpl extends RegistroDAOImpl<PuntoEntrega> implement
     }
 
     @Override
+    public int contarCitasPendientes(int idPuntoEntrega) throws SQLException {
+        return contar("{call contar_citas_pendientes_punto(?, ?)}", idPuntoEntrega);
+    }
+
+    @Override
     protected PuntoEntrega mapear(ResultSet rs, PuntoEntrega punto) throws SQLException {
         super.mapear(rs, punto);
         punto.setIdPuntoEntrega(rs.getInt("id_punto_entrega"));

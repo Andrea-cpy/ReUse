@@ -44,9 +44,15 @@ public class CarreraBLImpl extends BaseBLImpl implements CarreraBL {
     public int delete(int idCarrera) throws BLException {
         validarExiste(idCarrera);
         try {
+            if (carreraDAO.contarUsuarios(idCarrera) > 0) {
+                throw new BLException("No se puede eliminar una carrera que tiene alumnos activos");
+            }
+            if (carreraDAO.contarMateriales(idCarrera) > 0) {
+                throw new BLException("No se puede eliminar una carrera que tiene materiales asociados");
+            }
             return carreraDAO.delete(idCarrera);
         } catch (SQLException e) {
-            throw new BLException("No se pudo delete la carrera", e);
+            throw new BLException("No se pudo eliminar la carrera", e);
         }
     }
 

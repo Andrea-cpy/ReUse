@@ -62,6 +62,13 @@ public class InsigniaBLImpl extends BaseBLImpl implements InsigniaBL {
     @Override
     public int delete(int idInsignia) throws BLException {
         validarExiste(idInsignia);
+        try {
+            if (insigniaDAO.contarOtorgamientos(idInsignia) > 0) {
+                throw new BLException("No se puede eliminar una insignia que ya fue otorgada a usuarios");
+            }
+        } catch (SQLException e) {
+            throw new BLException("No se pudo verificar los otorgamientos de la insignia", e);
+        }
 
         TransactionsManager.iniciar();
         try {

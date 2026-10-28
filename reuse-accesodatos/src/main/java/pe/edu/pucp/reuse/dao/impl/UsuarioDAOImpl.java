@@ -133,6 +133,48 @@ public class UsuarioDAOImpl extends UsuarioBaseDAOImpl<UsuarioPUCP> implements U
     }
 
     @Override
+    public int verificarCuenta(int idUsuario) throws SQLException {
+        String sql = "{call verificar_usuario(?, ?)}";
+        Connection conn = abrirConexion();
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", idUsuario);
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
+            return cmd.getInt("p_filas");
+        } finally {
+            cerrarConexion(conn);
+        }
+    }
+
+    @Override
+    public int cambiarContrasena(int idUsuario, String hash) throws SQLException {
+        if (hash == null) {
+            throw new IllegalArgumentException("La contrasena no puede ser nula");
+        }
+        String sql = "{call cambiar_contrasena_usuario(?, ?, ?)}";
+        Connection conn = abrirConexion();
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", idUsuario);
+            cmd.setString("p_contrasena", hash);
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
+            return cmd.getInt("p_filas");
+        } finally {
+            cerrarConexion(conn);
+        }
+    }
+
+    @Override
+    public int contarAnunciosVigentes(int idUsuario) throws SQLException {
+        return contar("{call contar_anuncios_vigentes_usuario(?, ?)}", idUsuario);
+    }
+
+    @Override
+    public int contarTransaccionesEnCurso(int idUsuario) throws SQLException {
+        return contar("{call contar_transacciones_en_curso_usuario(?, ?)}", idUsuario);
+    }
+
+    @Override
     public int actualizarContadorReportes(int idUsuario, int variacion) throws SQLException {
         String sql = "{call actualizar_contador_reportes(?, ?, ?)}";
         Connection conn = abrirConexion();

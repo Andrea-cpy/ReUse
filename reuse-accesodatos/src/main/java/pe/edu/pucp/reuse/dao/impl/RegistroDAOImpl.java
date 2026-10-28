@@ -1,9 +1,11 @@
 package pe.edu.pucp.reuse.dao.impl;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.time.LocalDateTime;
 
 import pe.edu.pucp.reuse.dao.transacciones.TransactionsManager;
@@ -56,6 +58,22 @@ public abstract class RegistroDAOImpl<T extends Registro> {
 
     protected static String usuarioAuditoria(String usuario) {
         return (usuario == null || usuario.isBlank()) ? USUARIO_SISTEMA : usuario;
+    }
+
+    /**
+     * Ejecuta un procedimiento de conteo con la firma (IN p_id INT, OUT p_total INT).
+     * Lo usa la capa de negocio para validar dependencias antes de eliminar.
+     */
+    protected int contar(String sql, int id) throws SQLException {
+        Connection conn = abrirConexion();
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id", id);
+            cmd.registerOutParameter("p_total", Types.INTEGER);
+            cmd.execute();
+            return cmd.getInt("p_total");
+        } finally {
+            cerrarConexion(conn);
+        }
     }
 
     /**

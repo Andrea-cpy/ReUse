@@ -641,17 +641,18 @@ INSERT INTO carrera (nombre, id_facultad) VALUES
     ('Linguistica y Literatura', 12),               -- 54
     ('Psicologia', 13);                             -- 55
 
--- usuario: 7 registros (contrasenas de prueba, no son credenciales reales)
+-- usuario: 7 registros. contrasena = hash BCrypt de la clave de prueba 'Demo1234'
+-- (no es una credencial real; la capa de negocio compara con BCrypt.checkpw).
 INSERT INTO usuario (codigo_pucp, nombres, apellido_paterno, apellido_materno, correo_institucional,
                      contrasena, id_carrera, verificado, estado_cuenta, reputacion, contador_reportes,
                      foto_perfil, fecha_registro) VALUES
-    ('20260001', 'Ana', 'Torres', 'Vega', 'a20260001@pucp.edu.pe', 'DEMO_NO_USAR_EN_PRODUCCION', 26, 1, 'ACTIVA', 4.50, 0, NULL, '2026-08-01 09:00:00'),                -- 1
-    ('20260002', 'Bruno', 'Ramos', 'Soto', 'a20260002@pucp.edu.pe', 'DEMO_NO_USAR_EN_PRODUCCION', 25, 1, 'ACTIVA', 5.00, 0, NULL, '2026-08-01 10:00:00'),              -- 2
-    ('20260003', 'Carla', 'Lopez', 'Rios', 'a20260003@pucp.edu.pe', 'DEMO_NO_USAR_EN_PRODUCCION', 40, 1, 'ACTIVA', 0.00, 1, NULL, '2026-08-02 09:00:00'),              -- 3
-    ('20260004', 'Diego', 'Mendoza', 'Paz', 'a20260004@pucp.edu.pe', 'DEMO_NO_USAR_EN_PRODUCCION', 1, 1, 'ACTIVA', 5.00, 1, NULL, '2026-08-02 10:00:00'),              -- 4
-    ('20260005', 'Elena', 'Castro', NULL, 'a20260005@pucp.edu.pe', 'DEMO_NO_USAR_EN_PRODUCCION', 55, 0, 'PENDIENTE_VERIFICACION', 0.00, 0, NULL, '2026-09-12 08:00:00'), -- 5
-    ('20260006', 'Fabian', 'Leon', 'Cruz', 'a20260006@pucp.edu.pe', 'DEMO_NO_USAR_EN_PRODUCCION', 13, 1, 'SUSPENDIDA', 0.00, 0, NULL, '2026-08-03 09:00:00'),          -- 6
-    ('00000001', 'Admin', 'Prueba', NULL, 'admin.demo@pucp.edu.pe', 'DEMO_NO_USAR_EN_PRODUCCION', NULL, 1, 'ACTIVA', 0.00, 0, NULL, '2026-08-01 08:00:00');          -- 7
+    ('20260001', 'Ana', 'Torres', 'Vega', 'a20260001@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', 26, 1, 'ACTIVA', 4.50, 0, NULL, '2026-08-01 09:00:00'),                -- 1
+    ('20260002', 'Bruno', 'Ramos', 'Soto', 'a20260002@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', 25, 1, 'ACTIVA', 5.00, 0, NULL, '2026-08-01 10:00:00'),              -- 2
+    ('20260003', 'Carla', 'Lopez', 'Rios', 'a20260003@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', 40, 1, 'ACTIVA', 0.00, 1, NULL, '2026-08-02 09:00:00'),              -- 3
+    ('20260004', 'Diego', 'Mendoza', 'Paz', 'a20260004@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', 1, 1, 'ACTIVA', 5.00, 1, NULL, '2026-08-02 10:00:00'),              -- 4
+    ('20260005', 'Elena', 'Castro', NULL, 'a20260005@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', 55, 0, 'PENDIENTE_VERIFICACION', 0.00, 0, NULL, '2026-09-12 08:00:00'), -- 5
+    ('20260006', 'Fabian', 'Leon', 'Cruz', 'a20260006@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', 13, 1, 'SUSPENDIDA', 0.00, 0, NULL, '2026-08-03 09:00:00'),          -- 6
+    ('00000001', 'Admin', 'Prueba', NULL, 'admin.demo@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', NULL, 1, 'ACTIVA', 0.00, 0, NULL, '2026-08-01 08:00:00');          -- 7
 
 -- administrador: 1 registro
 INSERT INTO administrador (id_usuario) VALUES (7);
@@ -939,6 +940,21 @@ BEGIN
     SET p_filas = ROW_COUNT();
 END$$
 
+-- Alumnos activos que estudian la carrera.
+CREATE PROCEDURE contar_usuarios_carrera(IN p_id INT, OUT p_total INT)
+BEGIN
+    SELECT COUNT(*) INTO p_total FROM usuario WHERE id_carrera = p_id AND activo = 1;
+END$$
+
+-- Materiales activos asociados a la carrera (tabla intermedia material_carrera).
+CREATE PROCEDURE contar_materiales_carrera(IN p_id INT, OUT p_total INT)
+BEGIN
+    SELECT COUNT(*) INTO p_total
+    FROM material_carrera mc
+    JOIN material_academico m ON m.id_material = mc.id_material
+    WHERE mc.id_carrera = p_id AND mc.activo = 1 AND m.activo = 1;
+END$$
+
 CREATE PROCEDURE buscar_carrera_por_id(IN p_id INT)
 BEGIN
     SELECT c.id_carrera, c.nombre, c.id_facultad, f.nombre AS facultad_nombre,
@@ -1005,30 +1021,55 @@ BEGIN
     SET p_id = LAST_INSERT_ID();
 END$$
 
+-- Solo datos del perfil. Codigo PUCP y correo identifican al alumno; contrasena,
+-- verificacion, estado de cuenta y activo tienen procedimientos propios.
 CREATE PROCEDURE modificar_usuario(
     IN p_id INT,
-    IN p_codigo_pucp CHAR(8),
     IN p_nombres VARCHAR(100),
     IN p_apellido_paterno VARCHAR(60),
     IN p_apellido_materno VARCHAR(60),
-    IN p_correo_institucional VARCHAR(150),
-    IN p_contrasena VARCHAR(255),
     IN p_id_carrera INT,
-    IN p_verificado TINYINT(1),
-    IN p_estado_cuenta VARCHAR(25),
     IN p_foto_perfil VARCHAR(500),
-    IN p_activo TINYINT(1),
     IN p_usuario_modificacion VARCHAR(50),
     OUT p_filas INT)
 BEGIN
     UPDATE usuario
-    SET codigo_pucp = p_codigo_pucp, nombres = p_nombres, apellido_paterno = p_apellido_paterno,
-        apellido_materno = p_apellido_materno, correo_institucional = p_correo_institucional,
-        contrasena = p_contrasena, id_carrera = p_id_carrera, verificado = p_verificado,
-        estado_cuenta = p_estado_cuenta, foto_perfil = p_foto_perfil, activo = p_activo,
-        usuario_modificacion = p_usuario_modificacion
+    SET nombres = p_nombres, apellido_paterno = p_apellido_paterno,
+        apellido_materno = p_apellido_materno, id_carrera = p_id_carrera,
+        foto_perfil = p_foto_perfil, usuario_modificacion = p_usuario_modificacion
     WHERE id_usuario = p_id;
     SET p_filas = ROW_COUNT();
+END$$
+
+-- p_contrasena llega ya hasheada (BCrypt) desde la capa de negocio.
+CREATE PROCEDURE cambiar_contrasena_usuario(IN p_id INT, IN p_contrasena VARCHAR(255), OUT p_filas INT)
+BEGIN
+    UPDATE usuario SET contrasena = p_contrasena WHERE id_usuario = p_id;
+    SET p_filas = ROW_COUNT();
+END$$
+
+CREATE PROCEDURE verificar_usuario(IN p_id INT, OUT p_filas INT)
+BEGIN
+    UPDATE usuario SET verificado = 1, estado_cuenta = 'ACTIVA' WHERE id_usuario = p_id;
+    SET p_filas = ROW_COUNT();
+END$$
+
+-- Anuncios que siguen en el catalogo o reservados (no vendidos ni archivados).
+CREATE PROCEDURE contar_anuncios_vigentes_usuario(IN p_id INT, OUT p_total INT)
+BEGIN
+    SELECT COUNT(*) INTO p_total
+    FROM anuncio
+    WHERE id_vendedor = p_id AND estado IN ('DISPONIBLE', 'RESERVADO') AND activo = 1;
+END$$
+
+-- Transacciones sin terminar en las que participa, como comprador o como vendedor.
+CREATE PROCEDURE contar_transacciones_en_curso_usuario(IN p_id INT, OUT p_total INT)
+BEGIN
+    SELECT COUNT(*) INTO p_total
+    FROM transaccion t
+    JOIN anuncio a ON a.id_anuncio = t.id_anuncio
+    WHERE (t.id_comprador = p_id OR a.id_vendedor = p_id)
+      AND t.estado IN ('EN_NEGOCIACION', 'CITA_CONFIRMADA') AND t.activo = 1;
 END$$
 
 CREATE PROCEDURE eliminar_usuario(IN p_id INT, OUT p_filas INT)
@@ -1164,14 +1205,14 @@ BEGIN
     VALUES (p_id_usuario, p_activo, p_usuario_creacion);
 END$$
 
+-- Solo auditoria: activo se cambia con eliminar_administrador (tras validar dependencias).
 CREATE PROCEDURE modificar_administrador(
     IN p_id_usuario INT,
-    IN p_activo TINYINT(1),
     IN p_usuario_modificacion VARCHAR(50),
     OUT p_filas INT)
 BEGIN
     UPDATE administrador
-    SET activo = p_activo, usuario_modificacion = p_usuario_modificacion
+    SET usuario_modificacion = p_usuario_modificacion
     WHERE id_usuario = p_id_usuario;
     SET p_filas = ROW_COUNT();
 END$$
@@ -1180,6 +1221,13 @@ CREATE PROCEDURE eliminar_administrador(IN p_id_usuario INT, OUT p_filas INT)
 BEGIN
     UPDATE administrador SET activo = 0 WHERE id_usuario = p_id_usuario;
     SET p_filas = ROW_COUNT();
+END$$
+
+CREATE PROCEDURE contar_reportes_pendientes_administrador(IN p_id INT, OUT p_total INT)
+BEGIN
+    SELECT COUNT(*) INTO p_total
+    FROM reporte
+    WHERE id_revisor = p_id AND estado_revision = 'PENDIENTE' AND activo = 1;
 END$$
 
 CREATE PROCEDURE buscar_administrador_por_id(IN p_id INT)
@@ -1247,6 +1295,11 @@ BEGIN
     SET p_filas = ROW_COUNT();
 END$$
 
+CREATE PROCEDURE contar_materiales_categoria(IN p_id INT, OUT p_total INT)
+BEGIN
+    SELECT COUNT(*) INTO p_total FROM material_academico WHERE id_categoria = p_id AND activo = 1;
+END$$
+
 CREATE PROCEDURE buscar_categoria_material_por_id(IN p_id INT)
 BEGIN
     SELECT id_categoria, nombre, descripcion,
@@ -1306,6 +1359,11 @@ CREATE PROCEDURE eliminar_material_academico(IN p_id INT, OUT p_filas INT)
 BEGIN
     UPDATE material_academico SET activo = 0 WHERE id_material = p_id;
     SET p_filas = ROW_COUNT();
+END$$
+
+CREATE PROCEDURE contar_anuncios_material(IN p_id INT, OUT p_total INT)
+BEGIN
+    SELECT COUNT(*) INTO p_total FROM anuncio WHERE id_material = p_id AND activo = 1;
 END$$
 
 CREATE PROCEDURE buscar_material_academico_por_id(IN p_id INT)
@@ -1904,6 +1962,14 @@ CREATE PROCEDURE eliminar_punto_entrega(IN p_id INT, OUT p_filas INT)
 BEGIN
     UPDATE punto_entrega SET activo = 0 WHERE id_punto_entrega = p_id;
     SET p_filas = ROW_COUNT();
+END$$
+
+-- Citas que todavia pueden realizarse en el punto de entrega.
+CREATE PROCEDURE contar_citas_pendientes_punto(IN p_id INT, OUT p_total INT)
+BEGIN
+    SELECT COUNT(*) INTO p_total
+    FROM cita_entrega
+    WHERE id_punto_entrega = p_id AND estado IN ('PROPUESTA', 'CONFIRMADA') AND activo = 1;
 END$$
 
 CREATE PROCEDURE buscar_punto_entrega_por_id(IN p_id INT)
@@ -2790,6 +2856,11 @@ CREATE PROCEDURE eliminar_insignia(IN p_id INT, OUT p_filas INT)
 BEGIN
     UPDATE insignia SET activo = 0 WHERE id_insignia = p_id;
     SET p_filas = ROW_COUNT();
+END$$
+
+CREATE PROCEDURE contar_otorgamientos_insignia(IN p_id INT, OUT p_total INT)
+BEGIN
+    SELECT COUNT(*) INTO p_total FROM insignia_usuario WHERE id_insignia = p_id AND activo = 1;
 END$$
 
 CREATE PROCEDURE buscar_insignia_por_id(IN p_id INT)

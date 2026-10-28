@@ -49,6 +49,7 @@ import pe.edu.pucp.reuse.modelo.catalogo.Anuncio;
 import pe.edu.pucp.reuse.modelo.catalogo.ImagenProducto;
 import pe.edu.pucp.reuse.modelo.catalogo.MaterialAcademico;
 import pe.edu.pucp.reuse.modelo.enums.CondicionMaterial;
+import pe.edu.pucp.reuse.modelo.enums.EstadoCuenta;
 import pe.edu.pucp.reuse.modelo.enums.MotivoReporteAnuncio;
 import pe.edu.pucp.reuse.modelo.enums.TipoCalificacion;
 import pe.edu.pucp.reuse.modelo.gamificacion.Calificacion;
@@ -79,6 +80,8 @@ public class Principal {
     // Sufijo y codigos distintos en cada ejecucion para no chocar con las reglas de unicidad.
     private static final long RUN = System.currentTimeMillis() % 1_000_000L;
     private static long secuenciaCodigo = 10_000_000L + (System.currentTimeMillis() / 1000) % 80_000_000L;
+    // Contrasena en claro que se envia a la capa de negocio; en la BD queda su hash BCrypt.
+    private static final String CLAVE_PRUEBA = "Clave_de_prueba_" + RUN;
 
     private static final FacultadBL facultadBL = new FacultadBLImpl();
     private static final CarreraBL carreraBL = new CarreraBLImpl();
@@ -196,13 +199,42 @@ public class Principal {
         System.out.println("Navegacion:          carrera " + vendedor.getCarrera().getNombre()
                 + " -> facultad " + vendedor.getFacultad().getNombre());
 
+        // update solo cambia el perfil: el estado de cuenta que traiga el objeto se ignora.
         vendedor.setApellidoMaterno("Prueba");
         vendedor.setFotoPerfil("https://example.org/reuse/perfil-" + RUN + ".jpg");
+        vendedor.setEstadoCuenta(EstadoCuenta.SUSPENDIDA);
         usuarioBL.update(vendedor);
-        System.out.println("Modificado:          " + usuarioBL.findById(vendedor.getIdUsuario()).getNombreCompleto());
+        vendedor = usuarioBL.findById(vendedor.getIdUsuario());
+        System.out.println("Modificado:          " + vendedor.getNombreCompleto() + " | estado sigue "
+                + vendedor.getEstadoCuenta() + " (update no toca campos sensibles)");
+
+        // Contrasena: la BD guarda el hash BCrypt y el login lo compara con checkpw.
+        String correoVendedor = vendedor.getCorreoInstitucional();
+        int idVendedor = vendedor.getIdUsuario();
+        UsuarioPUCP sesion = usuarioBL.iniciarSesion(correoVendedor, CLAVE_PRUEBA);
+        System.out.println("Inicio de sesion:    " + sesion.getNombreCompleto() + " | hash guardado "
+                + sesion.getContrasena().substring(0, 7) + "... (" + sesion.getContrasena().length() + " caracteres)");
+        rechazo("Iniciar sesion con contrasena incorrecta", () -> usuarioBL.iniciarSesion(correoVendedor, "otra_clave_123"));
+        rechazo("Iniciar sesion con un correo no registrado", () -> usuarioBL.iniciarSesion(
+                "noexiste" + RUN + "@pucp.edu.pe", CLAVE_PRUEBA));
+        rechazo("Cambiar contrasena con la actual incorrecta", () -> usuarioBL.cambiarContrasena(
+                idVendedor, "otra_clave_123", "Nueva_clave_" + RUN));
+        rechazo("Contrasena nueva de 5 caracteres", () -> usuarioBL.cambiarContrasena(idVendedor, CLAVE_PRUEBA, "corta"));
+        String claveNueva = "Nueva_clave_" + RUN;
+        usuarioBL.cambiarContrasena(idVendedor, CLAVE_PRUEBA, claveNueva);
+        System.out.println("Contrasena cambiada: inicia sesion con la nueva -> "
+                + usuarioBL.iniciarSesion(correoVendedor, claveNueva).getNombres());
+        rechazo("Iniciar sesion con la contrasena anterior", () -> usuarioBL.iniciarSesion(correoVendedor, CLAVE_PRUEBA));
 
         UsuarioPUCP temporal = nuevoUsuario("Temporal", "Eliminable", informatica, null);
         usuarioBL.insert(temporal);
+        int idTemporal = temporal.getIdUsuario();
+        String correoTemporal = temporal.getCorreoInstitucional();
+        usuarioBL.suspenderCuenta(idTemporal);
+        rechazo("Iniciar sesion con una cuenta SUSPENDIDA", () -> usuarioBL.iniciarSesion(correoTemporal, CLAVE_PRUEBA));
+        usuarioBL.reactivarCuenta(idTemporal);
+        System.out.println("Reactivada:          id " + idTemporal + " vuelve a "
+                + usuarioBL.findById(idTemporal).getEstadoCuenta() + " (no estaba verificada)");
         usuarioBL.delete(temporal.getIdUsuario());
         System.out.println("Eliminado (logico):  id " + temporal.getIdUsuario() + " activo="
                 + usuarioBL.findById(temporal.getIdUsuario()).isActivo() + ", en listado="
@@ -240,6 +272,8 @@ public class Principal {
         System.out.println("Modificado:          " + material.getTitulo());
         imprimirCarreras(material);
         System.out.println("Listado:             " + materialBL.findAll().size() + " materiales activos");
+        rechazo("Eliminar una categoria con materiales activos", () -> categoriaBL.delete(ID_CATEGORIA_LIBRO));
+        rechazo("Eliminar una carrera con alumnos y materiales", () -> carreraBL.delete(ID_CARRERA_INFORMATICA));
 
         MaterialAcademico temporal = new MaterialAcademico("Material temporal " + RUN,
                 categoriaBL.findById(ID_CATEGORIA_LIBRO), List.of(informatica));
@@ -285,6 +319,8 @@ public class Principal {
         anuncioBL.update(recuperado);
         System.out.printf("Modificado:          precio S/ %.2f%n", anuncioBL.findById(anuncio.getIdAnuncio()).getPrecio());
         System.out.println("Listado:             " + anuncioBL.findAll().size() + " anuncios activos");
+        rechazo("Eliminar un material con anuncios activos", () -> materialBL.delete(material.getIdMaterial()));
+        rechazo("Eliminar un usuario con anuncios DISPONIBLE", () -> usuarioBL.delete(vendedor.getIdUsuario()));
 
         Anuncio temporal = new Anuncio("Anuncio temporal " + RUN, 10.00, "Se eliminara",
                 CondicionMaterial.NUEVO, vendedor, material);
@@ -511,7 +547,7 @@ public class Principal {
     private static UsuarioPUCP nuevoUsuario(String nombres, String apellido, Carrera carrera, String correo) {
         String codigo = Long.toString(++secuenciaCodigo);
         return new UsuarioPUCP(codigo, nombres, apellido, null,
-                correo != null ? correo : "a" + codigo + "@pucp.edu.pe", "Clave_de_prueba_" + RUN, carrera);
+                correo != null ? correo : "a" + codigo + "@pucp.edu.pe", CLAVE_PRUEBA, carrera);
     }
 
     private static <T> boolean contiene(List<T> lista, ToIntFunction<T> id, int buscado) {

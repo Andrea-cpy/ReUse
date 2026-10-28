@@ -23,6 +23,12 @@
             <artifactId>reuse-accesodatos</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
+        <!-- Hash de contrasenas: se genera en la capa de negocio, la BD solo guarda el hash. -->
+        <dependency>
+            <groupId>org.mindrot</groupId>
+            <artifactId>jbcrypt</artifactId>
+            <version>0.4</version>
+        </dependency>
     </dependencies>
 
 </project>

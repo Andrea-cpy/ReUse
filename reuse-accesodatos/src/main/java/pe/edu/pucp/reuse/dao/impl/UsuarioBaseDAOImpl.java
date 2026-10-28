@@ -33,11 +33,13 @@ public abstract class UsuarioBaseDAOImpl<T extends UsuarioPUCP> extends Registro
         }
     }
 
+    // Solo datos del perfil: contrasena, verificacion, estado de cuenta y activo se
+    // cambian con procedimientos propios; codigo PUCP y correo no son editables.
     protected int modificarUsuario(Connection conn, T usuario) throws SQLException {
-        String sql = "{call modificar_usuario(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}";
+        String sql = "{call modificar_usuario(?, ?, ?, ?, ?, ?, ?, ?)}";
         try (CallableStatement cmd = conn.prepareCall(sql)) {
             cmd.setInt("p_id", usuario.getIdUsuario());
-            asignarDatosUsuario(cmd, usuario);
+            asignarDatosPerfil(cmd, usuario);
             cmd.setString("p_usuario_modificacion", usuarioAuditoria(usuario.getUsuarioModificacion()));
             cmd.registerOutParameter("p_filas", Types.INTEGER);
             cmd.execute();
@@ -55,22 +57,27 @@ public abstract class UsuarioBaseDAOImpl<T extends UsuarioPUCP> extends Registro
         }
     }
 
+    // La contrasena llega ya hasheada desde la capa de negocio.
     private void asignarDatosUsuario(CallableStatement cmd, T usuario) throws SQLException {
+        asignarDatosPerfil(cmd, usuario);
         cmd.setString("p_codigo_pucp", usuario.getCodigoPUCP());
+        cmd.setString("p_correo_institucional", usuario.getCorreoInstitucional());
+        cmd.setString("p_contrasena", usuario.getContrasena());
+        cmd.setBoolean("p_verificado", usuario.isVerificado());
+        cmd.setString("p_estado_cuenta", usuario.getEstadoCuenta().name());
+        cmd.setBoolean("p_activo", usuario.isActivo());
+    }
+
+    private void asignarDatosPerfil(CallableStatement cmd, T usuario) throws SQLException {
         cmd.setString("p_nombres", usuario.getNombres());
         cmd.setString("p_apellido_paterno", usuario.getApellidoPaterno());
         cmd.setString("p_apellido_materno", usuario.getApellidoMaterno());
-        cmd.setString("p_correo_institucional", usuario.getCorreoInstitucional());
-        cmd.setString("p_contrasena", usuario.getContrasena());
         if (usuario.getCarrera() != null) {
             cmd.setInt("p_id_carrera", usuario.getCarrera().getIdCarrera());
         } else {
             cmd.setNull("p_id_carrera", Types.INTEGER);
         }
-        cmd.setBoolean("p_verificado", usuario.isVerificado());
-        cmd.setString("p_estado_cuenta", usuario.getEstadoCuenta().name());
         cmd.setString("p_foto_perfil", usuario.getFotoPerfil());
-        cmd.setBoolean("p_activo", usuario.isActivo());
     }
 
     @Override

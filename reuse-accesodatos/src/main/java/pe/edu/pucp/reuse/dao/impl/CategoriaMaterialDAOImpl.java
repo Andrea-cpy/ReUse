@@ -116,6 +116,11 @@ public class CategoriaMaterialDAOImpl extends RegistroDAOImpl<CategoriaMaterial>
     }
 
     @Override
+    public int contarMateriales(int idCategoria) throws SQLException {
+        return contar("{call contar_materiales_categoria(?, ?)}", idCategoria);
+    }
+
+    @Override
     protected CategoriaMaterial mapear(ResultSet rs, CategoriaMaterial categoria) throws SQLException {
         super.mapear(rs, categoria);
         categoria.setIdCategoria(rs.getInt("id_categoria"));

@@ -40,9 +40,12 @@ public class CategoriaMaterialBLImpl extends BaseBLImpl implements CategoriaMate
     public int delete(int idCategoria) throws BLException {
         validarExiste(idCategoria);
         try {
+            if (categoriaDAO.contarMateriales(idCategoria) > 0) {
+                throw new BLException("No se puede eliminar una categoria que tiene materiales activos");
+            }
             return categoriaDAO.delete(idCategoria);
         } catch (SQLException e) {
-            throw new BLException("No se pudo delete la categoria", e);
+            throw new BLException("No se pudo eliminar la categoria", e);
         }
     }
 

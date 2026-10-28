@@ -176,6 +176,11 @@ public class MaterialAcademicoDAOImpl extends RegistroDAOImpl<MaterialAcademico>
     }
 
     @Override
+    public int contarAnuncios(int idMaterial) throws SQLException {
+        return contar("{call contar_anuncios_material(?, ?)}", idMaterial);
+    }
+
+    @Override
     protected MaterialAcademico mapear(ResultSet rs, MaterialAcademico material) throws SQLException {
         super.mapear(rs, material);
         material.setIdMaterial(rs.getInt("id_material"));

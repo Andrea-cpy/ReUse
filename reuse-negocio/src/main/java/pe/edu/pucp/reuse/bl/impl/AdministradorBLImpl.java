@@ -20,9 +20,12 @@ public class AdministradorBLImpl extends BaseBLImpl implements AdministradorBL {
     @Override
     public int insert(AdministradorPUCP administrador) throws BLException {
         validarDatos(administrador);
+        usuarioBL.validarDatosPersonales(administrador);
+        UsuarioBLImpl.validarContrasena(administrador.getContrasena());
         usuarioBL.validarUnicidad(administrador);
         administrador.setVerificado(true);
         administrador.setEstadoCuenta(EstadoCuenta.ACTIVA);
+        administrador.setContrasena(UsuarioBLImpl.hashear(administrador.getContrasena()));
 
         // usuario + administrador: ambas filas o ninguna.
         TransactionsManager.iniciar();
@@ -38,11 +41,11 @@ public class AdministradorBLImpl extends BaseBLImpl implements AdministradorBL {
         }
     }
 
+    // Igual que en usuario, solo se modifican los datos del perfil.
     @Override
     public int update(AdministradorPUCP administrador) throws BLException {
         validarDatos(administrador);
         validarExiste(administrador.getIdUsuario());
-        usuarioBL.validarUnicidad(administrador);
 
         TransactionsManager.iniciar();
         try {
@@ -60,6 +63,14 @@ public class AdministradorBLImpl extends BaseBLImpl implements AdministradorBL {
     @Override
     public int delete(int idUsuario) throws BLException {
         validarExiste(idUsuario);
+        try {
+            if (administradorDAO.contarReportesPendientes(idUsuario) > 0) {
+                throw new BLException("No se puede eliminar un administrador con reportes PENDIENTE asignados;"
+                        + " reasignelos primero");
+            }
+        } catch (SQLException e) {
+            throw new BLException("No se pudo verificar los reportes del administrador", e);
+        }
 
         TransactionsManager.iniciar();
         try {
@@ -70,7 +81,7 @@ public class AdministradorBLImpl extends BaseBLImpl implements AdministradorBL {
             if (TransactionsManager.activa()) {
                 TransactionsManager.rollback();
             }
-            throw new BLException("No se pudo delete el administrador", e);
+            throw new BLException("No se pudo eliminar el administrador", e);
         }
     }
 
@@ -93,7 +104,7 @@ public class AdministradorBLImpl extends BaseBLImpl implements AdministradorBL {
     }
 
     private void validarDatos(AdministradorPUCP administrador) throws BLException {
-        usuarioBL.validarDatosPersonales(administrador);
+        usuarioBL.validarPerfil(administrador);
         if (administrador.getCarrera() != null) {
             throw new BLException("Un administrador no tiene carrera");
         }
