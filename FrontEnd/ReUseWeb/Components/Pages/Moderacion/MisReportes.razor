@@ -1,0 +1,40 @@
+@page "/mis-reportes"
+
+<PageTitle>Mis reportes · ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="Mis reportes" Subtitulo="Seguimiento de los reportes que enviaste." />
+
+<div class="ru-card">
+    <div class="table-responsive">
+        <table class="table ru-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Tipo</th>
+                    <th>Reportado</th>
+                    <th>Motivo</th>
+                    <th>Fecha</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in reportes)
+                {
+                    <tr>
+                        <td class="small-muted">@r.Id</td>
+                        <td><i class="bi @(r.Tipo == "ANUNCIO" ? "bi-megaphone" : "bi-person")"></i> @DatosDemo.Texto(r.Tipo)</td>
+                        <td class="fw-semibold">@r.Objetivo</td>
+                        <td>@DatosDemo.Texto(r.Motivo)</td>
+                        <td class="small-muted">@r.Fecha</td>
+                        <td><BadgeEstado Estado="@r.Estado" /></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    // En la demo se muestran todos los reportes como si los hubiera enviado el usuario actual
+    private readonly List<ReporteDemo> reportes = DatosDemo.Reportes.Take(3).ToList();
+}

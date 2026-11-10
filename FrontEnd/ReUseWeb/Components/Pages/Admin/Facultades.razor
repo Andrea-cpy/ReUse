@@ -1,0 +1,56 @@
+@page "/admin/facultades"
+
+<PageTitle>Facultades y carreras · Admin ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="Facultades y carreras" Subtitulo="Estructura académica usada en el registro y en los filtros del catálogo.">
+    <Acciones>
+        <NavLink class="btn btn-primary" href="admin/facultades/nueva"><i class="bi bi-plus-lg me-1"></i> Nueva facultad</NavLink>
+    </Acciones>
+</EncabezadoPagina>
+
+<div class="d-flex flex-column gap-3">
+    @foreach (var f in DatosDemo.Facultades)
+    {
+        <div class="ru-card">
+            <div class="d-flex flex-wrap align-items-center gap-3 p-3 cursor-pointer" @onclick="() => Alternar(f.Id)">
+                <i class="bi @(abiertas.Contains(f.Id) ? "bi-chevron-down" : "bi-chevron-right")"></i>
+                <span class="ru-avatar sm"><i class="bi bi-bank"></i></span>
+                <div class="flex-grow-1">
+                    <div class="fw-semibold">@f.Nombre</div>
+                    <div class="small-muted">@f.Carreras.Length carrera(s)</div>
+                </div>
+                <BadgeEstado Estado="@(f.Activa ? "ACTIVA" : "INACTIVA")" />
+                <a class="btn btn-light btn-sm" href="@($"admin/facultades/{f.Id}/editar")" @onclick:stopPropagation="true">
+                    <i class="bi bi-pencil"></i> Editar
+                </a>
+            </div>
+            @if (abiertas.Contains(f.Id))
+            {
+                <div class="border-top">
+                    @foreach (var c in f.Carreras)
+                    {
+                        <div class="d-flex align-items-center gap-3 px-3 py-2 border-bottom ps-5">
+                            <i class="bi bi-mortarboard text-secondary"></i>
+                            <span class="flex-grow-1">@c</span>
+                            <button class="btn btn-light btn-sm" title="Editar"><i class="bi bi-pencil"></i></button>
+                            <button class="btn btn-light btn-sm text-danger" title="Desactivar"><i class="bi bi-trash"></i></button>
+                        </div>
+                    }
+                    <div class="d-flex gap-2 p-3 ps-5">
+                        <input class="form-control form-control-sm" placeholder="Nombre de la nueva carrera" />
+                        <button class="btn btn-outline-primary btn-sm text-nowrap"><i class="bi bi-plus-lg"></i> Agregar carrera</button>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private readonly HashSet<int> abiertas = new() { 3 };
+
+    private void Alternar(int id)
+    {
+        if (!abiertas.Remove(id)) abiertas.Add(id);
+    }
+}

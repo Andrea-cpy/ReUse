@@ -1,0 +1,68 @@
+@page "/admin/anuncios"
+
+<PageTitle>Anuncios · Admin ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="Anuncios" Subtitulo="Supervisa las publicaciones de la comunidad." />
+
+<ul class="nav nav-pills mb-3 gap-1">
+    @foreach (var e in pestanas)
+    {
+        <li class="nav-item">
+            <button class="nav-link @(filtro == e ? "active" : "")" @onclick="() => filtro = e">@(e == "" ? "Todos" : DatosDemo.Texto(e))</button>
+        </li>
+    }
+</ul>
+
+<div class="ru-card">
+    <div class="table-responsive">
+        <table class="table ru-table">
+            <thead>
+                <tr><th>Anuncio</th><th>Vendedor</th><th>Categoría</th><th>Precio</th><th>Estado</th><th>Publicado</th><th></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var a in Visibles)
+                {
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <ImagenMaterial Categoria="@a.Categoria" Tamano="mini" />
+                                <span class="fw-semibold">@a.Titulo</span>
+                            </div>
+                        </td>
+                        <td><NavLink class="text-body" href="@($"admin/usuarios/{a.IdVendedor}")">@a.Vendedor</NavLink></td>
+                        <td>@a.Categoria</td>
+                        <td>S/ @a.Precio.ToString("0.00")</td>
+                        <td><BadgeEstado Estado="@a.Estado" /></td>
+                        <td class="small-muted">@a.Fecha</td>
+                        <td class="text-end text-nowrap">
+                            @if (a.Estado == "OBSERVADO")
+                            {
+                                <button class="btn btn-outline-primary btn-sm" @onclick="@(() => { seleccionado = a; accion = "habilitar"; })">Habilitar</button>
+                            }
+                            else if (a.Estado == "DISPONIBLE")
+                            {
+                                <button class="btn btn-outline-danger btn-sm" @onclick="@(() => { seleccionado = a; accion = "observar"; })">Observar</button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<ModalConfirmacion Visible="seleccionado is not null" VisibleChanged="@(v => { if (!v) seleccionado = null; })"
+                   Titulo="@(accion == "observar" ? "Marcar como observado" : "Habilitar anuncio")"
+                   ClaseBoton="@(accion == "observar" ? "btn-danger" : "btn-primary")"
+                   Mensaje="@(accion == "observar"
+                              ? $"«{seleccionado?.Titulo}» dejará de mostrarse en el catálogo hasta que sea revisado."
+                              : $"«{seleccionado?.Titulo}» volverá a estar DISPONIBLE en el catálogo.")" />
+
+@code {
+    private readonly string[] pestanas = { "", "DISPONIBLE", "RESERVADO", "VENDIDO", "OBSERVADO", "ARCHIVADO" };
+    private string filtro = "";
+    private AnuncioDemo? seleccionado;
+    private string accion = "";
+
+    private IEnumerable<AnuncioDemo> Visibles => DatosDemo.Anuncios.Where(a => filtro == "" || a.Estado == filtro);
+}

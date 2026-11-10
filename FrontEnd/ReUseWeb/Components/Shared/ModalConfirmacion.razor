@@ -1,0 +1,46 @@
+@* Ventana de confirmación hecha solo con Blazor (no requiere el JavaScript de Bootstrap) *@
+
+@if (Visible)
+{
+    <div class="ru-modal-fondo" @onclick="Cancelar">
+        <div class="ru-modal" @onclick:stopPropagation="true">
+            <div class="ru-modal-header">
+                <h2 class="h5 mb-0">@Titulo</h2>
+                <button type="button" class="btn-close" aria-label="Cerrar" @onclick="Cancelar"></button>
+            </div>
+            <div class="ru-modal-body">
+                @if (ChildContent is not null)
+                {
+                    @ChildContent
+                }
+                else
+                {
+                    <p class="mb-0">@Mensaje</p>
+                }
+            </div>
+            <div class="ru-modal-footer">
+                <button type="button" class="btn btn-light" @onclick="Cancelar">Cancelar</button>
+                <button type="button" class="btn @ClaseBoton" @onclick="Confirmar">@TextoConfirmar</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public EventCallback<bool> VisibleChanged { get; set; }
+    [Parameter] public string Titulo { get; set; } = "Confirmar";
+    [Parameter] public string Mensaje { get; set; } = "¿Deseas continuar?";
+    [Parameter] public string TextoConfirmar { get; set; } = "Confirmar";
+    [Parameter] public string ClaseBoton { get; set; } = "btn-primary";
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public EventCallback OnConfirmar { get; set; }
+
+    private async Task Cancelar() => await VisibleChanged.InvokeAsync(false);
+
+    private async Task Confirmar()
+    {
+        await VisibleChanged.InvokeAsync(false);
+        await OnConfirmar.InvokeAsync();
+    }
+}

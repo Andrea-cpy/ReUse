@@ -1,0 +1,225 @@
+@page "/anuncios/{Id:int}"
+@inherits PaginaBase
+@inject IAnuncioService AnuncioService
+@inject IUsuarioService UsuarioService
+@inject IFavoritoService FavoritoService
+@inject IChatService ChatService
+@inject IPuntoEntregaService PuntoEntregaService
+@inject NavigationManager Nav
+
+@* RF-02 detalle (GET /anuncios/{id}) · RF-07 favorito · RF-09 solicitar chat (POST /chats) · RF-17 enlace para ofertar *@
+
+<PageTitle>@(anuncio?.Titulo ?? "Anuncio") · ReUse</PageTitle>
+
+<NavLink class="ru-volver" href=""><i class="bi bi-arrow-left"></i> Volver al catálogo</NavLink>
+
+<Alertas Error="@Error" Exito="@Exito" />
+
+@if (cargando)
+{
+    <Cargando />
+}
+else if (anuncio is null)
+{
+    <div class="ru-card">
+        <EstadoVacio Icono="bi-search" Titulo="Anuncio no encontrado" Mensaje="Es posible que haya sido eliminado.">
+            <NavLink class="btn btn-primary" href="">Volver al catálogo</NavLink>
+        </EstadoVacio>
+    </div>
+}
+else
+{
+    <div class="row g-4 mt-0">
+        @* ---------- Galería ---------- *@
+        <div class="col-lg-7">
+            <ImagenMaterial Categoria="@anuncio.NombreCategoria" Url="@anuncio.Imagenes.FirstOrDefault()" Tamano="grande" />
+            @if (anuncio.Imagenes.Count > 1)
+            {
+                <div class="d-flex gap-2 mt-2">
+                    @foreach (string url in anuncio.Imagenes.Skip(1))
+                    {
+                        <ImagenMaterial Categoria="@anuncio.NombreCategoria" Url="@url" Tamano="mini" />
+                    }
+                </div>
+            }
+
+            <div class="ru-card ru-card-body mt-4">
+                <h2 class="h3">Descripción</h2>
+                <p class="mb-3">@(string.IsNullOrWhiteSpace(anuncio.Descripcion) ? "Sin descripción." : anuncio.Descripcion)</p>
+                <dl class="row mb-0 small">
+                    <dt class="col-sm-4 text-secondary fw-normal">Material académico</dt>
+                    <dd class="col-sm-8">@anuncio.TituloMaterial</dd>
+                    <dt class="col-sm-4 text-secondary fw-normal">Categoría</dt>
+                    <dd class="col-sm-8">@(anuncio.NombreCategoria ?? "—")</dd>
+                    <dt class="col-sm-4 text-secondary fw-normal">Condición</dt>
+                    <dd class="col-sm-8"><BadgeEstado Estado="@anuncio.Condicion" /></dd>
+                    <dt class="col-sm-4 text-secondary fw-normal">Publicado el</dt>
+                    <dd class="col-sm-8 mb-0">@Formato.Fecha(anuncio.FechaPublicacion)</dd>
+                </dl>
+            </div>
+        </div>
+
+        @* ---------- Información y acciones ---------- *@
+        <div class="col-lg-5">
+            <div class="ru-card ru-card-body mb-3">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <BadgeEstado Estado="@anuncio.Estado" />
+                    @if (!esMio)
+                    {
+                        <button class="btn btn-light btn-sm" title="@(idFavorito > 0 ? "Quitar de favoritos" : "Agregar a favoritos")"
+                                @onclick="AlternarFavorito" disabled="@Procesando">
+                            <i class="bi @(idFavorito > 0 ? "bi-heart-fill text-danger" : "bi-heart")"></i>
+                        </button>
+                    }
+                </div>
+                <h1 class="mb-2">@anuncio.Titulo</h1>
+                <div class="display-6 fw-bold mb-3">@Formato.Soles(anuncio.Precio)</div>
+
+                @if (esMio)
+                {
+                    <div class="alert alert-light border small mb-3"><i class="bi bi-info-circle me-1"></i> Este anuncio es tuyo.</div>
+                    <div class="d-grid gap-2">
+                        <NavLink class="btn btn-primary" href="@($"mis-anuncios/{anuncio.IdAnuncio}/ofertas")">
+                            <i class="bi bi-cash-coin me-1"></i> Ver ofertas recibidas
+                        </NavLink>
+                        <NavLink class="btn btn-outline-primary" href="@($"mis-anuncios/{anuncio.IdAnuncio}/editar")">
+                            <i class="bi bi-pencil me-1"></i> Editar anuncio
+                        </NavLink>
+                    </div>
+                }
+                else if (anuncio.Estado == "DISPONIBLE")
+                {
+                    <div class="d-grid gap-2">
+                        <NavLink class="btn btn-primary" href="@($"anuncios/{anuncio.IdAnuncio}/ofertar")">
+                            <i class="bi bi-cash-coin me-1"></i> Hacer una oferta
+                        </NavLink>
+                        @if (chatExistente is not null)
+                        {
+                            <NavLink class="btn btn-outline-primary" href="@($"mensajes/{chatExistente.IdChat}")">
+                                <i class="bi bi-chat-dots me-1"></i> Ir al chat (@Formato.Texto(chatExistente.Estado))
+                            </NavLink>
+                        }
+                        else
+                        {
+                            <button class="btn btn-outline-primary" @onclick="() => mostrarContacto = true">
+                                <i class="bi bi-chat-dots me-1"></i> Contactar al vendedor
+                            </button>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-light border small mb-0">
+                        <i class="bi bi-info-circle me-1"></i> Este anuncio está @Formato.Texto(anuncio.Estado).ToLower(): ya no recibe ofertas ni solicitudes de chat.
+                    </div>
+                }
+            </div>
+
+            @* Vendedor *@
+            @if (vendedor is not null)
+            {
+                <div class="ru-card ru-card-body mb-3">
+                    <div class="small-muted mb-2">Vendedor</div>
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="ru-avatar lg" style="width:56px;height:56px;font-size:1.1rem">@Formato.Iniciales(NombreVendedor)</span>
+                        <div class="flex-grow-1">
+                            <div class="fw-semibold">
+                                @NombreVendedor
+                                @if (vendedor.EstadoCuenta == "ACTIVA")
+                                {
+                                    <i class="bi bi-patch-check-fill text-primary" title="Cuenta verificada PUCP"></i>
+                                }
+                            </div>
+                            <div class="small-muted">@vendedor.NombreCarrera</div>
+                            <div class="small"><span class="small-muted">Como vendedor:</span> <Estrellas Valor="(double)vendedor.ReputacionVendedor" MostrarNumero="true" /></div>
+                        </div>
+                    </div>
+                    @if (!esMio)
+                    {
+                        <NavLink class="btn btn-light btn-sm w-100 mt-3" href="@($"usuarios/{vendedor.IdUsuario}")">Ver perfil del vendedor</NavLink>
+                    }
+                </div>
+            }
+
+            @if (puntos.Count > 0)
+            {
+                <div class="ru-card ru-card-body">
+                    <div class="small-muted mb-2">Puntos de entrega en el campus</div>
+                    @foreach (PuntoEntregaDTO p in puntos)
+                    {
+                        <div class="d-flex align-items-center gap-2 mb-1"><i class="bi bi-geo-alt text-primary"></i> @p.Nombre</div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <ModalConfirmacion @bind-Visible="mostrarContacto" Titulo="Solicitar contacto" TextoConfirmar="Enviar solicitud"
+                       OnConfirmar="SolicitarChat">
+        <p class="mb-0">Se enviará una solicitud de chat a <strong>@NombreVendedor</strong>. Podrán conversar cuando la acepte.</p>
+    </ModalConfirmacion>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private AnuncioDTO? anuncio;
+    private UsuarioDTO? vendedor;
+    private CanalChatDTO? chatExistente;
+    private List<PuntoEntregaDTO> puntos = [];
+    private int idUsuario;
+    private int idFavorito;
+    private bool esMio;
+    private bool cargando = true;
+    private bool mostrarContacto;
+
+    private string NombreVendedor => vendedor is null ? (anuncio?.NombreVendedor ?? "") : $"{vendedor.Nombres} {vendedor.ApellidoPaterno}";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        cargando = true;
+        idUsuario = await IdUsuarioAsync();
+        await Ejecutar(async () =>
+        {
+            anuncio = await AnuncioService.Obtener(Id);
+            if (anuncio is null) return;
+            esMio = anuncio.IdVendedor == idUsuario;
+            vendedor = await UsuarioService.Obtener(anuncio.IdVendedor);
+            puntos = (await PuntoEntregaService.Listar()).Where(p => p.Activo).Take(3).ToList();
+            if (!esMio)
+            {
+                FavoritoDTO? favorito = (await FavoritoService.ListarPorUsuario(idUsuario)).FirstOrDefault(f => f.IdAnuncio == Id);
+                idFavorito = favorito?.IdFavorito ?? 0;
+                chatExistente = (await ChatService.ListarPorUsuario(idUsuario))
+                    .FirstOrDefault(c => c.IdAnuncio == Id && c.IdComprador == idUsuario && c.Estado is "PENDIENTE" or "ACTIVO");
+            }
+        });
+        cargando = false;
+    }
+
+    private async Task AlternarFavorito()
+    {
+        if (idFavorito > 0)
+        {
+            await Ejecutar(async () =>
+            {
+                await FavoritoService.Quitar(idFavorito);
+                idFavorito = 0;
+            }, "Se quitó de tus favoritos.");
+        }
+        else
+        {
+            await Ejecutar(async () => idFavorito = (await FavoritoService.Agregar(idUsuario, Id)).IdFavorito,
+                "Se guardó en tus favoritos.");
+        }
+    }
+
+    private async Task SolicitarChat()
+    {
+        CanalChatDTO? chat = null;
+        if (await Ejecutar(async () => chat = await ChatService.Solicitar(Id, idUsuario)) && chat is not null)
+        {
+            Nav.NavigateTo($"mensajes/{chat.IdChat}");
+        }
+    }
+}

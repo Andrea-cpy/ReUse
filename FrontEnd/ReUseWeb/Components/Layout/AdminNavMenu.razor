@@ -1,0 +1,23 @@
+@* Menú lateral del administrador *@
+
+<NavLink class="ru-brand" href="admin" Match="NavLinkMatch.All">
+    <span class="logo"><i class="bi bi-recycle"></i></span>
+    <span class="lh-1">ReUse<br /><small>ADMIN</small></span>
+</NavLink>
+
+<nav class="flex-grow-1">
+    <div class="ru-nav-section">General</div>
+    <NavLink class="ru-nav-link" href="admin" Match="NavLinkMatch.All"><i class="bi bi-speedometer2"></i> Resumen</NavLink>
+
+    <div class="ru-nav-section">Cuentas</div>
+    <NavLink class="ru-nav-link" href="admin/usuarios"><i class="bi bi-people"></i> Usuarios</NavLink>
+
+    <div class="ru-nav-section">Catálogos</div>
+    <NavLink class="ru-nav-link" href="admin/categorias"><i class="bi bi-tags"></i> Categorías</NavLink>
+    <NavLink class="ru-nav-link" href="admin/puntos-entrega"><i class="bi bi-geo-alt"></i> Puntos de entrega</NavLink>
+</nav>
+
+<div class="ru-sidebar-footer">
+    <NavLink class="ru-nav-link" href="" Match="NavLinkMatch.All"><i class="bi bi-grid"></i> Ver catálogo</NavLink>
+    <CerrarSesion />
+</div>

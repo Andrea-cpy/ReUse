@@ -1,0 +1,34 @@
+@* Tarjeta de un anuncio en el catálogo, favoritos y perfil público *@
+
+<div class="ru-anuncio">
+    <ImagenMaterial Categoria="@Anuncio.NombreCategoria" Url="@Anuncio.Imagenes.FirstOrDefault()">
+        @if (OnFavorito.HasDelegate)
+        {
+            <button type="button" class="fav" title="@(Favorito ? "Quitar de favoritos" : "Agregar a favoritos")"
+                    @onclick="() => OnFavorito.InvokeAsync(Anuncio)">
+                <i class="bi @(Favorito ? "bi-heart-fill text-danger" : "bi-heart")"></i>
+            </button>
+        }
+    </ImagenMaterial>
+    <a class="cubre d-flex flex-column flex-grow-1 p-3" href="@($"anuncios/{Anuncio.IdAnuncio}")">
+        <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+            <span class="ru-precio">@Formato.Soles(Anuncio.Precio)</span>
+            <BadgeEstado Estado="@Anuncio.Condicion" />
+        </div>
+        <div class="fw-semibold mb-1">@Anuncio.Titulo</div>
+        <div class="ru-meta mt-auto">
+            <i class="bi bi-tag"></i> @(Anuncio.NombreCategoria ?? "Sin categoría")
+            @if (!string.IsNullOrEmpty(Anuncio.NombreVendedor))
+            {
+                <span> · <i class="bi bi-person"></i> @Anuncio.NombreVendedor</span>
+            }
+        </div>
+    </a>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public AnuncioDTO Anuncio { get; set; } = default!;
+    [Parameter] public bool Favorito { get; set; }
+    /// <summary>Si se asigna, se muestra el corazón para agregar o quitar de favoritos.</summary>
+    [Parameter] public EventCallback<AnuncioDTO> OnFavorito { get; set; }
+}

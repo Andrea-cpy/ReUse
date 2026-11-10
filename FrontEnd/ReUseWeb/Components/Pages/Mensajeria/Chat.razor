@@ -1,0 +1,232 @@
+@page "/mensajes/{Id:int}"
+@inherits PaginaBase
+@implements IDisposable
+@inject IChatService ChatService
+@inject IRespuestaRapidaService RespuestaRapidaService
+
+@* RF-08 chat: GET/POST /chats/{id}/mensajes · RF-16 respuestas rápidas: POST /chats/{id}/respuestas-rapidas/{idRespuesta}
+   RF-09: el vendedor acepta o rechaza la solicitud (PUT /chats/{id}/aceptar | rechazar); cualquiera puede cerrarlo. *@
+
+<PageTitle>Chat · ReUse</PageTitle>
+
+<NavLink class="ru-volver d-md-none" href="mensajes"><i class="bi bi-arrow-left"></i> Volver a mensajes</NavLink>
+
+<Alertas Error="@Error" />
+
+<div class="ru-card ru-chat overflow-hidden">
+    @* ---------- Lista lateral de conversaciones ---------- *@
+    <div class="ru-chat-lista">
+        @foreach (CanalChatDTO c in chats)
+        {
+            <NavLink class="ru-chat-item" href="@($"mensajes/{c.IdChat}")">
+                <span class="ru-avatar sm">@Formato.Iniciales(ContraparteDe(c))</span>
+                <div class="min-w-0 flex-grow-1">
+                    <div class="d-flex justify-content-between small">
+                        <span class="fw-semibold">@ContraparteDe(c)</span>
+                        <BadgeEstado Estado="@c.Estado" />
+                    </div>
+                    <div class="small-muted text-truncate">@c.TituloAnuncio</div>
+                </div>
+            </NavLink>
+        }
+    </div>
+
+    @* ---------- Conversación ---------- *@
+    <div class="ru-chat-panel">
+        @if (chat is null)
+        {
+            if (cargando)
+            {
+                <Cargando />
+            }
+            else
+            {
+                <EstadoVacio Icono="bi-chat-dots" Titulo="Conversación no disponible" />
+            }
+        }
+        else
+        {
+            <div class="d-flex align-items-center gap-3 p-3 border-bottom">
+                <span class="ru-avatar">@Formato.Iniciales(ContraparteDe(chat))</span>
+                <div class="flex-grow-1 min-w-0">
+                    <NavLink class="fw-semibold text-body" href="@($"usuarios/{IdContraparte}")">@ContraparteDe(chat)</NavLink>
+                    <div class="small-muted text-truncate">
+                        <NavLink class="text-reset" href="@($"anuncios/{chat.IdAnuncio}")">@chat.TituloAnuncio</NavLink>
+                    </div>
+                </div>
+                <BadgeEstado Estado="@chat.Estado" />
+                @if (chat.Estado == "ACTIVO")
+                {
+                    <button class="btn btn-light btn-sm" title="Cerrar conversación" disabled="@Procesando" @onclick="() => confirmarCierre = true">
+                        <i class="bi bi-x-circle"></i>
+                    </button>
+                }
+            </div>
+
+            if (chat.Estado == "PENDIENTE")
+            {
+                <div class="alert alert-warning m-3 mb-0 small d-flex flex-wrap align-items-center gap-2">
+                    <i class="bi bi-hourglass-split"></i>
+                    @if (SoyVendedor)
+                    {
+                        <span class="flex-grow-1">@chat.NombreComprador solicitó contactarte. Acepta para poder conversar.</span>
+                        <button class="btn btn-sm btn-outline-danger" disabled="@Procesando" @onclick="Rechazar">Rechazar</button>
+                        <button class="btn btn-sm btn-primary" disabled="@Procesando" @onclick="Aceptar">Aceptar</button>
+                    }
+                    else
+                    {
+                        <span class="flex-grow-1">Tu solicitud está pendiente. Podrás escribir cuando el vendedor la acepte.</span>
+                    }
+                </div>
+            }
+
+            <div class="ru-chat-mensajes">
+                @if (mensajes.Count == 0)
+                {
+                    <div class="text-center small-muted my-auto">Aún no hay mensajes.</div>
+                }
+                @foreach (MensajeDTO m in mensajes)
+                {
+                    bool enviado = m.IdEmisor == idUsuario;
+                    <div class="ru-burbuja @(enviado ? "enviado" : "recibido")">
+                        @m.Contenido
+                        <span class="hora">@Formato.FechaHora(m.FechaHora)</span>
+                    </div>
+                }
+            </div>
+
+            <div class="border-top p-3">
+                <div class="d-flex gap-2 mb-2 overflow-auto pb-1">
+                    @foreach (RespuestaRapidaDTO r in respuestas)
+                    {
+                        <button class="ru-chip text-nowrap" title="Enviar esta respuesta rápida" disabled="@(!PuedeEscribir || Procesando)"
+                                @onclick="() => EnviarRespuestaRapida(r)">
+                            <i class="bi bi-lightning-charge"></i> @r.Texto
+                        </button>
+                    }
+                    <NavLink class="ru-chip text-nowrap" href="respuestas-rapidas"><i class="bi bi-gear"></i> Gestionar</NavLink>
+                </div>
+                <div class="input-group">
+                    <input class="form-control" placeholder="@(PuedeEscribir ? "Escribe un mensaje…" : "El chat no está activo")" maxlength="1000"
+                           @bind="texto" @bind:event="oninput" @onkeydown="EnviarConEnter" disabled="@(!PuedeEscribir)" />
+                    <button class="btn btn-primary" @onclick="Enviar" disabled="@(!PuedeEscribir || Procesando || string.IsNullOrWhiteSpace(texto))">
+                        <i class="bi bi-send"></i>
+                    </button>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<ModalConfirmacion @bind-Visible="confirmarCierre" Titulo="Cerrar conversación" TextoConfirmar="Cerrar" ClaseBoton="btn-danger"
+                   Mensaje="Ninguno de los dos podrá enviar más mensajes en este chat." OnConfirmar="Cerrar" />
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private List<CanalChatDTO> chats = [];
+    private CanalChatDTO? chat;
+    private List<MensajeDTO> mensajes = [];
+    private List<RespuestaRapidaDTO> respuestas = [];
+    private string texto = "";
+    private bool cargando = true;
+    private bool confirmarCierre;
+    private int idUsuario;
+    private Timer? temporizador;
+
+    private bool SoyVendedor => chat is not null && chat.IdVendedor == idUsuario;
+    private bool PuedeEscribir => chat?.Estado == "ACTIVO";
+    private int IdContraparte => chat is null ? 0 : SoyVendedor ? chat.IdComprador : chat.IdVendedor;
+
+    private string ContraparteDe(CanalChatDTO c) =>
+        (c.IdVendedor == idUsuario ? c.NombreComprador : c.NombreVendedor) ?? "Usuario";
+
+    protected override async Task OnInitializedAsync()
+    {
+        idUsuario = await IdUsuarioAsync();
+        await Ejecutar(async () =>
+        {
+            chats = await ChatService.ListarPorUsuario(idUsuario);
+            respuestas = await RespuestaRapidaService.ListarPorCreador(idUsuario);
+        });
+        // Cada 5 segundos se consultan mensajes nuevos (el backend REST no envía notificaciones push)
+        temporizador = new Timer(_ => InvokeAsync(Refrescar), null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        cargando = true;
+        chat = null;
+        mensajes = [];
+        await Ejecutar(async () =>
+        {
+            CanalChatDTO? c = await ChatService.Obtener(Id);
+            if (c is null || (c.IdComprador != idUsuario && c.IdVendedor != idUsuario))
+            {
+                throw new ServicioException("No participas en esta conversación.");
+            }
+            chat = c;
+            mensajes = await ChatService.ListarMensajes(Id);
+        });
+        cargando = false;
+    }
+
+    private async Task Refrescar()
+    {
+        if (chat is null || Procesando) return;
+        try
+        {
+            mensajes = await ChatService.ListarMensajes(chat.IdChat);
+            CanalChatDTO? actualizado = await ChatService.Obtener(chat.IdChat);
+            if (actualizado is not null) chat = actualizado;
+            StateHasChanged();
+        }
+        catch (ServicioException)
+        {
+            // Si falla una consulta periódica no se interrumpe el chat; se intenta en la siguiente.
+        }
+    }
+
+    private async Task Enviar()
+    {
+        if (chat is null || string.IsNullOrWhiteSpace(texto)) return;
+        string contenido = texto.Trim();
+        if (await Ejecutar(() => ChatService.Enviar(chat.IdChat, idUsuario, contenido)))
+        {
+            texto = "";
+            mensajes = await ChatService.ListarMensajes(chat.IdChat);
+        }
+    }
+
+    private async Task EnviarConEnter(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await Enviar();
+    }
+
+    private async Task EnviarRespuestaRapida(RespuestaRapidaDTO respuesta)
+    {
+        if (chat is null) return;
+        if (await Ejecutar(() => ChatService.EnviarRespuestaRapida(chat.IdChat, idUsuario, respuesta.IdRespuesta)))
+        {
+            mensajes = await ChatService.ListarMensajes(chat.IdChat);
+        }
+    }
+
+    private async Task Aceptar() => await CambiarEstado(() => ChatService.Aceptar(Id));
+
+    private async Task Rechazar() => await CambiarEstado(() => ChatService.Rechazar(Id));
+
+    private async Task Cerrar() => await CambiarEstado(() => ChatService.Cerrar(Id));
+
+    private async Task CambiarEstado(Func<Task<CanalChatDTO>> accion)
+    {
+        CanalChatDTO? actualizado = null;
+        if (await Ejecutar(async () => actualizado = await accion()) && actualizado is not null)
+        {
+            chat = actualizado;
+            chats = await ChatService.ListarPorUsuario(idUsuario);
+        }
+    }
+
+    public void Dispose() => temporizador?.Dispose();
+}

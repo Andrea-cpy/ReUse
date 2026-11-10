@@ -1,0 +1,121 @@
+@page "/admin/usuarios/{Id:int}"
+@inherits PaginaBase
+@inject IUsuarioService UsuarioService
+@inject IAnuncioService AnuncioService
+
+@* RF-01 (administrador): verificar, suspender y reactivar → PUT /usuarios/{id}/verificar | suspender | reactivar *@
+
+<PageTitle>Gestionar usuario · Admin ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="Gestionar usuario" Volver="admin/usuarios" TextoVolver="Volver a usuarios" />
+
+<Alertas Error="@Error" Exito="@Exito" />
+
+@if (u is null)
+{
+    if (cargando)
+    {
+        <Cargando />
+    }
+}
+else
+{
+    <TarjetaPerfil Usuario="u">
+        <div class="d-flex flex-wrap gap-2 mt-3 pt-3 border-top">
+            <span class="me-auto small-muted align-self-center">
+                Estado de la cuenta: <BadgeEstado Estado="@u.EstadoCuenta" /> · Reportes recibidos: <strong>@u.ContadorReportes</strong>
+            </span>
+            @if (u.EstadoCuenta == "PENDIENTE_VERIFICACION")
+            {
+                <button class="btn btn-primary btn-sm" disabled="@Procesando" @onclick="@(() => Pedir("verificar"))"><i class="bi bi-patch-check me-1"></i> Verificar cuenta</button>
+            }
+            @if (u.EstadoCuenta == "SUSPENDIDA")
+            {
+                <button class="btn btn-outline-primary btn-sm" disabled="@Procesando" @onclick="@(() => Pedir("reactivar"))"><i class="bi bi-arrow-counterclockwise me-1"></i> Reactivar cuenta</button>
+            }
+            else
+            {
+                <button class="btn btn-outline-danger btn-sm" disabled="@Procesando" @onclick="@(() => Pedir("suspender"))"><i class="bi bi-slash-circle me-1"></i> Suspender cuenta</button>
+            }
+        </div>
+    </TarjetaPerfil>
+
+    <div class="ru-card mt-4">
+        <div class="p-3 border-bottom"><h2 class="h3 mb-0">Anuncios publicados</h2></div>
+        @if (anuncios.Any())
+        {
+            foreach (AnuncioDTO a in anuncios)
+            {
+                <div class="d-flex align-items-center gap-3 p-3 border-bottom">
+                    <ImagenMaterial Categoria="@a.NombreCategoria" Url="@a.Imagenes.FirstOrDefault()" Tamano="mini" />
+                    <div class="flex-grow-1">
+                        <div class="fw-semibold small">@a.Titulo</div>
+                        <div class="small-muted">@Formato.Soles(a.Precio) · @Formato.Fecha(a.FechaPublicacion)</div>
+                    </div>
+                    <BadgeEstado Estado="@a.Estado" />
+                </div>
+            }
+        }
+        else
+        {
+            <EstadoVacio Icono="bi-megaphone" Titulo="Sin anuncios" />
+        }
+    </div>
+}
+
+<ModalConfirmacion @bind-Visible="mostrarConfirmacion" Titulo="@Titulo" TextoConfirmar="Confirmar"
+                   ClaseBoton="@(accion == "suspender" ? "btn-danger" : "btn-primary")"
+                   Mensaje="@Mensaje" OnConfirmar="Confirmar" />
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private UsuarioDTO? u;
+    private List<AnuncioDTO> anuncios = [];
+    private string accion = "";
+    private bool mostrarConfirmacion;
+    private bool cargando = true;
+
+    private string Nombre => u is null ? "" : $"{u.Nombres} {u.ApellidoPaterno}";
+
+    private string Titulo => accion switch
+    {
+        "verificar" => "Verificar cuenta",
+        "suspender" => "Suspender cuenta",
+        _ => "Reactivar cuenta"
+    };
+
+    private string Mensaje => accion switch
+    {
+        "verificar" => $"La cuenta de {Nombre} pasará a ACTIVA y podrá iniciar sesión.",
+        "suspender" => $"{Nombre} no podrá iniciar sesión mientras su cuenta esté suspendida.",
+        _ => $"La cuenta de {Nombre} volverá a estar ACTIVA."
+    };
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await Ejecutar(async () =>
+        {
+            u = await UsuarioService.Obtener(Id);
+            anuncios = await AnuncioService.ListarPorVendedor(Id);
+        });
+        cargando = false;
+    }
+
+    private void Pedir(string nuevaAccion)
+    {
+        accion = nuevaAccion;
+        mostrarConfirmacion = true;
+    }
+
+    private async Task Confirmar()
+    {
+        Func<Task<UsuarioDTO>> llamada = accion switch
+        {
+            "verificar" => () => UsuarioService.Verificar(Id),
+            "suspender" => () => UsuarioService.Suspender(Id),
+            _ => () => UsuarioService.Reactivar(Id)
+        };
+        await Ejecutar(async () => u = await llamada(), $"Listo: la cuenta quedó {Formato.Texto(accion == "suspender" ? "SUSPENDIDA" : "ACTIVA").ToLower()}.");
+    }
+}

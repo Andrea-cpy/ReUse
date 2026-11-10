@@ -1,0 +1,116 @@
+@page "/admin/reportes/{Id:int}"
+@inject NavigationManager Nav
+
+<PageTitle>Reporte #@Id · Admin ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="@($"Reporte #{r.Id}")" Subtitulo="@($"{DatosDemo.Texto(r.Tipo)} · {DatosDemo.Texto(r.Motivo)}")"
+                  Volver="admin/reportes" TextoVolver="Volver a reportes">
+    <Acciones><BadgeEstado Estado="@r.Estado" /></Acciones>
+</EncabezadoPagina>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="ru-card ru-card-body mb-4">
+            <h2 class="h3 mb-3">Detalle del reporte</h2>
+            <dl class="row mb-0">
+                <dt class="col-sm-4 text-secondary fw-normal">Denunciante</dt>
+                <dd class="col-sm-8">@r.Denunciante</dd>
+                <dt class="col-sm-4 text-secondary fw-normal">Fecha de registro</dt>
+                <dd class="col-sm-8">@r.Fecha</dd>
+                <dt class="col-sm-4 text-secondary fw-normal">Motivo</dt>
+                <dd class="col-sm-8">@DatosDemo.Texto(r.Motivo)</dd>
+                <dt class="col-sm-4 text-secondary fw-normal">Descripción</dt>
+                <dd class="col-sm-8">@r.Descripcion</dd>
+                @if (r.Revisor is not null)
+                {
+                    <dt class="col-sm-4 text-secondary fw-normal">Revisado por</dt>
+                    <dd class="col-sm-8 mb-0">@r.Revisor</dd>
+                }
+            </dl>
+        </div>
+
+        <div class="ru-card ru-card-body mb-4">
+            <h2 class="h3 mb-3">@(r.Tipo == "ANUNCIO" ? "Anuncio reportado" : "Usuario reportado")</h2>
+            @if (r.Tipo == "ANUNCIO")
+            {
+                var a = DatosDemo.Anuncio(r.IdObjetivo);
+                <div class="d-flex flex-wrap align-items-center gap-3">
+                    <ImagenMaterial Categoria="@a.Categoria" Tamano="mini" />
+                    <div class="flex-grow-1">
+                        <div class="fw-semibold">@a.Titulo</div>
+                        <div class="small-muted">Vendedor: @a.Vendedor · S/ @a.Precio.ToString("0.00")</div>
+                    </div>
+                    <BadgeEstado Estado="@a.Estado" />
+                </div>
+                <p class="small mt-3 mb-0">@a.Descripcion</p>
+            }
+            else
+            {
+                var u = DatosDemo.Usuario(r.IdObjetivo);
+                <div class="d-flex flex-wrap align-items-center gap-3">
+                    <span class="ru-avatar">@DatosDemo.Iniciales(u.Nombre)</span>
+                    <div class="flex-grow-1">
+                        <div class="fw-semibold">@u.Nombre</div>
+                        <div class="small-muted">@u.Codigo · @u.Carrera</div>
+                    </div>
+                    <span class="small">Reportes previos: <strong>@u.Reportes</strong></span>
+                    <BadgeEstado Estado="@u.Estado" />
+                    <NavLink class="btn btn-light btn-sm" href="@($"admin/usuarios/{u.Id}")">Ver usuario</NavLink>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="ru-card ru-card-body">
+            <h2 class="h3 mb-3">Resolución</h2>
+            @if (r.Estado == "PENDIENTE")
+            {
+                <label class="form-label small" for="decision">Decisión</label>
+                <select id="decision" class="form-select mb-3" @bind="decision">
+                    <option value="SANCIONADO">Sancionar</option>
+                    <option value="DESESTIMADO">Desestimar</option>
+                </select>
+
+                if (decision == "SANCIONADO")
+                {
+                    <div class="small fw-semibold mb-2">Acción a aplicar</div>
+                    if (r.Tipo == "ANUNCIO")
+                    {
+                        <div class="form-check"><input class="form-check-input" type="radio" name="accion" id="ac1" checked /><label class="form-check-label" for="ac1">Marcar anuncio como OBSERVADO</label></div>
+                        <div class="form-check"><input class="form-check-input" type="radio" name="accion" id="ac2" /><label class="form-check-label" for="ac2">Archivar anuncio</label></div>
+                    }
+                    else
+                    {
+                        <div class="form-check"><input class="form-check-input" type="radio" name="accion" id="ac3" checked /><label class="form-check-label" for="ac3">Solo registrar la sanción</label></div>
+                        <div class="form-check"><input class="form-check-input" type="radio" name="accion" id="ac4" /><label class="form-check-label" for="ac4">Suspender la cuenta</label></div>
+                    }
+                }
+                <div class="mb-3"></div>
+
+                <button class="btn @(decision == "SANCIONADO" ? "btn-danger" : "btn-primary") w-100" @onclick="() => confirmar = true">
+                    Registrar resolución
+                </button>
+            }
+            else
+            {
+                <p class="small-muted mb-0">Este reporte ya fue resuelto como <BadgeEstado Estado="@r.Estado" />.</p>
+            }
+        </div>
+    </div>
+</div>
+
+<ModalConfirmacion @bind-Visible="confirmar" Titulo="Confirmar resolución" TextoConfirmar="Confirmar"
+                   ClaseBoton="@(decision == "SANCIONADO" ? "btn-danger" : "btn-primary")"
+                   Mensaje="@($"El reporte #{r.Id} quedará como {DatosDemo.Texto(decision)} y se notificará al denunciante.")"
+                   OnConfirmar="@(() => Nav.NavigateTo("admin/reportes"))" />
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private ReporteDemo r = default!;
+    private string decision = "SANCIONADO";
+    private bool confirmar;
+
+    protected override void OnParametersSet() => r = DatosDemo.Reporte(Id);
+}

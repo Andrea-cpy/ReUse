@@ -1,0 +1,88 @@
+@page "/admin/categorias"
+@inherits PaginaBase
+@inject ICategoriaService CategoriaService
+
+@* RF-06: categorías → GET /categorias y DELETE /categorias/{id}.
+   La eliminación es lógica (activo = 0) y CategoriaMaterialBL la rechaza si la categoría tiene materiales. *@
+
+<PageTitle>Categorías · Admin ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="Categorías de material" Subtitulo="Clasificación usada al publicar anuncios.">
+    <Acciones>
+        <NavLink class="btn btn-primary" href="admin/categorias/nueva"><i class="bi bi-plus-lg me-1"></i> Nueva categoría</NavLink>
+    </Acciones>
+</EncabezadoPagina>
+
+<Alertas Error="@Error" Exito="@Exito" />
+
+<BarraBusqueda @bind-Texto="texto" Placeholder="Nombre o descripción" Resultados="@Visibles.Count()" />
+
+<div class="ru-card">
+    @if (cargando)
+    {
+        <Cargando />
+    }
+    else if (Visibles.Any())
+    {
+        <div class="table-responsive">
+            <table class="table ru-table">
+                <thead>
+                    <tr><th>Categoría</th><th>Descripción</th><th class="text-end">Acciones</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (CategoriaMaterialDTO c in Visibles)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@c.Nombre</td>
+                            <td class="small">@c.Descripcion</td>
+                            <td class="text-end text-nowrap">
+                                <NavLink class="btn btn-light btn-sm" href="@($"admin/categorias/{c.IdCategoria}/editar")" title="Editar"><i class="bi bi-pencil"></i></NavLink>
+                                <button class="btn btn-light btn-sm text-danger" title="Eliminar" @onclick="() => { aEliminar = c; mostrarEliminar = true; }"><i class="bi bi-trash"></i></button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <EstadoVacio Icono="bi-tags" Titulo="Sin categorías" Mensaje="Prueba con otro texto o crea una nueva categoría." />
+    }
+</div>
+
+<ModalConfirmacion @bind-Visible="mostrarEliminar" Titulo="Eliminar categoría" TextoConfirmar="Eliminar" ClaseBoton="btn-danger" OnConfirmar="Eliminar">
+    <p class="mb-2">¿Eliminar la categoría «<strong>@(aEliminar?.Nombre)</strong>»?</p>
+    <p class="small-muted mb-0">Dejará de estar disponible para nuevas publicaciones. No se puede eliminar si tiene materiales asociados.</p>
+</ModalConfirmacion>
+
+@code {
+    private List<CategoriaMaterialDTO> categorias = [];
+    private CategoriaMaterialDTO? aEliminar;
+    private bool mostrarEliminar;
+    private string texto = "";
+    private bool cargando = true;
+
+    private IEnumerable<CategoriaMaterialDTO> Visibles => categorias
+        .Where(c => string.IsNullOrWhiteSpace(texto) || $"{c.Nombre} {c.Descripcion}".Contains(texto.Trim(), StringComparison.OrdinalIgnoreCase))
+        .OrderBy(c => c.Nombre);
+
+    protected override async Task OnInitializedAsync() => await Cargar();
+
+    private async Task Cargar()
+    {
+        string? exito = Exito;
+        await Ejecutar(async () => categorias = await CategoriaService.Listar());
+        Exito ??= exito;
+        cargando = false;
+    }
+
+
+    private async Task Eliminar()
+    {
+        if (aEliminar is null) return;
+        CategoriaMaterialDTO c = aEliminar;
+        if (await Ejecutar(() => CategoriaService.Eliminar(c.IdCategoria), $"Se eliminó «{c.Nombre}»."))
+            await Cargar();
+    }
+}

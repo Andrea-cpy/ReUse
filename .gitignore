@@ -44,4 +44,20 @@ build/
 # db.properties contiene usuario/contraseña de la BD.
 # Se ignora para no exponer credenciales en el repo.
 # Usar db.properties.example como plantilla.
-reuse-dbmanager/src/main/resources/db.properties
+BackEnd/reuse-dbmanager/src/main/resources/db.properties
+
+### FrontEnd (Blazor / Visual Studio) ###
+FrontEnd/**/bin/
+FrontEnd/**/obj/
+FrontEnd/**/.vs/
+FrontEnd/.vs/
+*.user
+*.suo
+
+### glassfish8 y Dependencias ###
+# Son las carpetas que entrega el laboratorio: se suben completas, con sus .jar/.war/.class.
+!glassfish8/**
+!Dependencias/**
+# Lo que GlassFish regenera al arrancar (cache OSGi y logs) no se versiona.
+glassfish8/glassfish/domains/domain1/osgi-cache/
+glassfish8/glassfish/domains/domain1/logs/*.log

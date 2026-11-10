@@ -1,0 +1,152 @@
+@page "/perfil/editar"
+@inherits PaginaBase
+@inject IUsuarioService UsuarioService
+@inject IAcademicoService AcademicoService
+
+@* RF-01: actualizar perfil (PUT /usuarios/{id}) y cambiar contraseña (PUT /usuarios/{id}/contrasena).
+   El código PUCP y el correo no se editan: el backend los ignora en el update. *@
+
+<PageTitle>Editar perfil · ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="Editar perfil" Volver="perfil" TextoVolver="Volver a mi perfil" />
+
+<Alertas Error="@Error" Exito="@Exito" />
+
+@if (usuario is null)
+{
+    <Cargando />
+}
+else
+{
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="ru-card ru-card-body mb-4">
+                <h2 class="h3 mb-3">Datos personales</h2>
+                <div class="d-flex align-items-center gap-3 mb-4">
+                    <span class="ru-avatar lg">@(Formato.Iniciales(usuario.Nombres + " " + usuario.ApellidoPaterno))</span>
+                </div>
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label" for="nombres">Nombres</label>
+                        <input id="nombres" class="form-control" @bind="usuario.Nombres" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="apPat">Apellido paterno</label>
+                        <input id="apPat" class="form-control" @bind="usuario.ApellidoPaterno" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="apMat">Apellido materno</label>
+                        <input id="apMat" class="form-control" @bind="usuario.ApellidoMaterno" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="codigo">Código PUCP</label>
+                        <input id="codigo" class="form-control" value="@usuario.CodigoPUCP" disabled />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="correo">Correo institucional</label>
+                        <input id="correo" class="form-control" value="@usuario.CorreoInstitucional" disabled />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="facultad">Facultad</label>
+                        <select id="facultad" class="form-select" value="@idFacultad" @onchange="CambiarFacultad">
+                            @foreach (FacultadDTO f in facultades)
+                            {
+                                <option value="@f.IdFacultad">@f.Nombre</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="carrera">Carrera</label>
+                        <select id="carrera" class="form-select" @bind="usuario.IdCarrera">
+                            <option value="0">Selecciona…</option>
+                            @foreach (CarreraDTO c in carreras)
+                            {
+                                <option value="@c.IdCarrera">@c.Nombre</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-end mt-4">
+                    <button class="btn btn-primary" disabled="@Procesando" @onclick="GuardarPerfil">Guardar datos</button>
+                </div>
+            </div>
+
+            <div class="ru-card ru-card-body">
+                <h2 class="h3 mb-3">Cambiar contraseña</h2>
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label" for="actual">Contraseña actual</label>
+                        <input id="actual" type="password" class="form-control" @bind="contrasenaActual" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="nueva">Nueva contraseña</label>
+                        <input id="nueva" type="password" class="form-control" @bind="contrasenaNueva" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="confirmar">Confirmar nueva contraseña</label>
+                        <input id="confirmar" type="password" class="form-control" @bind="contrasenaConfirmacion" />
+                    </div>
+                </div>
+                <div class="d-flex justify-content-end mt-4">
+                    <button class="btn btn-outline-primary" disabled="@Procesando" @onclick="CambiarContrasena">Cambiar contraseña</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private UsuarioDTO? usuario;
+    private List<FacultadDTO> facultades = [];
+    private List<CarreraDTO> carreras = [];
+    private int idFacultad;
+    private string contrasenaActual = "";
+    private string contrasenaNueva = "";
+    private string contrasenaConfirmacion = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        int id = await IdUsuarioAsync();
+        await Ejecutar(async () =>
+        {
+            usuario = await UsuarioService.Obtener(id);
+            facultades = await AcademicoService.ListarFacultades();
+            idFacultad = usuario?.IdFacultad ?? 0;
+            if (idFacultad > 0)
+            {
+                carreras = await AcademicoService.ListarCarreras(idFacultad);
+            }
+        });
+    }
+
+    private async Task CambiarFacultad(ChangeEventArgs e)
+    {
+        if (usuario is null) return;
+        idFacultad = int.TryParse(e.Value?.ToString(), out int id) ? id : 0;
+        usuario.IdCarrera = 0;
+        await Ejecutar(async () => carreras = await AcademicoService.ListarCarreras(idFacultad));
+    }
+
+    private async Task GuardarPerfil()
+    {
+        if (usuario is null) return;
+        UsuarioDTO perfil = usuario;
+        await Ejecutar(async () => usuario = await UsuarioService.ActualizarPerfil(perfil), "Tus datos se guardaron.");
+    }
+
+    private async Task CambiarContrasena()
+    {
+        if (contrasenaNueva != contrasenaConfirmacion)
+        {
+            Exito = null;
+            Error = "La nueva contraseña y su confirmación no coinciden.";
+            return;
+        }
+        int id = await IdUsuarioAsync();
+        // UsuarioBL verifica la contraseña actual contra el hash BCrypt y la longitud mínima de la nueva
+        if (await Ejecutar(() => UsuarioService.CambiarContrasena(id, contrasenaActual, contrasenaNueva), "Tu contraseña se actualizó."))
+        {
+            contrasenaActual = contrasenaNueva = contrasenaConfirmacion = "";
+        }
+    }
+}

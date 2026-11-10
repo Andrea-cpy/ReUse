@@ -1,0 +1,105 @@
+@page "/anuncios/{Id:int}/ofertar"
+@inherits PaginaBase
+@inject IAnuncioService AnuncioService
+@inject IOfertaService OfertaService
+@inject NavigationManager Nav
+
+@* RF-17: el comprador propone un monto → POST /ofertas *@
+
+<PageTitle>Hacer oferta · ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="Hacer una oferta" Subtitulo="Propón un monto al vendedor. Podrá aceptarla, rechazarla o contraofertar."
+                  Volver="@($"anuncios/{Id}")" TextoVolver="Volver al anuncio" />
+
+<Alertas Error="@Error" />
+
+@if (anuncio is null)
+{
+    if (cargado)
+    {
+        <div class="ru-card"><EstadoVacio Icono="bi-search" Titulo="Anuncio no encontrado" /></div>
+    }
+    else
+    {
+        <Cargando />
+    }
+}
+else
+{
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="ru-card ru-card-body">
+                <label class="form-label fw-semibold" for="monto">Monto propuesto</label>
+                <div class="input-group input-group-lg mb-2">
+                    <span class="input-group-text">S/</span>
+                    <input id="monto" type="number" class="form-control" min="0.5" step="0.50" @bind="monto" />
+                </div>
+                <div class="d-flex flex-wrap gap-2 mb-4">
+                    @foreach (int pct in new[] { 100, 95, 90, 85 })
+                    {
+                        decimal valor = Math.Round(anuncio.Precio * pct / 100m, 2);
+                        <button type="button" class="ru-chip" @onclick="() => monto = valor">
+                            @(pct == 100 ? "Precio publicado" : $"-{100 - pct}%") · @Formato.Soles(valor)
+                        </button>
+                    }
+                </div>
+
+                <div class="alert alert-light border small">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Si el vendedor acepta tu oferta, se abrirá una transacción y podrán coordinar la cita de entrega.
+                </div>
+
+                <div class="d-flex gap-2 justify-content-end">
+                    <NavLink class="btn btn-light" href="@($"anuncios/{Id}")">Cancelar</NavLink>
+                    <button type="button" class="btn btn-primary" @onclick="() => confirmar = true" disabled="@(Procesando || monto <= 0)">
+                        <i class="bi bi-send me-1"></i> Enviar oferta
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="ru-card ru-card-body d-flex gap-3">
+                <ImagenMaterial Categoria="@anuncio.NombreCategoria" Url="@anuncio.Imagenes.FirstOrDefault()" Tamano="mini" />
+                <div>
+                    <div class="fw-semibold">@anuncio.Titulo</div>
+                    <div class="small-muted">Vendedor: @anuncio.NombreVendedor</div>
+                    <div class="ru-precio mt-1">@Formato.Soles(anuncio.Precio)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <ModalConfirmacion @bind-Visible="confirmar" Titulo="Confirmar oferta" TextoConfirmar="Sí, enviar"
+                       Mensaje="@($"Vas a ofrecer {Formato.Soles(monto)} por «{anuncio.Titulo}». ¿Deseas continuar?")"
+                       OnConfirmar="Enviar" />
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private AnuncioDTO? anuncio;
+    private decimal monto;
+    private bool confirmar;
+    private bool cargado;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await Ejecutar(async () =>
+        {
+            anuncio = await AnuncioService.Obtener(Id);
+            if (anuncio is not null) monto = anuncio.Precio;
+        });
+        cargado = true;
+    }
+
+    private async Task Enviar()
+    {
+        int idUsuario = await IdUsuarioAsync();
+        // AnuncioBL/OfertaBL validan: anuncio DISPONIBLE, monto > 0 y que no sea tu propio anuncio
+        if (await Ejecutar(() => OfertaService.Ofertar(idUsuario, Id, monto)))
+        {
+            Nav.NavigateTo("mis-ofertas");
+        }
+    }
+}

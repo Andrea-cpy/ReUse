@@ -1,0 +1,63 @@
+@inherits LayoutComponentBase
+@inject NavigationManager Nav
+@implements IDisposable
+
+@* Layout del administrador PUCP (moderación y mantenimiento de catálogos) *@
+
+<div class="ru-app">
+    <aside class="ru-sidebar admin @(menuAbierto ? "abierto" : "")">
+        <AdminNavMenu />
+    </aside>
+    @if (menuAbierto)
+    {
+        <div class="ru-overlay" @onclick="() => menuAbierto = false"></div>
+    }
+
+    <div class="ru-main">
+        <header class="ru-topbar">
+            <button class="btn btn-light ru-menu-toggle ru-icon-btn" title="Menú" @onclick="() => menuAbierto = !menuAbierto">
+                <i class="bi bi-list"></i>
+            </button>
+            <span class="badge text-bg-dark"><i class="bi bi-shield-lock"></i> Panel de administración</span>
+
+            <div class="ms-auto d-flex align-items-center gap-1">
+                <AuthorizeView>
+                    <span class="d-flex align-items-center gap-2 ms-2">
+                        <span class="ru-avatar" style="background:#fdf3dc;color:#a87612">@Formato.Iniciales(context.User.NombreCompleto())</span>
+                        <span class="d-none d-lg-block lh-sm">
+                            <span class="fw-semibold d-block small">@context.User.NombreCompleto()</span>
+                            <span class="small-muted">Administrador PUCP</span>
+                        </span>
+                    </span>
+                </AuthorizeView>
+            </div>
+        </header>
+
+        <main class="ru-content">
+            @Body
+        </main>
+    </div>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    Ocurrió un error inesperado.
+    <a href="." class="reload">Recargar</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+@code {
+    private bool menuAbierto;
+
+    private void CerrarMenu(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        menuAbierto = false;
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose() => Nav.LocationChanged -= CerrarMenu;
+
+    protected override void OnInitialized()
+    {
+        Nav.LocationChanged += CerrarMenu;
+    }
+}

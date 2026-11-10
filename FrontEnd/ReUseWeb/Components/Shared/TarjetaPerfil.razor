@@ -1,0 +1,71 @@
+@* Cabecera de perfil reutilizada en "Mi perfil", el perfil público y el detalle del administrador *@
+
+<div class="ru-card ru-card-body">
+    <div class="d-flex flex-wrap align-items-center gap-4">
+        <span class="ru-avatar lg">@Formato.Iniciales(NombreCompleto)</span>
+        <div class="flex-grow-1">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <h2 class="h4 mb-0">@NombreCompleto</h2>
+                @if (Usuario.EstadoCuenta == "ACTIVA")
+                {
+                    <span class="badge text-bg-light border"><i class="bi bi-patch-check-fill text-primary"></i> Verificado PUCP</span>
+                }
+                else
+                {
+                    <BadgeEstado Estado="@Usuario.EstadoCuenta" />
+                }
+            </div>
+            <div class="small-muted mt-1">
+                <i class="bi bi-mortarboard"></i> @(Usuario.NombreCarrera ?? "Sin carrera")
+                @if (!string.IsNullOrEmpty(Usuario.NombreFacultad))
+                {
+                    <span> · @Usuario.NombreFacultad</span>
+                }
+            </div>
+            <div class="small-muted">
+                <i class="bi bi-calendar3"></i> Miembro desde @Formato.Fecha(Usuario.FechaRegistro)
+                @if (MostrarPrivado)
+                {
+                    <span> · <i class="bi bi-envelope"></i> @Usuario.CorreoInstitucional · Código @Usuario.CodigoPUCP</span>
+                }
+            </div>
+        </div>
+        <div class="d-flex flex-wrap gap-4 text-center">
+            @* Reputación separada por rol (observación del Lab 9) *@
+            <div>
+                <div class="fs-5 fw-bold"><Estrellas Valor="(double)Usuario.ReputacionVendedor" /></div>
+                <div class="small-muted"><i class="bi bi-shop"></i> Como vendedor @Usuario.ReputacionVendedor.ToString("0.0")</div>
+            </div>
+            <div>
+                <div class="fs-5 fw-bold"><Estrellas Valor="(double)Usuario.ReputacionComprador" /></div>
+                <div class="small-muted"><i class="bi bi-bag"></i> Como comprador @Usuario.ReputacionComprador.ToString("0.0")</div>
+            </div>
+            @if (Ventas.HasValue)
+            {
+                <div>
+                    <div class="fs-4 fw-bold">@Ventas</div>
+                    <div class="small-muted">Ventas</div>
+                </div>
+            }
+            @if (Compras.HasValue)
+            {
+                <div>
+                    <div class="fs-4 fw-bold">@Compras</div>
+                    <div class="small-muted">Compras</div>
+                </div>
+            }
+        </div>
+    </div>
+    @ChildContent
+</div>
+
+@code {
+    [Parameter, EditorRequired] public UsuarioDTO Usuario { get; set; } = default!;
+    [Parameter] public bool MostrarPrivado { get; set; } = true;
+    /// <summary>Ventas y compras completadas (se calculan del historial de transacciones).</summary>
+    [Parameter] public int? Ventas { get; set; }
+    [Parameter] public int? Compras { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string NombreCompleto => $"{Usuario.Nombres} {Usuario.ApellidoPaterno} {Usuario.ApellidoMaterno}".Trim();
+}

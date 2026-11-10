@@ -1,0 +1,5 @@
+servidor=<host>
+puerto=3306
+esquema=reuse_db
+usuario=<user>
+password=<contraseña>

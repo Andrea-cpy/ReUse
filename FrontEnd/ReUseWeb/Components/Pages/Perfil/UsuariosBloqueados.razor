@@ -1,0 +1,34 @@
+@page "/bloqueados"
+
+<PageTitle>Usuarios bloqueados · ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="Usuarios bloqueados" Subtitulo="Los usuarios bloqueados no pueden contactarte ni enviarte ofertas." />
+
+<div class="ru-card">
+    @if (DatosDemo.Bloqueos.Any())
+    {
+        foreach (var b in DatosDemo.Bloqueos)
+        {
+            <div class="d-flex flex-wrap align-items-center gap-3 p-3 border-bottom">
+                <span class="ru-avatar">@DatosDemo.Iniciales(b.Usuario)</span>
+                <div class="flex-grow-1">
+                    <div class="fw-semibold">@b.Usuario</div>
+                    <div class="small-muted">Código @b.Codigo · Bloqueado el @b.Fecha</div>
+                </div>
+                <button class="btn btn-outline-primary btn-sm" @onclick="() => aDesbloquear = b">Desbloquear</button>
+            </div>
+        }
+    }
+    else
+    {
+        <EstadoVacio Icono="bi-slash-circle" Titulo="No has bloqueado a nadie" />
+    }
+</div>
+
+<ModalConfirmacion Visible="aDesbloquear is not null" VisibleChanged="@(v => { if (!v) aDesbloquear = null; })"
+                   Titulo="Desbloquear usuario" TextoConfirmar="Desbloquear"
+                   Mensaje="@($"{aDesbloquear?.Usuario} podrá volver a contactarte.")" />
+
+@code {
+    private BloqueoDemo? aDesbloquear;
+}

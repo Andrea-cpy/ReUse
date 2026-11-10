@@ -1,0 +1,21 @@
+@* Foto del material: muestra la primera imagen del anuncio encima de un marcador por categoría.
+   Si la URL no carga, la imagen se oculta y queda visible el marcador. *@
+
+<div class="ru-img @Tamano @Formato.TonoCategoria(Categoria)">
+    <i class="bi @Formato.IconoCategoria(Categoria)"></i>
+    @if (!string.IsNullOrWhiteSpace(Url))
+    {
+        <img src="@Url" alt="Foto del material" onerror="this.style.display='none'"
+             style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit" />
+    }
+    @ChildContent
+</div>
+
+@code {
+    [Parameter] public string? Categoria { get; set; }
+    /// <summary>URL de la imagen (ImagenProducto). Opcional.</summary>
+    [Parameter] public string? Url { get; set; }
+    /// <summary>"", "grande" o "mini"</summary>
+    [Parameter] public string Tamano { get; set; } = "";
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

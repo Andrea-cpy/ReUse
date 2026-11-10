@@ -1,0 +1,58 @@
+@page "/usuarios/{Id:int}"
+@inherits PaginaBase
+@inject IUsuarioService UsuarioService
+@inject IAnuncioService AnuncioService
+
+@* Perfil público de un vendedor: GET /usuarios/{id} y sus anuncios disponibles (GET /anuncios?vendedor=ID) *@
+
+<PageTitle>Perfil · ReUse</PageTitle>
+
+<a class="ru-volver" href="javascript:history.back()"><i class="bi bi-arrow-left"></i> Volver</a>
+
+<Alertas Error="@Error" />
+
+@if (usuario is null)
+{
+    if (cargando)
+    {
+        <Cargando />
+    }
+}
+else
+{
+    <TarjetaPerfil Usuario="usuario" MostrarPrivado="false" />
+
+    <h2 class="h3 mt-4 mb-3">Anuncios de @usuario.Nombres</h2>
+    if (anuncios.Any())
+    {
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-xl-4 g-3">
+            @foreach (AnuncioDTO a in anuncios)
+            {
+                <div class="col"><AnuncioCard Anuncio="a" /></div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="ru-card"><EstadoVacio Icono="bi-megaphone" Titulo="Sin anuncios disponibles" /></div>
+    }
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private UsuarioDTO? usuario;
+    private List<AnuncioDTO> anuncios = [];
+    private bool cargando = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        cargando = true;
+        await Ejecutar(async () =>
+        {
+            usuario = await UsuarioService.Obtener(Id);
+            anuncios = (await AnuncioService.ListarPorVendedor(Id)).Where(a => a.Estado == "DISPONIBLE").ToList();
+        });
+        cargando = false;
+    }
+}

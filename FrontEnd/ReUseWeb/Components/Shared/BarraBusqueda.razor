@@ -1,0 +1,41 @@
+@* Barra de búsqueda y filtros estándar para las pantallas de gestión (observación del Lab 9).
+   Uso: <BarraBusqueda @bind-Texto="texto" Placeholder="…" Resultados="n"> filtros extra en col-md-3 </BarraBusqueda> *@
+
+<div class="ru-card ru-card-body mb-3">
+    <div class="row g-2 align-items-end">
+        <div class="col-md">
+            <label class="form-label small" for="ru-buscar">Buscar</label>
+            <div class="input-group">
+                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                <input id="ru-buscar" class="form-control" placeholder="@Placeholder" value="@Texto" @oninput="CambiarTexto" />
+            </div>
+        </div>
+        @ChildContent
+        <div class="col-md-auto">
+            <button type="button" class="btn btn-light w-100" @onclick="Limpiar"><i class="bi bi-x-lg me-1"></i> Limpiar</button>
+        </div>
+    </div>
+    @if (Resultados.HasValue)
+    {
+        <div class="small-muted mt-2">@Resultados resultado(s)</div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Texto { get; set; } = "";
+    [Parameter] public EventCallback<string> TextoChanged { get; set; }
+    [Parameter] public string Placeholder { get; set; } = "Buscar…";
+    [Parameter] public int? Resultados { get; set; }
+    /// <summary>Filtros adicionales (por ejemplo, un select de estado dentro de un div col-md-3).</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    /// <summary>Se invoca al presionar Limpiar, para que la página reinicie sus otros filtros.</summary>
+    [Parameter] public EventCallback OnLimpiar { get; set; }
+
+    private async Task CambiarTexto(ChangeEventArgs e) => await TextoChanged.InvokeAsync(e.Value?.ToString() ?? "");
+
+    private async Task Limpiar()
+    {
+        await TextoChanged.InvokeAsync("");
+        await OnLimpiar.InvokeAsync();
+    }
+}

@@ -1,0 +1,142 @@
+@page "/transacciones/{Id:int}/cita"
+@inherits PaginaBase
+@inject ITransaccionService TransaccionService
+@inject ICitaService CitaService
+@inject IPuntoEntregaService PuntoEntregaService
+@inject NavigationManager Nav
+
+@* RF-03: proponer (POST /citas) o renegociar (PUT /citas/{id}) la cita de entrega en un punto seguro del campus *@
+
+<PageTitle>Programar cita · ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="@(citaActual is null ? "Proponer cita de entrega" : "Renegociar cita de entrega")" Subtitulo="@t?.TituloAnuncio"
+                  Volver="@($"transacciones/{Id}")" TextoVolver="Volver a la transacción" />
+
+<Alertas Error="@Error" />
+
+@if (cargando)
+{
+    <Cargando />
+}
+else if (t is not null)
+{
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="ru-card ru-card-body mb-4">
+                <h2 class="h3 mb-3">1. Elige el punto de entrega</h2>
+                <div class="row g-3">
+                    @foreach (PuntoEntregaDTO p in puntos)
+                    {
+                        <div class="col-md-6">
+                            <label class="border rounded-3 p-3 d-flex gap-3 h-100 @(idPunto == p.IdPuntoEntrega ? "border-primary bg-primary-subtle" : "")">
+                                <input type="radio" class="form-check-input mt-1" name="punto"
+                                       checked="@(idPunto == p.IdPuntoEntrega)" @onchange="() => idPunto = p.IdPuntoEntrega" />
+                                <span>
+                                    <span class="fw-semibold d-block">@p.Nombre</span>
+                                    <span class="small-muted d-block">@p.Referencia</span>
+                                    @if (!string.IsNullOrWhiteSpace(p.Ubicacion))
+                                    {
+                                        <a class="small" href="@p.Ubicacion" target="_blank" rel="noopener">Ver en el mapa <i class="bi bi-box-arrow-up-right"></i></a>
+                                    }
+                                </span>
+                            </label>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="ru-card ru-card-body">
+                <h2 class="h3 mb-3">2. Fecha y hora</h2>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label" for="fecha">Fecha</label>
+                        <input id="fecha" type="date" class="form-control" @bind="fecha" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="hora">Hora</label>
+                        <input id="hora" type="time" class="form-control" @bind="hora" />
+                    </div>
+                    <div class="col-12">
+                        <div class="small-muted mb-2">Horarios sugeridos</div>
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach (string h in new[] { "08:00", "10:00", "12:30", "15:00", "18:00" })
+                            {
+                                <button type="button" class="ru-chip" @onclick="() => hora = TimeOnly.Parse(h)">@h</button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="ru-card ru-card-body position-sticky" style="top:80px">
+                <div class="small-muted mb-2">Resumen de la cita</div>
+                <div class="mb-2"><i class="bi bi-geo-alt me-1"></i> @(puntos.FirstOrDefault(p => p.IdPuntoEntrega == idPunto)?.Nombre ?? "Sin punto elegido")</div>
+                <div class="mb-3"><i class="bi bi-calendar me-1"></i> @fecha.ToString("dd/MM/yyyy") · @hora.ToString("HH:mm")</div>
+                <div class="alert alert-light border small">La otra parte deberá confirmar la cita desde el detalle de la transacción.</div>
+                <button type="button" class="btn btn-primary w-100" disabled="@(Procesando || idPunto == 0)" @onclick="Guardar">
+                    <i class="bi bi-send me-1"></i> @(citaActual is null ? "Proponer cita" : "Guardar nueva propuesta")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private TransaccionDTO? t;
+    private CitaEntregaDTO? citaActual;
+    private List<PuntoEntregaDTO> puntos = [];
+    private int idPunto;
+    private DateOnly fecha = DateOnly.FromDateTime(DateTime.Today.AddDays(2));
+    private TimeOnly hora = new(12, 30);
+    private bool cargando = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await Ejecutar(async () =>
+        {
+            t = await TransaccionService.Obtener(Id);
+            puntos = (await PuntoEntregaService.Listar()).Where(p => p.Activo).ToList();
+            idPunto = puntos.FirstOrDefault()?.IdPuntoEntrega ?? 0;
+            if (t is not null && t.IdCita > 0)
+            {
+                CitaEntregaDTO? cita = await TransaccionService.ObtenerCita(Id);
+                // Solo una cita PROPUESTA se puede renegociar; si fue cancelada se propone una nueva
+                if (cita is not null && cita.Estado == "PROPUESTA")
+                {
+                    citaActual = cita;
+                    idPunto = cita.IdPuntoEntrega;
+                    DateTime? fechaHora = Formato.AFecha(cita.FechaHora);
+                    if (fechaHora.HasValue)
+                    {
+                        fecha = DateOnly.FromDateTime(fechaHora.Value);
+                        hora = TimeOnly.FromDateTime(fechaHora.Value);
+                    }
+                }
+            }
+        });
+        cargando = false;
+    }
+
+    private async Task Guardar()
+    {
+        CitaEntregaDTO dto = new()
+        {
+            IdCita = citaActual?.IdCita ?? 0,
+            IdTransaccion = Id,
+            IdPuntoEntrega = idPunto,
+            // CitaEntregaBL valida que sea una fecha futura y un punto activo
+            FechaHora = Formato.AIso(fecha.ToDateTime(hora))
+        };
+        bool ok = citaActual is null
+            ? await Ejecutar(() => CitaService.Proponer(dto))
+            : await Ejecutar(() => CitaService.Renegociar(dto));
+        if (ok)
+        {
+            Nav.NavigateTo($"transacciones/{Id}");
+        }
+    }
+}

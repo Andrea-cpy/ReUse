@@ -1,0 +1,33 @@
+@* Menú lateral del estudiante *@
+
+<NavLink class="ru-brand" href="" Match="NavLinkMatch.All">
+    <span class="logo"><i class="bi bi-recycle"></i></span> ReUse
+</NavLink>
+
+<nav class="flex-grow-1">
+    <div class="ru-nav-section">Explorar</div>
+    <NavLink class="ru-nav-link" href="" Match="NavLinkMatch.All"><i class="bi bi-grid"></i> Catálogo</NavLink>
+    <NavLink class="ru-nav-link" href="favoritos"><i class="bi bi-heart"></i> Favoritos</NavLink>
+
+    <div class="ru-nav-section">Vender</div>
+    <NavLink class="ru-nav-link" href="mis-anuncios" Match="NavLinkMatch.All"><i class="bi bi-megaphone"></i> Mis anuncios</NavLink>
+    <NavLink class="ru-nav-link" href="mis-anuncios/nuevo"><i class="bi bi-plus-circle"></i> Publicar anuncio</NavLink>
+
+    <div class="ru-nav-section">Negociación</div>
+    <NavLink class="ru-nav-link" href="mis-ofertas"><i class="bi bi-cash-coin"></i> Mis ofertas</NavLink>
+    <NavLink class="ru-nav-link" href="transacciones"><i class="bi bi-arrow-left-right"></i> Transacciones</NavLink>
+
+    <div class="ru-nav-section">Comunicación</div>
+    <NavLink class="ru-nav-link" href="mensajes"><i class="bi bi-chat-dots"></i> Mensajes</NavLink>
+    <NavLink class="ru-nav-link" href="respuestas-rapidas"><i class="bi bi-lightning-charge"></i> Respuestas rápidas</NavLink>
+
+    <div class="ru-nav-section">Mi cuenta</div>
+    <NavLink class="ru-nav-link" href="perfil" Match="NavLinkMatch.All"><i class="bi bi-person-circle"></i> Mi perfil</NavLink>
+</nav>
+
+<div class="ru-sidebar-footer">
+    <AuthorizeView Roles="@ReUseWeb.Seguridad.Roles.Administrador">
+        <NavLink class="ru-nav-link" href="admin"><i class="bi bi-shield-lock"></i> Panel de administración</NavLink>
+    </AuthorizeView>
+    <CerrarSesion />
+</div>

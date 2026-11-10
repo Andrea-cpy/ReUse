@@ -1,0 +1,10 @@
+@page "/not-found"
+@attribute [AllowAnonymous]
+@layout MainLayout
+
+<PageTitle>Página no encontrada · ReUse</PageTitle>
+
+<EstadoVacio Icono="bi-signpost-split" Titulo="Página no encontrada"
+             Mensaje="La dirección que buscas no existe o fue movida.">
+    <NavLink class="btn btn-primary" href="">Volver al catálogo</NavLink>
+</EstadoVacio>

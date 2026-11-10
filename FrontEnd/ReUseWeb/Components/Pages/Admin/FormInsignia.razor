@@ -1,0 +1,149 @@
+@page "/admin/insignias/nueva"
+@page "/admin/insignias/{Id:int}/editar"
+@inject NavigationManager Nav
+
+<PageTitle>@(Id.HasValue ? "Editar" : "Nueva") insignia · Admin ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="@(Id.HasValue ? "Editar insignia" : "Nueva insignia")" Volver="admin/insignias" TextoVolver="Volver a insignias" />
+
+<EditForm Model="modelo" OnSubmit="@(() => Nav.NavigateTo("admin/insignias"))" FormName="insignia">
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="ru-card ru-card-body">
+                <h2 class="h3 mb-3">Datos de la insignia</h2>
+                <div class="mb-3">
+                    <label class="form-label" for="nombre">Nombre</label>
+                    <InputText id="nombre" class="form-control" @bind-Value="modelo.Nombre" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="descripcion">Descripción</label>
+                    <InputTextArea id="descripcion" class="form-control" rows="2" @bind-Value="modelo.Descripcion" />
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-sm-6">
+                        <label class="form-label" for="tipo">Tipo</label>
+                        <InputSelect id="tipo" class="form-select" @bind-Value="modelo.Tipo">
+                            <option value="VENDEDOR">Vendedor</option>
+                            <option value="COMPRADOR">Comprador</option>
+                            <option value="GENERAL">General</option>
+                        </InputSelect>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label" for="icono">URL del ícono (opcional)</label>
+                        <InputText id="icono" class="form-control" placeholder="https://…/insignia.png" @bind-Value="modelo.IconoUrl" />
+                    </div>
+                </div>
+                <div class="form-check form-switch">
+                    <InputCheckbox id="activa" class="form-check-input" role="switch" @bind-Value="modelo.Activa" />
+                    <label class="form-check-label" for="activa">Activa</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="ru-card ru-card-body mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <h2 class="h3 mb-0">Reglas de obtención</h2>
+                    <button type="button" class="btn btn-outline-primary btn-sm" @onclick="@(() => modelo.Reglas.Add(new ReglaModelo()))">
+                        <i class="bi bi-plus-lg"></i> Agregar regla
+                    </button>
+                </div>
+                <p class="small-muted">El usuario obtiene la insignia cuando cumple <strong>todas</strong> las reglas.</p>
+                @foreach (var r in modelo.Reglas)
+                {
+                    <div class="row g-2 align-items-center mb-2">
+                        <div class="col-6">
+                            <select class="form-select form-select-sm" @bind="r.Metrica">
+                                @foreach (var m in metricas)
+                                {
+                                    <option value="@m">@DatosDemo.Texto(m)</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-3">
+                            <select class="form-select form-select-sm" @bind="r.Operador">
+                                <option value="MAYOR_O_IGUAL">≥</option>
+                                <option value="MAYOR">&gt;</option>
+                                <option value="IGUAL">=</option>
+                                <option value="MENOR_O_IGUAL">≤</option>
+                                <option value="MENOR">&lt;</option>
+                            </select>
+                        </div>
+                        <div class="col-2">
+                            <input class="form-control form-control-sm" type="number" step="0.1" @bind="r.Valor" />
+                        </div>
+                        <div class="col-1 text-end">
+                            <button type="button" class="btn btn-sm btn-light text-danger" @onclick="() => modelo.Reglas.Remove(r)"><i class="bi bi-x-lg"></i></button>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="ru-card ru-card-body d-flex align-items-center gap-3 mb-3">
+                <div class="ru-insignia border-0 p-0" style="width:120px">
+                    <div class="medalla"><i class="bi bi-award"></i></div>
+                    <div class="fw-semibold small">@(string.IsNullOrWhiteSpace(modelo.Nombre) ? "Nombre" : modelo.Nombre)</div>
+                </div>
+                <div class="small-muted">Vista previa de cómo verán la insignia los estudiantes en su perfil.</div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2">
+                <NavLink class="btn btn-light" href="admin/insignias">Cancelar</NavLink>
+                <button type="submit" class="btn btn-primary">Guardar</button>
+            </div>
+        </div>
+    </div>
+</EditForm>
+
+@code {
+    [Parameter] public int? Id { get; set; }
+
+    private InsigniaModelo modelo = new();
+
+
+    // Valores de TipoMetricaInsignia
+    private readonly string[] metricas = { "VENTAS_COMPLETADAS", "COMPRAS_COMPLETADAS", "TRANSACCIONES_COMPLETADAS",
+        "CALIFICACION_PROMEDIO", "REPORTES_SANCIONADOS", "INASISTENCIAS_SANCIONADAS" };
+
+    protected override void OnParametersSet()
+    {
+        var i = Id.HasValue ? DatosDemo.Insignias.FirstOrDefault(x => x.Id == Id) : null;
+        modelo = new InsigniaModelo();
+        if (i is not null)
+        {
+            modelo.Nombre = i.Nombre;
+            modelo.Descripcion = i.Descripcion;
+            modelo.Tipo = i.Tipo;
+            modelo.Activa = i.Activa;
+            modelo.Reglas.Clear();
+            // Convierte el texto de ejemplo "METRICA ≥ valor · ..." en filas editables
+            foreach (var texto in i.Regla.Split(" · "))
+            {
+                var partes = texto.Split(' ');
+                modelo.Reglas.Add(new ReglaModelo
+                {
+                    Metrica = partes[0],
+                    Operador = partes[1] switch { "≥" => "MAYOR_O_IGUAL", ">" => "MAYOR", "≤" => "MENOR_O_IGUAL", "<" => "MENOR", _ => "IGUAL" },
+                    Valor = double.Parse(partes[2], System.Globalization.CultureInfo.InvariantCulture)
+                });
+            }
+        }
+    }
+
+    private class InsigniaModelo
+    {
+        public string Nombre { get; set; } = "";
+        public string Descripcion { get; set; } = "";
+        public string Tipo { get; set; } = "GENERAL";
+        public string IconoUrl { get; set; } = "";
+        public bool Activa { get; set; } = true;
+        public List<ReglaModelo> Reglas { get; set; } = new() { new ReglaModelo() };
+    }
+
+    private class ReglaModelo
+    {
+        public string Metrica { get; set; } = "VENTAS_COMPLETADAS";
+        public string Operador { get; set; } = "MAYOR_O_IGUAL";
+        public double Valor { get; set; } = 1;
+    }
+}

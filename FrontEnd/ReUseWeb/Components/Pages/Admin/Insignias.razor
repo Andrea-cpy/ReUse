@@ -1,0 +1,46 @@
+@page "/admin/insignias"
+
+<PageTitle>Insignias · Admin ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="Insignias y reglas" Subtitulo="Reconocimientos que se otorgan automáticamente según las métricas de cada usuario.">
+    <Acciones>
+        <NavLink class="btn btn-primary" href="admin/insignias/nueva"><i class="bi bi-plus-lg me-1"></i> Nueva insignia</NavLink>
+    </Acciones>
+</EncabezadoPagina>
+
+<div class="ru-card">
+    <div class="table-responsive">
+        <table class="table ru-table">
+            <thead>
+                <tr><th>Insignia</th><th>Tipo</th><th>Reglas de obtención</th><th>Estado</th><th class="text-end">Acciones</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var i in DatosDemo.Insignias)
+                {
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="ru-avatar" style="background:#fdf3dc;color:#a87612"><i class="bi @i.Icono"></i></span>
+                                <div>
+                                    <div class="fw-semibold">@i.Nombre</div>
+                                    <div class="small-muted">@i.Descripcion</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>@DatosDemo.Texto(i.Tipo)</td>
+                        <td>
+                            @foreach (var regla in i.Regla.Split(" · "))
+                            {
+                                <code class="d-block small">@regla</code>
+                            }
+                        </td>
+                        <td><BadgeEstado Estado="@(i.Activa ? "ACTIVA" : "INACTIVA")" /></td>
+                        <td class="text-end text-nowrap">
+                            <NavLink class="btn btn-light btn-sm" href="@($"admin/insignias/{i.Id}/editar")" title="Editar"><i class="bi bi-pencil"></i></NavLink>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

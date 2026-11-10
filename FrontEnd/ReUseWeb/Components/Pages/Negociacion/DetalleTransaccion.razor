@@ -1,0 +1,282 @@
+@page "/transacciones/{Id:int}"
+@inherits PaginaBase
+@inject ITransaccionService TransaccionService
+@inject ICitaService CitaService
+@inject IChatService ChatService
+
+@* RF-03 confirmar o retirar la cita · RF-11 confirmación independiente de la entrega · cancelar
+   GET /transacciones/{id}, GET /transacciones/{id}/cita, PUT /transacciones/{id}/confirmar-cita | confirmar-entrega | cancelar *@
+
+<PageTitle>Transacción #@Id · ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="@($"Transacción #{Id}")" Subtitulo="@t?.TituloAnuncio" Volver="transacciones" TextoVolver="Volver a transacciones">
+    <Acciones>
+        @if (t is not null)
+        {
+            <BadgeEstado Estado="@t.Estado" />
+        }
+    </Acciones>
+</EncabezadoPagina>
+
+<Alertas Error="@Error" Exito="@Exito" />
+
+@if (t is null)
+{
+    if (cargando)
+    {
+        <Cargando />
+    }
+}
+else
+{
+    @* ---------- Progreso ---------- *@
+    <div class="ru-card ru-card-body mb-4">
+        @if (t.Estado == "CANCELADA")
+        {
+            <div class="alert alert-secondary mb-0"><i class="bi bi-x-circle me-1"></i> Esta transacción fue cancelada. El anuncio volvió a estar disponible.</div>
+        }
+        else
+        {
+            <div class="ru-pasos">
+                @for (int i = 0; i < pasos.Length; i++)
+                {
+                    string clase = i < PasoActual ? "hecho" : i == PasoActual ? "actual" : "";
+                    <div class="ru-paso @clase">
+                        <div class="circulo">
+                            @if (i < PasoActual)
+                            {
+                                <i class="bi bi-check-lg"></i>
+                            }
+                            else
+                            {
+                                @(i + 1)
+                            }
+                        </div>
+                        @pasos[i]
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            @* ---------- Cita de entrega (RF-03) ---------- *@
+            <div class="ru-card ru-card-body mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="h3 mb-0"><i class="bi bi-calendar-event me-1"></i> Cita de entrega</h2>
+                    @if (cita is not null)
+                    {
+                        <BadgeEstado Estado="@cita.Estado" />
+                    }
+                </div>
+
+                @if (cita is null)
+                {
+                    <p class="small-muted">Aún no se ha propuesto una cita. Coordina con @Contraparte el lugar y la hora de entrega.</p>
+                    if (t.Estado == "EN_NEGOCIACION")
+                    {
+                        <NavLink class="btn btn-primary" href="@($"transacciones/{t.IdTransaccion}/cita")"><i class="bi bi-calendar-plus me-1"></i> Proponer cita</NavLink>
+                    }
+                }
+                else
+                {
+                    <div class="row g-3 mb-3">
+                        <div class="col-sm-6">
+                            <div class="small-muted">Fecha y hora</div>
+                            <div class="fw-semibold">@Formato.FechaHora(cita.FechaHora)</div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="small-muted">Punto de entrega</div>
+                            <div class="fw-semibold"><i class="bi bi-geo-alt text-primary"></i> @cita.NombrePuntoEntrega</div>
+                        </div>
+                    </div>
+
+                    if (t.Estado == "EN_NEGOCIACION" && cita.Estado == "PROPUESTA")
+                    {
+                        <div class="alert alert-light border small">
+                            <i class="bi bi-info-circle me-1"></i> Al confirmar la cita, el anuncio pasa a RESERVADO y ya no recibe ofertas.
+                        </div>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button class="btn btn-primary" disabled="@Procesando" @onclick="ConfirmarCita"><i class="bi bi-check2-circle me-1"></i> Confirmar cita</button>
+                            <NavLink class="btn btn-outline-primary" href="@($"transacciones/{t.IdTransaccion}/cita")"><i class="bi bi-arrow-repeat me-1"></i> Proponer otra fecha o lugar</NavLink>
+                            <button class="btn btn-light text-danger" disabled="@Procesando" @onclick="RetirarCita"><i class="bi bi-x-lg me-1"></i> Retirar propuesta</button>
+                        </div>
+                    }
+
+                    if (t.Estado is "CITA_CONFIRMADA" or "COMPLETADA")
+                    {
+                        @* ---------- Confirmación de entrega (RF-11) ---------- *@
+                        <div class="row g-2 mb-3">
+                            <div class="col-sm-6">
+                                <div class="border rounded p-2 small">
+                                    <i class="bi @(t.ConfirmacionComprador ? "bi-check-circle-fill text-success" : "bi-circle text-secondary")"></i>
+                                    El comprador confirmó la entrega
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="border rounded p-2 small">
+                                    <i class="bi @(t.ConfirmacionVendedor ? "bi-check-circle-fill text-success" : "bi-circle text-secondary")"></i>
+                                    El vendedor confirmó la entrega
+                                </div>
+                            </div>
+                        </div>
+                        if (t.Estado == "CITA_CONFIRMADA")
+                        {
+                            if (YoConfirme)
+                            {
+                                <div class="small-muted"><i class="bi bi-hourglass-split me-1"></i> Ya confirmaste. Falta que @Contraparte confirme.</div>
+                            }
+                            else
+                            {
+                                <button class="btn btn-primary" @onclick="() => confirmarEntrega = true"><i class="bi bi-box-seam me-1"></i> Confirmar entrega</button>
+                            }
+                        }
+                    }
+                }
+            </div>
+
+            @* ---------- Historial ---------- *@
+            <div class="ru-card ru-card-body">
+                <h2 class="h3 mb-3"><i class="bi bi-clock-history me-1"></i> Historial</h2>
+                <ul class="list-unstyled mb-0 small">
+                    <li class="mb-2"><i class="bi bi-dot"></i> <strong>@Formato.FechaHora(t.FechaInicio)</strong> — Se abrió la transacción por @Formato.Soles(t.MontoAcordado).</li>
+                    @if (cita is not null)
+                    {
+                        <li class="mb-2"><i class="bi bi-dot"></i> Cita para el @Formato.FechaHora(cita.FechaHora) en @cita.NombrePuntoEntrega (@Formato.Texto(cita.Estado).ToLower()).</li>
+                    }
+                    @if (t.Estado is "CITA_CONFIRMADA" or "COMPLETADA")
+                    {
+                        <li class="mb-2"><i class="bi bi-dot"></i> Cita confirmada. El anuncio pasó a RESERVADO.</li>
+                    }
+                    @if (t.Estado == "COMPLETADA")
+                    {
+                        <li class="mb-2"><i class="bi bi-dot"></i> <strong>@Formato.FechaHora(t.FechaFin)</strong> — Entrega confirmada por ambas partes. El anuncio pasó a VENDIDO.</li>
+                    }
+                    @if (t.Estado == "CANCELADA")
+                    {
+                        <li><i class="bi bi-dot"></i> Transacción cancelada.</li>
+                    }
+                </ul>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="ru-card ru-card-body mb-3">
+                <div class="small-muted mb-2">Resumen</div>
+                <div class="d-flex justify-content-between mb-1"><span>Monto acordado</span><strong>@Formato.Soles(t.MontoAcordado)</strong></div>
+                <div class="d-flex justify-content-between mb-1"><span>Precio publicado</span><span>@Formato.Soles(t.PrecioAnuncio)</span></div>
+                <div class="d-flex justify-content-between mb-1"><span>Tu rol</span><strong>@(SoyComprador ? "Comprador" : "Vendedor")</strong></div>
+                <div class="d-flex justify-content-between"><span>Inicio</span><strong>@Formato.Fecha(t.FechaInicio)</strong></div>
+                <hr />
+                <NavLink class="btn btn-light btn-sm w-100" href="@($"anuncios/{t.IdAnuncio}")">Ver anuncio</NavLink>
+            </div>
+
+            <div class="ru-card ru-card-body mb-3">
+                <div class="small-muted mb-2">@(SoyComprador ? "Vendedor" : "Comprador")</div>
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <span class="ru-avatar">@Formato.Iniciales(Contraparte)</span>
+                    <NavLink class="fw-semibold text-body" href="@($"usuarios/{IdContraparte}")">@Contraparte</NavLink>
+                </div>
+                @if (chat is not null)
+                {
+                    <NavLink class="btn btn-outline-primary btn-sm w-100" href="@($"mensajes/{chat.IdChat}")"><i class="bi bi-chat-dots me-1"></i> Ir al chat</NavLink>
+                }
+            </div>
+
+            @if (t.Estado is "EN_NEGOCIACION" or "CITA_CONFIRMADA")
+            {
+                <button class="btn btn-outline-danger w-100" @onclick="() => cancelar = true"><i class="bi bi-x-circle me-1"></i> Cancelar transacción</button>
+            }
+        </div>
+    </div>
+}
+
+<ModalConfirmacion @bind-Visible="confirmarEntrega" Titulo="Confirmar entrega" TextoConfirmar="Sí, confirmar" OnConfirmar="ConfirmarEntrega">
+    <p class="mb-2">Confirma solo si ya @(SoyComprador ? "recibiste el material" : "entregaste el material y recibiste el pago").</p>
+    <p class="small-muted mb-0">Cuando ambas partes confirmen, la transacción quedará COMPLETADA y el anuncio pasará a VENDIDO.</p>
+</ModalConfirmacion>
+
+<ModalConfirmacion @bind-Visible="cancelar" Titulo="Cancelar transacción" TextoConfirmar="Cancelar transacción" ClaseBoton="btn-danger" OnConfirmar="Cancelar">
+    <p class="mb-0">¿Seguro que deseas cancelar esta transacción? La cita se anulará y el anuncio volverá a estar disponible.</p>
+</ModalConfirmacion>
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private TransaccionDTO? t;
+    private CitaEntregaDTO? cita;
+    private CanalChatDTO? chat;
+    private readonly string[] pasos = { "Oferta aceptada", "Cita confirmada", "Entrega confirmada" };
+    private bool confirmarEntrega;
+    private bool cancelar;
+    private bool cargando = true;
+    private int idUsuario;
+
+    private bool SoyComprador => t is not null && t.IdComprador == idUsuario;
+    private string Contraparte => (SoyComprador ? t?.NombreVendedor : t?.NombreComprador) ?? "la otra parte";
+    private int IdContraparte => SoyComprador ? t!.IdVendedor : t?.IdComprador ?? 0;
+    private bool YoConfirme => t is not null && (SoyComprador ? t.ConfirmacionComprador : t.ConfirmacionVendedor);
+
+    private int PasoActual => t?.Estado switch
+    {
+        "EN_NEGOCIACION" => 1,
+        "CITA_CONFIRMADA" => 2,
+        "COMPLETADA" => 3,
+        _ => 0
+    };
+
+    protected override async Task OnParametersSetAsync()
+    {
+        idUsuario = await IdUsuarioAsync();
+        await Cargar();
+    }
+
+    private async Task Cargar()
+    {
+        cargando = true;
+        string? exito = Exito;
+        await Ejecutar(async () =>
+        {
+            t = await TransaccionService.Obtener(Id);
+            if (t is null) throw new ServicioException("No existe la transacción.");
+            if (t.IdComprador != idUsuario && t.IdVendedor != idUsuario)
+            {
+                t = null;
+                throw new ServicioException("Solo el comprador o el vendedor pueden ver esta transacción.");
+            }
+            cita = t.IdCita > 0 ? await TransaccionService.ObtenerCita(Id) : null;
+            TransaccionDTO actual = t;
+            chat = (await ChatService.ListarPorUsuario(idUsuario))
+                .FirstOrDefault(c => c.IdAnuncio == actual.IdAnuncio && c.IdComprador == actual.IdComprador);
+        });
+        Exito ??= exito;
+        cargando = false;
+    }
+
+    private async Task ConfirmarCita()
+    {
+        if (await Ejecutar(() => TransaccionService.ConfirmarCita(Id), "Cita confirmada. El anuncio quedó RESERVADO."))
+            await Cargar();
+    }
+
+    private async Task RetirarCita()
+    {
+        if (cita is null) return;
+        int idCita = cita.IdCita;
+        if (await Ejecutar(() => CitaService.Retirar(idCita), "Se retiró la propuesta de cita."))
+            await Cargar();
+    }
+
+    private async Task ConfirmarEntrega()
+    {
+        if (await Ejecutar(() => TransaccionService.ConfirmarEntrega(Id, idUsuario), "Registramos tu confirmación de entrega."))
+            await Cargar();
+    }
+
+    private async Task Cancelar()
+    {
+        if (await Ejecutar(() => TransaccionService.Cancelar(Id), "La transacción fue cancelada."))
+            await Cargar();
+    }
+}

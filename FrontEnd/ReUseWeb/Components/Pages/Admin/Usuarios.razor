@@ -1,0 +1,94 @@
+@page "/admin/usuarios"
+@inherits PaginaBase
+@inject IUsuarioService UsuarioService
+
+@* RF-01 (administrador): lista de usuarios → GET /usuarios. El filtro se aplica sobre la lista recibida. *@
+
+<PageTitle>Usuarios · Admin ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="Usuarios" Subtitulo="Estudiantes registrados en ReUse." />
+
+<Alertas Error="@Error" />
+
+<BarraBusqueda @bind-Texto="texto" Placeholder="Nombre, código PUCP o correo" Resultados="@Visibles.Count()" OnLimpiar="() => estado = string.Empty">
+    <div class="col-md-3">
+        <label class="form-label small" for="estado">Estado de cuenta</label>
+        <select id="estado" class="form-select" @bind="estado">
+            <option value="">Todos</option>
+            <option value="PENDIENTE_VERIFICACION">Pendiente de verificación</option>
+            <option value="ACTIVA">Activa</option>
+            <option value="SUSPENDIDA">Suspendida</option>
+        </select>
+    </div>
+</BarraBusqueda>
+
+<div class="ru-card">
+    @if (cargando)
+    {
+        <Cargando />
+    }
+    else if (Visibles.Any())
+    {
+        <div class="table-responsive">
+            <table class="table ru-table">
+                <thead>
+                    <tr><th>Usuario</th><th>Código</th><th>Carrera</th><th>Rep. vendedor</th><th>Rep. comprador</th><th>Reportes</th><th>Estado</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (UsuarioDTO u in Visibles)
+                    {
+                        string nombre = $"{u.Nombres} {u.ApellidoPaterno}";
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="ru-avatar sm">@Formato.Iniciales(nombre)</span>
+                                    <div><div class="fw-semibold">@nombre</div><div class="small-muted">@u.CorreoInstitucional</div></div>
+                                </div>
+                            </td>
+                            <td>@u.CodigoPUCP</td>
+                            <td class="small">@u.NombreCarrera</td>
+                            <td class="text-nowrap"><Estrellas Valor="(double)u.ReputacionVendedor" MostrarNumero="true" /></td>
+                            <td class="text-nowrap"><Estrellas Valor="(double)u.ReputacionComprador" MostrarNumero="true" /></td>
+                            <td>
+                                <span class="badge @(u.ContadorReportes >= 3 ? "text-bg-danger" : u.ContadorReportes > 0 ? "text-bg-warning" : "text-bg-light")">@u.ContadorReportes</span>
+                            </td>
+                            <td><BadgeEstado Estado="@u.EstadoCuenta" /></td>
+                            <td class="text-end"><NavLink class="btn btn-light btn-sm" href="@($"admin/usuarios/{u.IdUsuario}")">Gestionar</NavLink></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <EstadoVacio Icono="bi-people" Titulo="Sin resultados" Mensaje="Prueba con otro texto o estado." />
+    }
+</div>
+
+@code {
+    /// <summary>Permite llegar filtrado desde el resumen: /admin/usuarios?estado=PENDIENTE_VERIFICACION</summary>
+    [SupplyParameterFromQuery(Name = "estado")]
+    public string? Estado { get; set; }
+
+    private List<UsuarioDTO> usuarios = [];
+    private string texto = "";
+    private string estado = "";
+    private bool cargando = true;
+
+    private IEnumerable<UsuarioDTO> Visibles => usuarios
+        .Where(u => estado == "" || u.EstadoCuenta == estado)
+        .Where(u => string.IsNullOrWhiteSpace(texto) || Coincide(u, texto.Trim()))
+        .OrderBy(u => u.ApellidoPaterno);
+
+    private static bool Coincide(UsuarioDTO u, string t) =>
+        $"{u.Nombres} {u.ApellidoPaterno} {u.ApellidoMaterno} {u.CodigoPUCP} {u.CorreoInstitucional}"
+            .Contains(t, StringComparison.OrdinalIgnoreCase);
+
+    protected override async Task OnInitializedAsync()
+    {
+        estado = Estado ?? "";
+        await Ejecutar(async () => usuarios = await UsuarioService.Listar());
+        cargando = false;
+    }
+}

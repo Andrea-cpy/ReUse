@@ -1,0 +1,75 @@
+@page "/perfil"
+@inherits PaginaBase
+@inject IUsuarioService UsuarioService
+@inject ITransaccionService TransaccionService
+@inject IAnuncioService AnuncioService
+
+@* RF-01: perfil del usuario (GET /usuarios/{id}). Las ventas y compras se cuentan del historial (RF-15). *@
+
+<PageTitle>Mi perfil · ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="Mi perfil">
+    <Acciones>
+        <NavLink class="btn btn-outline-primary" href="perfil/editar"><i class="bi bi-pencil me-1"></i> Editar perfil</NavLink>
+    </Acciones>
+</EncabezadoPagina>
+
+<Alertas Error="@Error" />
+
+@if (usuario is null)
+{
+    <Cargando />
+}
+else
+{
+    <TarjetaPerfil Usuario="usuario" Ventas="@ventas" Compras="@compras" />
+
+    <div class="row g-3 mt-1">
+        <div class="col-md-4">
+            <div class="ru-card ru-stat">
+                <div class="valor">@anunciosDisponibles</div>
+                <div class="etiqueta">Anuncios disponibles</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="ru-card ru-stat">
+                <div class="valor">@enCurso</div>
+                <div class="etiqueta">Transacciones en curso</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="ru-card ru-stat">
+                <div class="valor">@usuario.ContadorReportes</div>
+                <div class="etiqueta">Reportes recibidos</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2 mt-4">
+        <NavLink class="btn btn-light" href="mis-anuncios"><i class="bi bi-megaphone me-1"></i> Mis anuncios</NavLink>
+        <NavLink class="btn btn-light" href="transacciones"><i class="bi bi-arrow-left-right me-1"></i> Mis transacciones</NavLink>
+        <NavLink class="btn btn-light" href="favoritos"><i class="bi bi-heart me-1"></i> Favoritos</NavLink>
+    </div>
+}
+
+@code {
+    private UsuarioDTO? usuario;
+    private int ventas;
+    private int compras;
+    private int enCurso;
+    private int anunciosDisponibles;
+
+    protected override async Task OnInitializedAsync()
+    {
+        int id = await IdUsuarioAsync();
+        await Ejecutar(async () =>
+        {
+            usuario = await UsuarioService.Obtener(id);
+            List<TransaccionDTO> transacciones = await TransaccionService.ListarPorUsuario(id);
+            ventas = transacciones.Count(t => t.IdVendedor == id && t.Estado == "COMPLETADA");
+            compras = transacciones.Count(t => t.IdComprador == id && t.Estado == "COMPLETADA");
+            enCurso = transacciones.Count(t => t.Estado is "EN_NEGOCIACION" or "CITA_CONFIRMADA");
+            anunciosDisponibles = (await AnuncioService.ListarPorVendedor(id)).Count(a => a.Estado == "DISPONIBLE");
+        });
+    }
+}

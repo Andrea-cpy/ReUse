@@ -1,0 +1,126 @@
+@page "/transacciones"
+@inherits PaginaBase
+@inject ITransaccionService TransaccionService
+
+@* RF-15: historial de compras y ventas → GET /transacciones?usuario=ID *@
+
+<PageTitle>Transacciones · ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="Mis transacciones" Subtitulo="Compras y ventas en curso o finalizadas." />
+
+<Alertas Error="@Error" />
+
+<div class="row g-3 mb-4">
+    @foreach ((string estado, string etiqueta) in resumen)
+    {
+        <div class="col-6 col-md-3">
+            <button class="ru-card ru-stat w-100 text-start border @(filtroEstado == estado ? "border-primary" : "")" @onclick="() => AlternarEstado(estado)">
+                <div class="valor">@transacciones.Count(t => t.Estado == estado)</div>
+                <div class="etiqueta">@etiqueta</div>
+            </button>
+        </div>
+    }
+</div>
+
+<ul class="nav nav-tabs">
+    <li class="nav-item"><button class="nav-link @(rol == "" ? "active" : "")" @onclick="@(() => rol = "")">Todas</button></li>
+    <li class="nav-item"><button class="nav-link @(rol == "COMPRADOR" ? "active" : "")" @onclick="@(() => rol = "COMPRADOR")">Mis compras</button></li>
+    <li class="nav-item"><button class="nav-link @(rol == "VENDEDOR" ? "active" : "")" @onclick="@(() => rol = "VENDEDOR")">Mis ventas</button></li>
+</ul>
+
+<div class="ru-card border-top-0 rounded-top-0">
+    @if (cargando)
+    {
+        <Cargando />
+    }
+    else if (Visibles.Any())
+    {
+        <div class="table-responsive">
+            <table class="table ru-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Anuncio</th>
+                        <th>Rol</th>
+                        <th>Contraparte</th>
+                        <th>Monto</th>
+                        <th>Cita</th>
+                        <th>Estado</th>
+                        <th>Inicio</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (TransaccionDTO t in Visibles)
+                    {
+                        bool soyComprador = t.IdComprador == idUsuario;
+                        <tr>
+                            <td class="small-muted">@t.IdTransaccion</td>
+                            <td class="fw-semibold">@t.TituloAnuncio</td>
+                            <td>
+                                @if (soyComprador)
+                                {
+                                    <span class="small"><i class="bi bi-bag text-primary"></i> Compra</span>
+                                }
+                                else
+                                {
+                                    <span class="small"><i class="bi bi-shop text-warning"></i> Venta</span>
+                                }
+                            </td>
+                            <td>@(soyComprador ? t.NombreVendedor : t.NombreComprador)</td>
+                            <td class="fw-semibold">@Formato.Soles(t.MontoAcordado)</td>
+                            <td class="small">
+                                @if (t.IdCita == 0)
+                                {
+                                    <span class="text-secondary">Por coordinar</span>
+                                }
+                                else
+                                {
+                                    <span class="d-block">@Formato.FechaHora(t.FechaCita)</span>
+                                    <BadgeEstado Estado="@t.EstadoCita" />
+                                }
+                            </td>
+                            <td><BadgeEstado Estado="@t.Estado" /></td>
+                            <td class="small-muted">@Formato.Fecha(t.FechaInicio)</td>
+                            <td class="text-end"><NavLink class="btn btn-light btn-sm" href="@($"transacciones/{t.IdTransaccion}")">Ver detalle</NavLink></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <EstadoVacio Icono="bi-arrow-left-right" Titulo="Sin transacciones" Mensaje="Cuando un vendedor acepte tu oferta, o tú aceptes una, la verás aquí." />
+    }
+</div>
+
+@code {
+    private readonly (string Estado, string Etiqueta)[] resumen =
+    {
+        ("EN_NEGOCIACION", "En negociación"),
+        ("CITA_CONFIRMADA", "Cita confirmada"),
+        ("COMPLETADA", "Completadas"),
+        ("CANCELADA", "Canceladas")
+    };
+
+    private List<TransaccionDTO> transacciones = [];
+    private string rol = "";
+    private string filtroEstado = "";
+    private bool cargando = true;
+    private int idUsuario;
+
+    private IEnumerable<TransaccionDTO> Visibles => transacciones
+        .Where(t => rol == "" || (rol == "COMPRADOR" ? t.IdComprador == idUsuario : t.IdVendedor == idUsuario))
+        .Where(t => filtroEstado == "" || t.Estado == filtroEstado)
+        .OrderByDescending(t => t.FechaInicio);
+
+    protected override async Task OnInitializedAsync()
+    {
+        idUsuario = await IdUsuarioAsync();
+        await Ejecutar(async () => transacciones = await TransaccionService.ListarPorUsuario(idUsuario));
+        cargando = false;
+    }
+
+    private void AlternarEstado(string estado) => filtroEstado = filtroEstado == estado ? "" : estado;
+}

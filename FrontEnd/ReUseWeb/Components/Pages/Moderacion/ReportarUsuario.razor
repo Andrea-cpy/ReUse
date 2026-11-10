@@ -1,0 +1,87 @@
+@page "/reportes/usuario/{Id:int}"
+@inject NavigationManager Nav
+
+<PageTitle>Reportar usuario · ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="Reportar usuario" Subtitulo="Cuéntanos qué pasó. Tu reporte es confidencial."
+                  Volver="@($"usuarios/{Id}")" TextoVolver="Volver al perfil" />
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <EditForm Model="modelo" OnSubmit="@(() => enviado = true)" FormName="reporteUsuario">
+            <div class="ru-card ru-card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold" for="motivo">Motivo</label>
+                        <InputSelect id="motivo" class="form-select" @bind-Value="modelo.Motivo">
+                            <option value="">Selecciona…</option>
+                            <option value="FRAUDE_O_ESTAFA">Fraude o estafa</option>
+                            <option value="NO_SE_PRESENTO_A_LA_CITA">No se presentó a la cita</option>
+                            <option value="PRODUCTO_NO_COINCIDE">El producto no coincide</option>
+                            <option value="COMPORTAMIENTO_INAPROPIADO">Comportamiento inapropiado</option>
+                            <option value="OTRO">Otro</option>
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold" for="transaccion">Transacción relacionada (opcional)</label>
+                        <select id="transaccion" class="form-select">
+                            <option>Ninguna</option>
+                            @foreach (var t in DatosDemo.Transacciones.Where(t => t.IdContraparte == Id))
+                            {
+                                <option>#@t.Id — @t.Anuncio</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold" for="descripcion">Descripción</label>
+                        <InputTextArea id="descripcion" class="form-control" rows="5" @bind-Value="modelo.Descripcion"
+                                       placeholder="Fecha, lugar y detalles de lo ocurrido." />
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="bloquearTambien" />
+                            <label class="form-check-label" for="bloquearTambien">Bloquear también a este usuario</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-end gap-2 mt-4">
+                    <NavLink class="btn btn-light" href="@($"usuarios/{Id}")">Cancelar</NavLink>
+                    <button type="submit" class="btn btn-danger"><i class="bi bi-flag me-1"></i> Enviar reporte</button>
+                </div>
+            </div>
+        </EditForm>
+    </div>
+    <div class="col-lg-4">
+        <div class="ru-card ru-card-body d-flex align-items-center gap-3">
+            <span class="ru-avatar">@DatosDemo.Iniciales(u.Nombre)</span>
+            <div>
+                <div class="fw-semibold">@u.Nombre</div>
+                <div class="small-muted">@u.Carrera</div>
+            </div>
+        </div>
+        <div class="alert alert-light border small mt-3">
+            <i class="bi bi-shield-check me-1"></i>
+            Los reportes falsos o malintencionados pueden afectar tu propia reputación.
+        </div>
+    </div>
+</div>
+
+<ModalConfirmacion @bind-Visible="enviado" Titulo="Reporte enviado" TextoConfirmar="Ver mis reportes"
+                   Mensaje="Gracias. Un administrador revisará el caso y te notificaremos el resultado."
+                   OnConfirmar="@(() => Nav.NavigateTo("mis-reportes"))" />
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private UsuarioDemo u = default!;
+    private readonly ReporteModelo modelo = new();
+    private bool enviado;
+
+    protected override void OnParametersSet() => u = DatosDemo.Usuario(Id);
+
+    private class ReporteModelo
+    {
+        public string Motivo { get; set; } = "";
+        public string Descripcion { get; set; } = "";
+    }
+}

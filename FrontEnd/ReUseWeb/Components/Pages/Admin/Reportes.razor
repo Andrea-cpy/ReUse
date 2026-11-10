@@ -1,0 +1,73 @@
+@page "/admin/reportes"
+
+<PageTitle>Reportes · Admin ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="Reportes" Subtitulo="Revisa los reportes de anuncios y usuarios enviados por la comunidad." />
+
+<div class="ru-card ru-card-body mb-3">
+    <div class="row g-2 align-items-end">
+        <div class="col-md-4">
+            <label class="form-label small" for="buscar">Buscar</label>
+            <input id="buscar" class="form-control" placeholder="Usuario, anuncio o descripción" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label small" for="tipo">Tipo</label>
+            <select id="tipo" class="form-select" @bind="tipo">
+                <option value="">Todos</option>
+                <option value="ANUNCIO">Anuncio</option>
+                <option value="USUARIO">Usuario</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label small" for="estado">Estado de revisión</label>
+            <select id="estado" class="form-select" @bind="estado">
+                <option value="">Todos</option>
+                <option value="PENDIENTE">Pendiente</option>
+                <option value="SANCIONADO">Sancionado</option>
+                <option value="DESESTIMADO">Desestimado</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-primary w-100"><i class="bi bi-search"></i> Buscar</button>
+        </div>
+    </div>
+</div>
+
+<div class="ru-card">
+    <div class="table-responsive">
+        <table class="table ru-table">
+            <thead>
+                <tr><th>#</th><th>Tipo</th><th>Reportado</th><th>Motivo</th><th>Denunciante</th><th>Fecha</th><th>Estado</th><th></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Visibles)
+                {
+                    <tr>
+                        <td class="small-muted">@r.Id</td>
+                        <td><i class="bi @(r.Tipo == "ANUNCIO" ? "bi-megaphone" : "bi-person")"></i> @DatosDemo.Texto(r.Tipo)</td>
+                        <td class="fw-semibold">@r.Objetivo</td>
+                        <td>@DatosDemo.Texto(r.Motivo)</td>
+                        <td>@r.Denunciante</td>
+                        <td class="small-muted">@r.Fecha</td>
+                        <td><BadgeEstado Estado="@r.Estado" /></td>
+                        <td class="text-end">
+                            <NavLink class="@(r.Estado == "PENDIENTE" ? "btn btn-sm btn-primary" : "btn btn-sm btn-light")" href="@($"admin/reportes/{r.Id}")">
+                                @(r.Estado == "PENDIENTE" ? "Revisar" : "Ver")
+                            </NavLink>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+<Paginacion Mostrados="@Visibles.Count()" Total="@DatosDemo.Reportes.Count" Paginas="1" />
+
+@code {
+    private string tipo = "";
+    private string estado = "";
+
+    private IEnumerable<ReporteDemo> Visibles => DatosDemo.Reportes
+        .Where(r => tipo == "" || r.Tipo == tipo)
+        .Where(r => estado == "" || r.Estado == estado);
+}

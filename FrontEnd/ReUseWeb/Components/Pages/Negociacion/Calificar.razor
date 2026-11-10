@@ -1,0 +1,43 @@
+@page "/transacciones/{Id:int}/calificar"
+@inject NavigationManager Nav
+
+<PageTitle>Calificar · ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="Calificar transacción" Subtitulo="@t.Anuncio"
+                  Volver="@($"transacciones/{Id}")" TextoVolver="Volver a la transacción" />
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="ru-card ru-card-body text-center">
+            <span class="ru-avatar lg mb-2">@DatosDemo.Iniciales(t.Contraparte)</span>
+            <h2 class="h3 mb-0">@t.Contraparte</h2>
+            <div class="small-muted mb-4">Calificación como @(t.Rol == "COMPRADOR" ? "vendedor" : "comprador")</div>
+
+            <div class="ru-estrellas input mb-1">
+                @for (int i = 1; i <= 5; i++)
+                {
+                    int valor = i;
+                    <i class="bi @(puntaje >= valor ? "bi-star-fill" : "bi-star")" @onclick="() => puntaje = valor"></i>
+                }
+            </div>
+            <div class="small-muted mb-4">@etiquetas[puntaje]</div>
+
+            <textarea class="form-control mb-4" rows="3" placeholder="Cuéntale a la comunidad cómo fue la experiencia (opcional)"></textarea>
+
+            <div class="d-flex gap-2 justify-content-center">
+                <NavLink class="btn btn-light" href="@($"transacciones/{Id}")">Ahora no</NavLink>
+                <button class="btn btn-primary" disabled="@(puntaje == 0)" @onclick="@(() => Nav.NavigateTo("perfil"))">Enviar calificación</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private TransaccionDemo t = default!;
+    private int puntaje;
+    private readonly string[] etiquetas = { "Selecciona de 1 a 5 estrellas", "Muy mala", "Mala", "Regular", "Buena", "Excelente" };
+
+    protected override void OnParametersSet() => t = DatosDemo.Transaccion(Id);
+}

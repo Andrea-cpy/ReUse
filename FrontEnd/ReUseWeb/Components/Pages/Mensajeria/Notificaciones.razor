@@ -1,0 +1,55 @@
+@page "/notificaciones"
+
+<PageTitle>Notificaciones · ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="Notificaciones">
+    <Acciones>
+        <button class="btn btn-light"><i class="bi bi-check2-all me-1"></i> Marcar todas como leídas</button>
+    </Acciones>
+</EncabezadoPagina>
+
+<ul class="nav nav-pills mb-3 gap-1">
+    <li class="nav-item"><button class="nav-link @(soloNoLeidas ? "" : "active")" @onclick="() => soloNoLeidas = false">Todas</button></li>
+    <li class="nav-item"><button class="nav-link @(soloNoLeidas ? "active" : "")" @onclick="() => soloNoLeidas = true">No leídas</button></li>
+</ul>
+
+<div class="ru-card">
+    @foreach (var n in DatosDemo.Notificaciones.Where(n => !soloNoLeidas || !n.Leida))
+    {
+        <NavLink class="@("d-flex gap-3 p-3 border-bottom text-decoration-none text-body " + (n.Leida ? "" : "bg-primary-subtle"))" href="@n.Enlace.TrimStart('/')">
+            <span class="ru-stat p-0"><span class="icono @Tono(n.Tipo)"><i class="bi @Icono(n.Tipo)"></i></span></span>
+            <div class="flex-grow-1">
+                <div class="@(n.Leida ? "" : "fw-semibold")">@n.Mensaje</div>
+                <div class="small-muted">@DatosDemo.Texto(n.Tipo) · @n.Fecha</div>
+            </div>
+            @if (!n.Leida)
+            {
+                <span class="badge rounded-pill text-bg-primary align-self-center">Nueva</span>
+            }
+        </NavLink>
+    }
+</div>
+
+@code {
+    private bool soloNoLeidas;
+
+    private static string Icono(string tipo) => tipo switch
+    {
+        "RECORDATORIO_CITA" => "bi-calendar-event",
+        "NUEVO_MENSAJE" => "bi-chat-dots",
+        "SOLICITUD_CONTACTO" => "bi-person-plus",
+        "CAMBIO_ESTADO_ANUNCIO" => "bi-megaphone",
+        "MODERACION" => "bi-shield-check",
+        _ => "bi-award"
+    };
+
+    private static string Tono(string tipo) => tipo switch
+    {
+        "RECORDATORIO_CITA" => "tono-3",
+        "NUEVO_MENSAJE" => "tono-1",
+        "SOLICITUD_CONTACTO" => "tono-5",
+        "CAMBIO_ESTADO_ANUNCIO" => "tono-2",
+        "MODERACION" => "tono-6",
+        _ => "tono-4"
+    };
+}
