@@ -1,0 +1,210 @@
+Manifest-Version: 1.0
+Created-By: Apache Maven Bundle Plugin 6.0.2
+Java-Version: 21
+Build-Jdk-Spec: 25
+Bundle-Description: Eclipse Open Message Queue is a complete message-ori
+ ented middleware platform,       offering high quality, enterprise-read
+ y messaging.
+Bundle-DocURL: https://www.eclipse.org/org/foundation/
+Bundle-License: http://www.eclipse.org/legal/epl-2.0, https://www.gnu.or
+ g/software/classpath/license.html
+Bundle-ManifestVersion: 2
+Bundle-Name: MQ Help Files
+Bundle-SymbolicName: org.glassfish.mq.helpfiles
+Bundle-Vendor: Eclipse Foundation
+Bundle-Version: 6.9.0
+Include-Resource: Master.hs=src/main/resources/Master.hs,en/Master.jhm=s
+ rc/main/resources/en/Master.jhm,en/MasterTOC.xml=src/main/resources/en/
+ MasterTOC.xml,en/add_broker.htm=src/main/resources/en/add_broker.htm,en
+ /add_broker_destination.htm=src/main/resources/en/add_broker_destinatio
+ n.htm,en/add_connection_fact.htm=src/main/resources/en/add_connection_f
+ act.htm,en/add_connfact_clientid.htm=src/main/resources/en/add_connfact
+ _clientid.htm,en/add_connfact_handling.htm=src/main/resources/en/add_co
+ nnfact_handling.htm,en/add_connfact_handling_old.htm=src/main/resources
+ /en/add_connfact_handling_old.htm,en/add_connfact_jmsx.htm=src/main/res
+ ources/en/add_connfact_jmsx.htm,en/add_connfact_message_header_override
+ s.htm=src/main/resources/en/add_connfact_message_header_overrides.htm,e
+ n/add_connfact_queue.htm=src/main/resources/en/add_connfact_queue.htm,e
+ n/add_connfact_rel.htm=src/main/resources/en/add_connfact_rel.htm,en/ad
+ d_destination_obj.htm=src/main/resources/en/add_destination_obj.htm,en/
+ add_object_store.htm=src/main/resources/en/add_object_store.htm,en/brok
+ er_config_basic.htm=src/main/resources/en/broker_config_basic.htm,en/br
+ oker_config_logging.htm=src/main/resources/en/broker_config_logging.htm
+ ,en/broker_config_messaging.htm=src/main/resources/en/broker_config_mes
+ saging.htm,en/broker_configuration.htm=src/main/resources/en/broker_con
+ figuration.htm,en/broker_dest_basic.htm=src/main/resources/en/broker_de
+ st_basic.htm,en/broker_dest_durable.htm=src/main/resources/en/broker_de
+ st_durable.htm,en/broker_destination_properties.htm=src/main/resources/
+ en/broker_destination_properties.htm,en/broker_index.htm=src/main/resou
+ rces/en/broker_index.htm,en/broker_information.htm=src/main/resources/e
+ n/broker_information.htm,en/conndis_broker.htm=src/main/resources/en/co
+ nndis_broker.htm,en/conndis_object_store.htm=src/main/resources/en/conn
+ dis_object_store.htm,en/connection_factory_prop.htm=src/main/resources/
+ en/connection_factory_prop.htm,en/connfact_clientid.htm=src/main/resour
+ ces/en/connfact_clientid.htm,en/connfact_handling.htm=src/main/resource
+ s/en/connfact_handling.htm,en/connfact_handling_old.htm=src/main/resour
+ ces/en/connfact_handling_old.htm,en/connfact_jmsx.htm=src/main/resource
+ s/en/connfact_jmsx.htm,en/connfact_message_header_overrides.htm=src/mai
+ n/resources/en/connfact_message_header_overrides.htm,en/connfact_queue.
+ htm=src/main/resources/en/connfact_queue.htm,en/connfact_rel.htm=src/ma
+ in/resources/en/connfact_rel.htm,en/destination_obj_properties.htm=src/
+ main/resources/en/destination_obj_properties.htm,en/ide.css=src/main/re
+ sources/en/ide.css,en/imq_index.htm=src/main/resources/en/imq_index.htm
+ ,en/message_server_syntax.htm=src/main/resources/en/message_server_synt
+ ax.htm,en/object_store_properties.htm=src/main/resources/en/object_stor
+ e_properties.htm,en/os_index.htm=src/main/resources/en/os_index.htm,en/
+ overview.htm=src/main/resources/en/overview.htm,en/service_properties.h
+ tm=src/main/resources/en/service_properties.htm,images/AppIcon16xCDE.gi
+ f=src/main/resources/images/AppIcon16xCDE.gif,images/Broker16X.gif=src/
+ main/resources/images/Broker16X.gif,images/BrokerX16X.gif=src/main/reso
+ urces/images/BrokerX16X.gif,images/ObjectStore16x.gif=src/main/resource
+ s/images/ObjectStore16x.gif,images/ObjectStoreX16X.gif=src/main/resourc
+ es/images/ObjectStoreX16X.gif,images/console.gif=src/main/resources/ima
+ ges/console.gif
+Private-Package: en,images
+Tool: Bnd-7.0.0.202310060912
+
+Name: en/broker_dest_basic.htm
+SHA-256-Digest: pLsV1L8JQP/kskH5P+GI3UeV7I+bRiTh/ENA1n0sl/8=
+
+Name: images/ObjectStoreX16X.gif
+SHA-256-Digest: O5P6e10nmb34LgAxEhkfKf1nUCQN2qU4pB/1GGz8/u4=
+
+Name: en/broker_configuration.htm
+SHA-256-Digest: ig4u6NpoDIhaTtEU1XSYBR52L6uOlEGmh3TmeYgo050=
+
+Name: en/imq_index.htm
+SHA-256-Digest: u6NgJkmTkvUQ8vVjiGMZb6heaaS7ezuNf2vI78b9YvY=
+
+Name: en/MasterTOC.xml
+SHA-256-Digest: WEKSS+J+jkxqxIRBfMjYcRQ4BWze8F4Dl4joQHclbGw=
+
+Name: en/connfact_rel.htm
+SHA-256-Digest: nOglPj9+/okDbKb8MH2AWuqA52RS5d40+Kp9O6KbH5U=
+
+Name: en/add_broker_destination.htm
+SHA-256-Digest: XkRHBjKY0hd6EdDHkhKHOUj5uMy/SleloH80SK+wX84=
+
+Name: en/conndis_broker.htm
+SHA-256-Digest: PRXgTY3xMI+XUuYssqIwca6pDow8oTQ1hAT7rXE35sU=
+
+Name: en/broker_index.htm
+SHA-256-Digest: LQVTxG4338/NcH0ukL7kiDZZfkMNuEllMa/sXz/S8OU=
+
+Name: en/connfact_queue.htm
+SHA-256-Digest: KwO7aDb5HMRXY65C8e7VsFWh3ZPP0vSMYf5dGYeflvI=
+
+Name: images/AppIcon16xCDE.gif
+SHA-256-Digest: dSKNcF7GuJXsYymb05az38moWfn1DLQQx4F3H4EdMEc=
+
+Name: en/connfact_jmsx.htm
+SHA-256-Digest: WpvAqGROuQFL8jpEplDPYHqjsytr5QX7Luf/EtZakv8=
+
+Name: en/broker_dest_durable.htm
+SHA-256-Digest: fvCkjeUIBxW/EcHkl1cQP9LhEYPV77J+tjJyYnNIdGg=
+
+Name: en/broker_destination_properties.htm
+SHA-256-Digest: LFlRIMYBbr/LsaaJ3xuBwglDB0EnlM4jNlasi4dvD24=
+
+Name: en/add_broker.htm
+SHA-256-Digest: SCb7YT4RRYeVDfuYieCxAWZlm3gbAecT1xlRmGtjp4A=
+
+Name: en/Master.jhm
+SHA-256-Digest: Ui5ylKu3XI00PvMluNATwJpk0ILP6HquzUntASCr0XE=
+
+Name: en/add_connfact_rel.htm
+SHA-256-Digest: HJQWlP8m3CqWptRUFFUSKqeNoi/1tBdP/OzUgYSx7uQ=
+
+Name: en/connfact_message_header_overrides.htm
+SHA-256-Digest: zzJPskXLUyUTDuQNdJ6FlbAfF+1RTIabhH6tA1cwTi8=
+
+Name: en/overview.htm
+SHA-256-Digest: SyXs+o2MVVFN3KWgy8HEy3pM2rI+ndIQzNa3gDMibvY=
+
+Name: en/add_connfact_handling.htm
+SHA-256-Digest: WYqCehznAu6itVwnf5TP6o2+po6Zhm0d7w6klKKTS6E=
+
+Name: en/connfact_handling.htm
+SHA-256-Digest: i6nUGcQbePrb6dDJMYi2xAuh+WbJbKw1ufIYbBvBIhU=
+
+Name: en/broker_config_logging.htm
+SHA-256-Digest: /xpmtSUaPzbF2wT2Xv2NW0G+lxsxHTIP8lYnAi6mSvs=
+
+Name: images/console.gif
+SHA-256-Digest: Ej3XoAXvGdB80Zy3kd5V6lSWEVjX02Dg/k4rVR50R4k=
+
+Name: en/broker_config_messaging.htm
+SHA-256-Digest: DdHiAg6lLTWqPY68VorQfbhCxy7M3pcg/Kq5oYQG4Go=
+
+Name: en/add_destination_obj.htm
+SHA-256-Digest: D5Y0OKifxiG255NC1a818M2Skzeeyn0pn3onem+lJps=
+
+Name: images/BrokerX16X.gif
+SHA-256-Digest: B3K8Wl41760wTJPUHOJXSUlgTrIbxTUaiyBgzq8tPus=
+
+Name: en/object_store_properties.htm
+SHA-256-Digest: H+FmSv5QtxaVBy/O6DK1lNZcK7Xrt1UcrjaMMUWL2+Q=
+
+Name: en/conndis_object_store.htm
+SHA-256-Digest: cjG/E+VpAnebIHK/2m4h6bZmcELssiBt8K1hP8R1gF0=
+
+Name: en/add_connection_fact.htm
+SHA-256-Digest: P8yYARHxkJvPobEIVwriffEAl3vp+5kctf51nUmwPuc=
+
+Name: en/ide.css
+SHA-256-Digest: BMZzKuGw9olhuFhedtuFZTtbK4ZghlqTJQZoxvsH/VQ=
+
+Name: en/service_properties.htm
+SHA-256-Digest: TcViObWDDFC4KT/edpo7mpY8zurXg0ajIRAsLJKSAyI=
+
+Name: images/ObjectStore16x.gif
+SHA-256-Digest: AbMxk2LPEfGAby4I28CuAEKU0X3DYs2adeh+mI7BK5o=
+
+Name: en/add_connfact_handling_old.htm
+SHA-256-Digest: EV8CgkR8rgSAM3Ir8Pa9MBDWU8HeEVzfr+RHV3YgBZc=
+
+Name: en/os_index.htm
+SHA-256-Digest: Do6IG+L56DhDHJysHD8CrgqtNPDjASpx3HN0g+0kF50=
+
+Name: en/broker_information.htm
+SHA-256-Digest: 8U38AyVneVlEzuJGsO8qlal4UX11+FG8vg2eX5h5KJM=
+
+Name: en/add_connfact_jmsx.htm
+SHA-256-Digest: v16JH3b7OUMo7t1cq9i7FVCkEtmSEByyCLKUMfETYXg=
+
+Name: images/Broker16X.gif
+SHA-256-Digest: jBLe2TbHLBShhbNGq11nUSc4fuqgiZ45RzfSI313kfc=
+
+Name: en/add_connfact_queue.htm
+SHA-256-Digest: 4jMRYPNPaj3dJ9VYO0seWXo4OmpxkTJOCiSq4daMb0Y=
+
+Name: en/broker_config_basic.htm
+SHA-256-Digest: UlvutAkXm/aDb0WGQyPEzfO1TneDC1vPl3/m2Yzz3lU=
+
+Name: en/destination_obj_properties.htm
+SHA-256-Digest: G2Yd8noN0EzYsuBVTBn+NbOPq/o6gTWslRgtFXyifGk=
+
+Name: en/add_connfact_message_header_overrides.htm
+SHA-256-Digest: x4Dgxvn+PTv+ujj4R8ddaYTIXm0kH/D0FxjBYmSmZEw=
+
+Name: en/message_server_syntax.htm
+SHA-256-Digest: MtyqnDhqFQJjjCLYs9PobfZVwocJu6i2ctTWDY5Hz9Y=
+
+Name: en/add_connfact_clientid.htm
+SHA-256-Digest: xTO79+jDYId5r9S61hEKjUxWXfXJia8pvqCEgvaJR1w=
+
+Name: en/add_object_store.htm
+SHA-256-Digest: lhGp4tmWHGcmfkypi1K5CA4DmB2lreOALt7b+6uwuN4=
+
+Name: en/connfact_handling_old.htm
+SHA-256-Digest: L31LTkIFPO3bJFLZ72n2defGbQs8dOgcp8+MssVQ85U=
+
+Name: en/connection_factory_prop.htm
+SHA-256-Digest: SxSpsNO14IX6BSnX/Wmsd1zTR+LrZc/eR9X7ZMHPpKs=
+
+Name: Master.hs
+SHA-256-Digest: 1bgSvZ/bxmFFRu/PXN1I6fXi7+YxQxM45MIMN5hJtvs=
+
+Name: en/connfact_clientid.htm
+SHA-256-Digest: bK/y4emhBXK9ooer9U5NoQck7+7fjyl7I2zhnPMrWEU=
+
