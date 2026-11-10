@@ -1,0 +1,5 @@
+#NOTE: This is a Maven Resolver internal implementation file, its format can be changed without prior notice.
+#Wed Oct 28 14:18:43 GMT-05:00 2026
+jakarta.cdi-lang-model-api-5.0.0-sources.jar>central=
+jakarta.cdi-lang-model-api-5.0.0.jar>central=
+jakarta.cdi-lang-model-api-5.0.0.pom>central=

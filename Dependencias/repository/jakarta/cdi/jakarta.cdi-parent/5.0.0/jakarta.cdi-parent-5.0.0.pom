@@ -1,0 +1,231 @@
+<!--
+    Copyright (c) 2011 Red Hat, Inc. and others
+    
+    This program and the accompanying materials are made available under the
+    Apache Software License 2.0 which is available at:
+    https://www.apache.org/licenses/LICENSE-2.0.
+    
+    SPDX-License-Identifier: Apache-2.0
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>org.eclipse.ee4j</groupId>
+		<artifactId>project</artifactId>
+		<version>2.0.5</version>
+	</parent>
+
+	<groupId>jakarta.cdi</groupId>
+	<artifactId>jakarta.cdi-parent</artifactId>
+	<packaging>pom</packaging>
+	<version>5.0.0</version>
+
+	<name>CDI Parent</name>
+	<description>Parent module for CDI Specification</description>
+
+	<licenses>
+		<license>
+			<name>Apache License 2.0</name>
+			<url>https://apache.org/licenses/LICENSE-2.0.txt</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
+
+	<scm>
+		<connection>scm:git:git://github.com/eclipse-ee4j/cdi.git</connection>
+		<developerConnection>scm:git:git@github.com:eclipse-ee4j/cdi.git</developerConnection>
+		<url>https://github.com/eclipse-ee4j/cdi</url>
+		<tag>HEAD</tag>
+	</scm>
+
+	<modules>
+		<module>spec</module>
+		<module>lang-model</module>
+		<module>api</module>
+		<module>el</module>
+		<module>ide-config</module>
+	</modules>
+	<build>
+		<defaultGoal>clean package</defaultGoal>
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>net.revelc.code.formatter</groupId>
+					<artifactId>formatter-maven-plugin</artifactId>
+					<version>${formatter.version}</version>
+					<dependencies>
+						<dependency>
+							<groupId>jakarta.cdi</groupId>
+							<artifactId>jakarta.cdi-ide-config</artifactId>
+							<version>${project.version}</version>
+						</dependency>
+					</dependencies>
+					<configuration>
+						<!-- store outside of target to speed up formatting when mvn clean is used -->
+						<cachedir>.cache/formatter-maven-plugin-${formatter-maven-plugin.version}</cachedir>
+						<configFile>cdi-format.xml</configFile>
+						<lineEnding>LF</lineEnding>
+						<skip>${format.skip}</skip>
+					</configuration>
+				</plugin>
+				<plugin>
+					<groupId>net.revelc.code</groupId>
+					<artifactId>impsort-maven-plugin</artifactId>
+					<version>${impsort.version}</version>
+					<configuration>
+						<!-- store outside of target to speed up formatting when mvn clean is used -->
+						<cachedir>.cache/impsort-maven-plugin-${impsort-maven-plugin.version}</cachedir>
+						<groups>java.,javax.,jakarta.,org.,com.</groups>
+						<staticGroups>*</staticGroups>
+						<skip>${format.skip}</skip>
+						<removeUnused>true</removeUnused>
+					</configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.rat</groupId>
+				<artifactId>apache-rat-plugin</artifactId>
+				<version>${rat.version}</version>
+				<configuration>
+					<inputExcludes>
+						<!-- files which are generated or otherwise can't have copyright headers -->
+						<inputExclude>**/.cache/**</inputExclude>
+						<inputExclude>**/*.lock</inputExclude>
+						<inputExclude>**/src/main/asciidoc/dictionary.txt</inputExclude>
+						<!-- services files -->
+						<inputExclude>**/resources/META-INF/services/*</inputExclude>
+						<!-- files which are themselves licenses -->
+						<inputExclude>**/speclicense.html</inputExclude>
+						<inputExclude>**/license-*.asciidoc</inputExclude>
+						<!-- metadata files which aren't automatically excluded -->
+						<inputExclude>CODE_OF_CONDUCT.md</inputExclude>
+					</inputExcludes>
+				</configuration>
+				<executions>
+					<execution>
+						<id>rat-check</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>check</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+
+	<properties>
+		<!-- Definitions for the Jakarta EE API dependency versions -->
+		<annotation.api.version>3.0.0</annotation.api.version>
+		<atinject.api.version>2.0.1</atinject.api.version>
+		<uel.api.version>6.0.1</uel.api.version>
+		<interceptor.api.version>2.2.0</interceptor.api.version>
+
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+		<maven.compiler.release>17</maven.compiler.release>
+
+		<maven-bundle-plugin.version>6.0.2</maven-bundle-plugin.version>
+		<maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
+		<maven-resources-plugin.version>3.5.0</maven-resources-plugin.version>
+		<maven-surefire-plugin.version>3.5.6</maven-surefire-plugin.version>
+
+		<!-- Formatting versions and config -->
+		<format.skip>false</format.skip>
+		<formatter.version>2.29.0</formatter.version>
+		<impsort.version>1.13.0</impsort.version>
+		<rat.version>0.18</rat.version>
+	</properties>
+
+	<profiles>
+		<!-- Formatting setup, inherited by all projects using this parent -->
+		<profile>
+			<id>format</id>
+			<activation>
+				<activeByDefault>false</activeByDefault>
+				<property>
+					<name>!no-format</name>
+				</property>
+				<!-- This condition makes sure the ide-config can have parent set and the formatting is skipped -->
+				<!-- for all modules that don't contain actual code (such as spec text or this parent) -->
+				<file>
+					<exists>src/main/java</exists>
+				</file>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>net.revelc.code.formatter</groupId>
+						<artifactId>formatter-maven-plugin</artifactId>
+						<executions>
+							<execution>
+								<phase>process-sources</phase>
+								<goals>
+									<goal>format</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>net.revelc.code</groupId>
+						<artifactId>impsort-maven-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>sort-imports</id>
+								<goals>
+									<goal>sort</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
+			<id>validate</id>
+			<activation>
+				<activeByDefault>false</activeByDefault>
+				<property>
+					<name>no-format</name>
+				</property>
+				<!-- This condition makes sure the ide-config can have parent set and the formatting is skipped -->
+				<!-- for all modules that don't contain actual code (such as spec text or this parent) -->
+				<file>
+					<exists>src/main/java</exists>
+				</file>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>net.revelc.code.formatter</groupId>
+						<artifactId>formatter-maven-plugin</artifactId>
+						<executions>
+							<execution>
+								<phase>process-sources</phase>
+								<goals>
+									<goal>validate</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>net.revelc.code</groupId>
+						<artifactId>impsort-maven-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>check-imports</id>
+								<goals>
+									<goal>check</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+
+</project>
