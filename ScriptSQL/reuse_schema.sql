@@ -3,6 +3,26 @@
 -- Curso: Programacion 3 (INF246) - PUCP 2026-2 | Equipo: Erasmolovers
 -- Motor: MySQL 8.0 (InnoDB). Codificacion: utf8mb4.
 --
+-- Cambios del Lab 11 (observacion de la JP en el Lab 09: reputacion separada)
+--   FALTABA: en la primera subida a la rama lab11-integracion-rest este
+--   archivo quedo con la version anterior (una sola columna usuario.reputacion),
+--   aunque Java (UsuarioPUCP, UsuarioBaseDAOImpl, UsuarioDTO) y Blazor ya
+--   esperaban dos reputaciones. Con el script anterior el backend fallaria al
+--   leer usuarios ("Column 'reputacion_vendedor' not found").
+--   SE HIZO en esta version:
+--     1. usuario: la columna reputacion se reemplaza por reputacion_vendedor y
+--        reputacion_comprador (DECIMAL(3,2), 0 a 5) con un CHECK cada una.
+--     2. Los 6 procedimientos que devuelven usuarios (listar/buscar usuario y
+--        administrador) seleccionan u.reputacion_vendedor, u.reputacion_comprador.
+--     3. recalcular_reputacion calcula las dos: como vendedor promedia las
+--        calificaciones COMPRADOR_A_VENDEDOR y como comprador las
+--        VENDEDOR_A_COMPRADOR que recibe el usuario.
+--     4. Datos de prueba de usuario: las reputaciones son el promedio real de
+--        las calificaciones de prueba (Ana 5.00 / 4.00, Bruno 0.00 / 5.00,
+--        Diego 5.00 / 0.00; el resto 0.00 / 0.00).
+--   Se verifico que cada {call ...} de los DAO existe aqui con la misma cantidad
+--   de parametros y que las columnas que leen los DAO estan en los SELECT.
+--
 -- Levantamiento de observaciones de la JP (Lab 04):
 --   Obs. 1: facultad y carrera son tablas (ya no ENUM). usuario y material
 --           apuntan SOLO a carrera; la facultad se obtiene navegando por carrera.
@@ -19,7 +39,8 @@
 -- Los estados con valores fijos (maquinas de estado del negocio) se guardan
 -- como VARCHAR + CHECK y en Java se leen con Enum.valueOf(...) / .name().
 -- Los catalogos que crecen (facultad, carrera, categoria) son tablas.
--- reputacion y contador_reportes son atributos derivados que mantiene la
+-- reputacion_vendedor, reputacion_comprador y contador_reportes son atributos
+-- derivados que mantiene la
 -- capa de negocio dentro de transacciones (rendimiento del dashboard, RNF-01).
 --
 -- La seccion 9 crea los procedimientos almacenados que usan los DAO: Java no
@@ -78,7 +99,9 @@ CREATE TABLE usuario (
     id_carrera           INT           NULL,          -- NULL solo para administradores
     verificado           TINYINT(1)    NOT NULL DEFAULT 0,
     estado_cuenta        VARCHAR(25)   NOT NULL DEFAULT 'PENDIENTE_VERIFICACION',
-    reputacion           DECIMAL(3,2)  NOT NULL DEFAULT 0.00,
+    -- Lab 11: antes habia una sola columna "reputacion"; ahora se separa por rol.
+    reputacion_vendedor  DECIMAL(3,2)  NOT NULL DEFAULT 0.00,   -- promedio de calificaciones COMPRADOR_A_VENDEDOR
+    reputacion_comprador DECIMAL(3,2)  NOT NULL DEFAULT 0.00,   -- promedio de calificaciones VENDEDOR_A_COMPRADOR
     contador_reportes    INT           NOT NULL DEFAULT 0,
     foto_perfil          VARCHAR(500)  NULL,
     fecha_registro       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -95,7 +118,8 @@ CREATE TABLE usuario (
     CONSTRAINT chk_usuario_correo CHECK (correo_institucional LIKE '%@pucp.edu.pe'),
     CONSTRAINT chk_usuario_estado_cuenta
         CHECK (estado_cuenta IN ('PENDIENTE_VERIFICACION', 'ACTIVA', 'SUSPENDIDA')),
-    CONSTRAINT chk_usuario_reputacion CHECK (reputacion BETWEEN 0 AND 5),
+    CONSTRAINT chk_usuario_reputacion_vendedor CHECK (reputacion_vendedor BETWEEN 0 AND 5),
+    CONSTRAINT chk_usuario_reputacion_comprador CHECK (reputacion_comprador BETWEEN 0 AND 5),
     CONSTRAINT chk_usuario_contador_reportes CHECK (contador_reportes >= 0)
 ) ENGINE=InnoDB;
 
@@ -644,15 +668,15 @@ INSERT INTO carrera (nombre, id_facultad) VALUES
 -- usuario: 7 registros. contrasena = hash BCrypt de la clave de prueba 'Demo1234'
 -- (no es una credencial real; la capa de negocio compara con BCrypt.checkpw).
 INSERT INTO usuario (codigo_pucp, nombres, apellido_paterno, apellido_materno, correo_institucional,
-                     contrasena, id_carrera, verificado, estado_cuenta, reputacion, contador_reportes,
+                     contrasena, id_carrera, verificado, estado_cuenta, reputacion_vendedor, reputacion_comprador, contador_reportes,
                      foto_perfil, fecha_registro) VALUES
-    ('20260001', 'Ana', 'Torres', 'Vega', 'a20260001@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', 26, 1, 'ACTIVA', 4.50, 0, NULL, '2026-08-01 09:00:00'),                -- 1
-    ('20260002', 'Bruno', 'Ramos', 'Soto', 'a20260002@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', 25, 1, 'ACTIVA', 5.00, 0, NULL, '2026-08-01 10:00:00'),              -- 2
-    ('20260003', 'Carla', 'Lopez', 'Rios', 'a20260003@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', 40, 1, 'ACTIVA', 0.00, 1, NULL, '2026-08-02 09:00:00'),              -- 3
-    ('20260004', 'Diego', 'Mendoza', 'Paz', 'a20260004@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', 1, 1, 'ACTIVA', 5.00, 1, NULL, '2026-08-02 10:00:00'),              -- 4
-    ('20260005', 'Elena', 'Castro', NULL, 'a20260005@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', 55, 0, 'PENDIENTE_VERIFICACION', 0.00, 0, NULL, '2026-09-12 08:00:00'), -- 5
-    ('20260006', 'Fabian', 'Leon', 'Cruz', 'a20260006@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', 13, 1, 'SUSPENDIDA', 0.00, 0, NULL, '2026-08-03 09:00:00'),          -- 6
-    ('00000001', 'Admin', 'Prueba', NULL, 'admin.demo@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', NULL, 1, 'ACTIVA', 0.00, 0, NULL, '2026-08-01 08:00:00');          -- 7
+    ('20260001', 'Ana', 'Torres', 'Vega', 'a20260001@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', 26, 1, 'ACTIVA', 5.00, 4.00, 0, NULL, '2026-08-01 09:00:00'),                -- 1
+    ('20260002', 'Bruno', 'Ramos', 'Soto', 'a20260002@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', 25, 1, 'ACTIVA', 0.00, 5.00, 0, NULL, '2026-08-01 10:00:00'),              -- 2
+    ('20260003', 'Carla', 'Lopez', 'Rios', 'a20260003@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', 40, 1, 'ACTIVA', 0.00, 0.00, 1, NULL, '2026-08-02 09:00:00'),              -- 3
+    ('20260004', 'Diego', 'Mendoza', 'Paz', 'a20260004@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', 1, 1, 'ACTIVA', 5.00, 0.00, 1, NULL, '2026-08-02 10:00:00'),              -- 4
+    ('20260005', 'Elena', 'Castro', NULL, 'a20260005@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', 55, 0, 'PENDIENTE_VERIFICACION', 0.00, 0.00, 0, NULL, '2026-09-12 08:00:00'), -- 5
+    ('20260006', 'Fabian', 'Leon', 'Cruz', 'a20260006@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', 13, 1, 'SUSPENDIDA', 0.00, 0.00, 0, NULL, '2026-08-03 09:00:00'),          -- 6
+    ('00000001', 'Admin', 'Prueba', NULL, 'admin.demo@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', NULL, 1, 'ACTIVA', 0.00, 0.00, 0, NULL, '2026-08-01 08:00:00');          -- 7
 
 -- administrador: 1 registro
 INSERT INTO administrador (id_usuario) VALUES (7);
@@ -994,7 +1018,7 @@ BEGIN
 END$$
 
 -- ---------------------------------------------------------------------
--- usuario (reputacion, contador_reportes y fecha_registro no son
+-- usuario (reputaciones, contador_reportes y fecha_registro no son
 -- parametros: los asigna la BD o los mantienen procedimientos propios)
 -- ---------------------------------------------------------------------
 CREATE PROCEDURE insertar_usuario(
@@ -1082,7 +1106,7 @@ CREATE PROCEDURE buscar_usuario_por_id(IN p_id INT)
 BEGIN
     SELECT u.id_usuario, u.codigo_pucp, u.nombres, u.apellido_paterno, u.apellido_materno,
            u.correo_institucional, u.contrasena, u.id_carrera, u.verificado, u.estado_cuenta,
-           u.reputacion, u.contador_reportes, u.foto_perfil, u.fecha_registro,
+           u.reputacion_vendedor, u.reputacion_comprador, u.contador_reportes, u.foto_perfil, u.fecha_registro,
            c.nombre AS carrera_nombre, c.id_facultad, f.nombre AS facultad_nombre,
            u.activo, u.fecha_creacion, u.fecha_modificacion, u.usuario_creacion, u.usuario_modificacion
     FROM usuario u
@@ -1095,7 +1119,7 @@ CREATE PROCEDURE listar_usuarios()
 BEGIN
     SELECT u.id_usuario, u.codigo_pucp, u.nombres, u.apellido_paterno, u.apellido_materno,
            u.correo_institucional, u.contrasena, u.id_carrera, u.verificado, u.estado_cuenta,
-           u.reputacion, u.contador_reportes, u.foto_perfil, u.fecha_registro,
+           u.reputacion_vendedor, u.reputacion_comprador, u.contador_reportes, u.foto_perfil, u.fecha_registro,
            c.nombre AS carrera_nombre, c.id_facultad, f.nombre AS facultad_nombre,
            u.activo, u.fecha_creacion, u.fecha_modificacion, u.usuario_creacion, u.usuario_modificacion
     FROM usuario u
@@ -1109,7 +1133,7 @@ CREATE PROCEDURE buscar_usuario_por_correo(IN p_correo_institucional VARCHAR(150
 BEGIN
     SELECT u.id_usuario, u.codigo_pucp, u.nombres, u.apellido_paterno, u.apellido_materno,
            u.correo_institucional, u.contrasena, u.id_carrera, u.verificado, u.estado_cuenta,
-           u.reputacion, u.contador_reportes, u.foto_perfil, u.fecha_registro,
+           u.reputacion_vendedor, u.reputacion_comprador, u.contador_reportes, u.foto_perfil, u.fecha_registro,
            c.nombre AS carrera_nombre, c.id_facultad, f.nombre AS facultad_nombre,
            u.activo, u.fecha_creacion, u.fecha_modificacion, u.usuario_creacion, u.usuario_modificacion
     FROM usuario u
@@ -1122,7 +1146,7 @@ CREATE PROCEDURE buscar_usuario_por_codigo(IN p_codigo_pucp CHAR(8))
 BEGIN
     SELECT u.id_usuario, u.codigo_pucp, u.nombres, u.apellido_paterno, u.apellido_materno,
            u.correo_institucional, u.contrasena, u.id_carrera, u.verificado, u.estado_cuenta,
-           u.reputacion, u.contador_reportes, u.foto_perfil, u.fecha_registro,
+           u.reputacion_vendedor, u.reputacion_comprador, u.contador_reportes, u.foto_perfil, u.fecha_registro,
            c.nombre AS carrera_nombre, c.id_facultad, f.nombre AS facultad_nombre,
            u.activo, u.fecha_creacion, u.fecha_modificacion, u.usuario_creacion, u.usuario_modificacion
     FROM usuario u
@@ -1145,13 +1169,21 @@ BEGIN
     SET p_filas = ROW_COUNT();
 END$$
 
--- RF-18: reputacion = promedio de las calificaciones activas recibidas.
+-- RF-18 (Lab 11): la reputacion se lleva por separado como vendedor y como comprador.
+-- Antes: SET reputacion = promedio de TODAS las calificaciones recibidas.
+-- reputacion_vendedor  = promedio de las calificaciones COMPRADOR_A_VENDEDOR recibidas.
+-- reputacion_comprador = promedio de las calificaciones VENDEDOR_A_COMPRADOR recibidas.
 CREATE PROCEDURE recalcular_reputacion(IN p_id INT, OUT p_filas INT)
 BEGIN
     UPDATE usuario
-    SET reputacion = (SELECT COALESCE(ROUND(AVG(c.puntaje), 2), 0)
-                      FROM calificacion c
-                      WHERE c.id_calificado = p_id AND c.activo = 1)
+    SET reputacion_vendedor = (SELECT COALESCE(ROUND(AVG(c.puntaje), 2), 0)
+                               FROM calificacion c
+                               WHERE c.id_calificado = p_id AND c.activo = 1
+                                 AND c.tipo = 'COMPRADOR_A_VENDEDOR'),
+        reputacion_comprador = (SELECT COALESCE(ROUND(AVG(c.puntaje), 2), 0)
+                                FROM calificacion c
+                                WHERE c.id_calificado = p_id AND c.activo = 1
+                                  AND c.tipo = 'VENDEDOR_A_COMPRADOR')
     WHERE id_usuario = p_id;
     SET p_filas = ROW_COUNT();
 END$$
@@ -1234,7 +1266,7 @@ CREATE PROCEDURE buscar_administrador_por_id(IN p_id INT)
 BEGIN
     SELECT u.id_usuario, u.codigo_pucp, u.nombres, u.apellido_paterno, u.apellido_materno,
            u.correo_institucional, u.contrasena, u.id_carrera, u.verificado, u.estado_cuenta,
-           u.reputacion, u.contador_reportes, u.foto_perfil, u.fecha_registro,
+           u.reputacion_vendedor, u.reputacion_comprador, u.contador_reportes, u.foto_perfil, u.fecha_registro,
            c.nombre AS carrera_nombre, c.id_facultad, f.nombre AS facultad_nombre,
            u.activo, u.fecha_creacion, u.fecha_modificacion, u.usuario_creacion, u.usuario_modificacion
     FROM usuario u
@@ -1248,7 +1280,7 @@ CREATE PROCEDURE listar_administradores()
 BEGIN
     SELECT u.id_usuario, u.codigo_pucp, u.nombres, u.apellido_paterno, u.apellido_materno,
            u.correo_institucional, u.contrasena, u.id_carrera, u.verificado, u.estado_cuenta,
-           u.reputacion, u.contador_reportes, u.foto_perfil, u.fecha_registro,
+           u.reputacion_vendedor, u.reputacion_comprador, u.contador_reportes, u.foto_perfil, u.fecha_registro,
            c.nombre AS carrera_nombre, c.id_facultad, f.nombre AS facultad_nombre,
            u.activo, u.fecha_creacion, u.fecha_modificacion, u.usuario_creacion, u.usuario_modificacion
     FROM usuario u
