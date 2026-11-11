@@ -46,8 +46,13 @@ public class DBManager {
         } catch (ClassNotFoundException ex) {
             throw new SQLException("No se encontro el driver de MySQL", ex);
         }
+        // GlassFish define javax.net.ssl.keyStore/trustStore con su propio almacen (keystore.p12) sin
+        // exponer la contrasena; si el driver los usa, la conexion SSL con la BD falla
+        // ("keystore password was incorrect"). Se desactiva ese uso: la conexion sigue cifrada.
         return DriverManager.getConnection(
-                "jdbc:mysql://" + servidor + ":" + puerto + "/" + esquema, usuario, password
+                "jdbc:mysql://" + servidor + ":" + puerto + "/" + esquema
+                        + "?fallbackToSystemKeyStore=false&fallbackToSystemTrustStore=false",
+                usuario, password
         );
     }
 }
