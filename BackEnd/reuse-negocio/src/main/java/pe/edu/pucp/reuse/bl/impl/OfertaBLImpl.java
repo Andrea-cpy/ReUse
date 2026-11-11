@@ -37,7 +37,7 @@ public class OfertaBLImpl extends BaseBLImpl implements OfertaBL {
         validarDatos(oferta);
         Oferta actual = buscarOferta(oferta.getIdOferta());
         if (actual.getEstado() != EstadoOferta.PENDIENTE) {
-            throw new BLException("Solo se puede update una oferta PENDIENTE (estado actual: "
+            throw new BLException("Solo se puede actualizar una oferta PENDIENTE (estado actual: "
                     + actual.getEstado() + ")");
         }
         oferta.setEstado(actual.getEstado());
@@ -52,12 +52,12 @@ public class OfertaBLImpl extends BaseBLImpl implements OfertaBL {
     public int delete(int idOferta) throws BLException {
         Oferta actual = buscarOferta(idOferta);
         if (actual.getEstado() == EstadoOferta.ACEPTADA) {
-            throw new BLException("No se puede delete una oferta ACEPTADA: ya dio origen a una transaccion");
+            throw new BLException("No se puede eliminar una oferta ACEPTADA: ya dio origen a una transaccion");
         }
         try {
             return ofertaDAO.delete(idOferta);
         } catch (SQLException e) {
-            throw new BLException("No se pudo delete la oferta", e);
+            throw new BLException("No se pudo eliminar la oferta", e);
         }
     }
 

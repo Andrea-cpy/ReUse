@@ -51,7 +51,7 @@ public class ReporteAnuncioBLImpl extends BaseBLImpl implements ReporteAnuncioBL
         validarDatos(reporte);
         ReporteAnuncio actual = buscarReporte(reporte.getIdReporte());
         if (actual.getEstadoRevision() != EstadoRevisionReporte.PENDIENTE) {
-            throw new BLException("Solo se puede update un reporte PENDIENTE");
+            throw new BLException("Solo se puede actualizar un reporte PENDIENTE");
         }
         if (actual.getAnuncio().getIdAnuncio() != reporte.getAnuncio().getIdAnuncio()) {
             throw new BLException("No se puede cambiar el anuncio reportado");
@@ -83,7 +83,7 @@ public class ReporteAnuncioBLImpl extends BaseBLImpl implements ReporteAnuncioBL
             if (TransactionsManager.activa()) {
                 TransactionsManager.rollback();
             }
-            throw new BLException("No se pudo delete el reporte; se hizo rollback", e);
+            throw new BLException("No se pudo eliminar el reporte; se hizo rollback", e);
         }
     }
 

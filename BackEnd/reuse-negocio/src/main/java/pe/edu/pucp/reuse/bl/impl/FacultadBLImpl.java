@@ -44,11 +44,11 @@ public class FacultadBLImpl extends BaseBLImpl implements FacultadBL {
         validarExiste(idFacultad);
         try {
             if (!carreraDAO.listarPorFacultad(idFacultad).isEmpty()) {
-                throw new BLException("No se puede delete una facultad que tiene carreras activas");
+                throw new BLException("No se puede eliminar una facultad que tiene carreras activas");
             }
             return facultadDAO.delete(idFacultad);
         } catch (SQLException e) {
-            throw new BLException("No se pudo delete la facultad", e);
+            throw new BLException("No se pudo eliminar la facultad", e);
         }
     }
 

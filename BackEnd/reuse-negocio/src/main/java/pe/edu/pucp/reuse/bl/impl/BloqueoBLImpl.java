@@ -73,7 +73,7 @@ public class BloqueoBLImpl extends BaseBLImpl implements BloqueoBL {
         try {
             return bloqueoDAO.delete(idBloqueo);
         } catch (SQLException e) {
-            throw new BLException("No se pudo delete el bloqueo", e);
+            throw new BLException("No se pudo eliminar el bloqueo", e);
         }
     }
 

@@ -54,7 +54,7 @@ public class ReporteUsuarioBLImpl extends BaseBLImpl implements ReporteUsuarioBL
         validarDatos(reporte);
         ReporteUsuario actual = buscarReporte(reporte.getIdReporte());
         if (actual.getEstadoRevision() != EstadoRevisionReporte.PENDIENTE) {
-            throw new BLException("Solo se puede update un reporte PENDIENTE");
+            throw new BLException("Solo se puede actualizar un reporte PENDIENTE");
         }
         if (actual.getDenunciado().getIdUsuario() != reporte.getDenunciado().getIdUsuario()) {
             throw new BLException("No se puede cambiar el usuario denunciado");
@@ -88,7 +88,7 @@ public class ReporteUsuarioBLImpl extends BaseBLImpl implements ReporteUsuarioBL
             if (TransactionsManager.activa()) {
                 TransactionsManager.rollback();
             }
-            throw new BLException("No se pudo delete el reporte; se hizo rollback", e);
+            throw new BLException("No se pudo eliminar el reporte; se hizo rollback", e);
         }
     }
 

@@ -82,7 +82,7 @@ public class CalificacionBLImpl extends BaseBLImpl implements CalificacionBL {
             if (TransactionsManager.activa()) {
                 TransactionsManager.rollback();
             }
-            throw new BLException("No se pudo delete la calificacion; se hizo rollback", e);
+            throw new BLException("No se pudo eliminar la calificacion; se hizo rollback", e);
         }
     }
 

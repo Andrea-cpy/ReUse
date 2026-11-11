@@ -52,7 +52,7 @@ public class ImagenProductoBLImpl extends BaseBLImpl implements ImagenProductoBL
         try {
             return imagenDAO.delete(idImagen);
         } catch (SQLException e) {
-            throw new BLException("No se pudo delete la imagen", e);
+            throw new BLException("No se pudo eliminar la imagen", e);
         }
     }
 

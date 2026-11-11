@@ -49,7 +49,7 @@ public class RespuestaRapidaBLImpl extends BaseBLImpl implements RespuestaRapida
         try {
             return respuestaDAO.delete(idRespuesta);
         } catch (SQLException e) {
-            throw new BLException("No se pudo delete la respuesta rapida", e);
+            throw new BLException("No se pudo eliminar la respuesta rapida", e);
         }
     }
 

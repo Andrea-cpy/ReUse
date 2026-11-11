@@ -61,7 +61,7 @@ public class TransaccionBLImpl extends BaseBLImpl implements TransaccionBL {
         }
         Transaccion actual = buscarTransaccion(transaccion.getIdTransaccion());
         if (actual.getEstado() != EstadoTransaccion.EN_NEGOCIACION) {
-            throw new BLException("Solo se puede update una transaccion EN_NEGOCIACION");
+            throw new BLException("Solo se puede actualizar una transaccion EN_NEGOCIACION");
         }
         if (transaccion.getAnuncio() == null || transaccion.getComprador() == null
                 || transaccion.getAnuncio().getIdAnuncio() != actual.getAnuncio().getIdAnuncio()
@@ -85,7 +85,7 @@ public class TransaccionBLImpl extends BaseBLImpl implements TransaccionBL {
         Transaccion actual = buscarTransaccion(idTransaccion);
         if (actual.getEstado() == EstadoTransaccion.COMPLETADA
                 || actual.getEstado() == EstadoTransaccion.CITA_CONFIRMADA) {
-            throw new BLException("No se puede delete una transaccion " + actual.getEstado()
+            throw new BLException("No se puede eliminar una transaccion " + actual.getEstado()
                     + " (forma parte del historial o tiene una cita confirmada)");
         }
         TransactionsManager.iniciar();
@@ -100,7 +100,7 @@ public class TransaccionBLImpl extends BaseBLImpl implements TransaccionBL {
             if (TransactionsManager.activa()) {
                 TransactionsManager.rollback();
             }
-            throw new BLException("No se pudo delete la transaccion", e);
+            throw new BLException("No se pudo eliminar la transaccion", e);
         }
     }
 

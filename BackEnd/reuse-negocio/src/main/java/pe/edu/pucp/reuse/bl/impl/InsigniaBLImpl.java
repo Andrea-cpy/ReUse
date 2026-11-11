@@ -82,7 +82,7 @@ public class InsigniaBLImpl extends BaseBLImpl implements InsigniaBL {
             if (TransactionsManager.activa()) {
                 TransactionsManager.rollback();
             }
-            throw new BLException("No se pudo delete la insignia; se hizo rollback", e);
+            throw new BLException("No se pudo eliminar la insignia; se hizo rollback", e);
         }
     }
 

@@ -71,6 +71,8 @@ Hay que volver a ejecutar el script completo para tener el cambio.
 ## Cambios en las capas existentes (Lab 11)
 
 - `AnuncioBL`: `listarPorVendedor`, `buscar` (filtros del catálogo), `archivar`, `republicar`.
+- `POST /anuncios` acepta las fotos como URLs en `imagenes`; `rest/ImagenesRemotas` descarga cada una para registrar su peso y formato reales, y la BL las guarda junto con el anuncio en una sola transacción (máx. 5, hasta 5 MB, jpg/png/webp).
+- `UsuarioBL.iniciarSesion` rechaza también las cuentas `PENDIENTE_VERIFICACION` (antes solo las `SUSPENDIDA`).
 - `OfertaBL`: `listarPorComprador`, `contraofertar`, `responderContraoferta`.
 - `TransaccionBL.listarPorUsuario` y `CanalChatBL.listarPorUsuario` (como comprador o vendedor).
 - `DBManager.getConnection` carga el driver de MySQL de forma explícita (necesario dentro de GlassFish).

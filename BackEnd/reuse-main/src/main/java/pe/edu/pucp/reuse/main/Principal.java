@@ -235,6 +235,8 @@ public class Principal {
         usuarioBL.reactivarCuenta(idTemporal);
         System.out.println("Reactivada:          id " + idTemporal + " vuelve a "
                 + usuarioBL.findById(idTemporal).getEstadoCuenta() + " (no estaba verificada)");
+        rechazo("Iniciar sesion con una cuenta PENDIENTE_VERIFICACION",
+                () -> usuarioBL.iniciarSesion(correoTemporal, CLAVE_PRUEBA));
         usuarioBL.delete(temporal.getIdUsuario());
         System.out.println("Eliminado (logico):  id " + temporal.getIdUsuario() + " activo="
                 + usuarioBL.findById(temporal.getIdUsuario()).isActivo() + ", en listado="

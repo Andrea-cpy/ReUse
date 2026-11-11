@@ -85,6 +85,45 @@ else
                         </div>
                     </div>
                 </div>
+
+                @* ---------- Fotos (RF-02): se envían como URLs en AnuncioDTO.Imagenes ---------- *@
+                <div class="ru-card ru-card-body mt-4">
+                    <h2 class="h3 mb-1">3. Fotos</h2>
+                    @if (EsEdicion)
+                    {
+                        <p class="small-muted mb-3">Las fotos se registran al publicar el anuncio.</p>
+                        @if (imagenesActuales.Any())
+                        {
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach (string url in imagenesActuales)
+                                {
+                                    <img src="@url" alt="Foto del anuncio" class="rounded border" style="width:96px;height:96px;object-fit:cover" />
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="small-muted">Este anuncio no tiene fotos.</div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="small-muted mb-3">Pega el enlace de cada foto (jpg, png o webp, hasta 5 MB). Máximo @MaximoFotos fotos; la primera es la portada.</p>
+                        @for (int i = 0; i < modelo.Fotos.Count; i++)
+                        {
+                            FotoModelo foto = modelo.Fotos[i];
+                            <div class="input-group mb-2">
+                                <span class="input-group-text"><i class="bi bi-image"></i></span>
+                                <InputText class="form-control" @bind-Value="foto.Url" placeholder="https://…/foto.jpg" aria-label="@($"URL de la foto {i + 1}")" />
+                                <button type="button" class="btn btn-light text-danger" title="Quitar foto" @onclick="() => modelo.Fotos.Remove(foto)"><i class="bi bi-x-lg"></i></button>
+                            </div>
+                        }
+                        @if (modelo.Fotos.Count < MaximoFotos)
+                        {
+                            <button type="button" class="btn btn-outline-primary btn-sm" @onclick="() => modelo.Fotos.Add(new FotoModelo())"><i class="bi bi-plus-lg me-1"></i> Agregar foto</button>
+                        }
+                    }
+                </div>
             </div>
 
             @* ---------- Vista previa ---------- *@
@@ -114,6 +153,15 @@ else
     private List<MaterialAcademicoDTO> materiales = [];
     private int idCategoria;
     private bool cargando = true;
+    private List<string> imagenesActuales = [];
+
+    // Mismo máximo que valida la capa de negocio (ImagenProductoBLImpl).
+    private const int MaximoFotos = 5;
+
+    private List<string> UrlsFotos => modelo.Fotos
+        .Select(f => f.Url.Trim())
+        .Where(u => u.Length > 0)
+        .ToList();
 
     private IEnumerable<MaterialAcademicoDTO> MaterialesVisibles =>
         materiales.Where(m => idCategoria == 0 || m.IdCategoria == idCategoria).OrderBy(m => m.Titulo);
@@ -145,6 +193,7 @@ else
                     FechaPublicacion = a.FechaPublicacion
                 };
                 idCategoria = a.IdCategoria;
+                imagenesActuales = a.Imagenes;
             }
         });
         cargando = false;
@@ -170,7 +219,8 @@ else
                 Precio = modelo.Precio,
                 Condicion = modelo.Condicion,
                 NombreCategoria = material?.NombreCategoria,
-                TituloMaterial = material?.Titulo
+                TituloMaterial = material?.Titulo,
+                Imagenes = EsEdicion ? imagenesActuales : UrlsFotos
             };
         }
     }
@@ -188,7 +238,8 @@ else
             Estado = modelo.Estado,
             FechaPublicacion = modelo.FechaPublicacion,
             IdMaterial = modelo.IdMaterial,
-            IdVendedor = idUsuario
+            IdVendedor = idUsuario,
+            Imagenes = EsEdicion ? [] : UrlsFotos
         };
         bool ok = EsEdicion
             ? await Ejecutar(() => AnuncioService.Actualizar(dto))
@@ -215,5 +266,13 @@ else
 
         public string Estado { get; set; } = "DISPONIBLE";
         public string? FechaPublicacion { get; set; }
+
+        /// <summary>Fotos del anuncio nuevo; empieza con un campo vacío.</summary>
+        public List<FotoModelo> Fotos { get; set; } = [new FotoModelo()];
+    }
+
+    private class FotoModelo
+    {
+        public string Url { get; set; } = "";
     }
 }

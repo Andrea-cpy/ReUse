@@ -45,7 +45,7 @@ public class NotificacionBLImpl extends BaseBLImpl implements NotificacionBL {
         try {
             return notificacionDAO.delete(idNotificacion);
         } catch (SQLException e) {
-            throw new BLException("No se pudo delete la notificacion", e);
+            throw new BLException("No se pudo eliminar la notificacion", e);
         }
     }
 

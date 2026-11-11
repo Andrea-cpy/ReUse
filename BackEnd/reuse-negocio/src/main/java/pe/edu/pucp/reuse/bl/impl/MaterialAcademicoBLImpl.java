@@ -80,7 +80,7 @@ public class MaterialAcademicoBLImpl extends BaseBLImpl implements MaterialAcade
             if (TransactionsManager.activa()) {
                 TransactionsManager.rollback();
             }
-            throw new BLException("No se pudo delete el material academico", e);
+            throw new BLException("No se pudo eliminar el material academico", e);
         }
     }
 

@@ -57,7 +57,7 @@ public class MensajeBLImpl extends BaseBLImpl implements MensajeBL {
         try {
             return mensajeDAO.delete(idMensaje);
         } catch (SQLException e) {
-            throw new BLException("No se pudo delete el mensaje", e);
+            throw new BLException("No se pudo eliminar el mensaje", e);
         }
     }
 

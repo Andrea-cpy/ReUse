@@ -115,6 +115,11 @@ public class UsuarioBLImpl extends BaseBLImpl implements UsuarioBL {
         if (usuario.getEstadoCuenta() == EstadoCuenta.SUSPENDIDA) {
             throw new BLException("La cuenta " + usuario.getCodigoPUCP() + " esta SUSPENDIDA");
         }
+        // Una cuenta recien registrada no puede ingresar hasta que un administrador la verifique.
+        if (usuario.getEstadoCuenta() == EstadoCuenta.PENDIENTE_VERIFICACION) {
+            throw new BLException("La cuenta " + usuario.getCodigoPUCP()
+                    + " aun no ha sido verificada por un administrador");
+        }
         return usuario;
     }
 

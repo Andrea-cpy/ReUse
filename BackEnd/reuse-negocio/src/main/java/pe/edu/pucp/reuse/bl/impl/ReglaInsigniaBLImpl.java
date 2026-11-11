@@ -47,7 +47,7 @@ public class ReglaInsigniaBLImpl extends BaseBLImpl implements ReglaInsigniaBL {
         try {
             return reglaDAO.delete(idRegla);
         } catch (SQLException e) {
-            throw new BLException("No se pudo delete la regla de la insignia", e);
+            throw new BLException("No se pudo eliminar la regla de la insignia", e);
         }
     }
 

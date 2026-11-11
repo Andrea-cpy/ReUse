@@ -27,7 +27,7 @@ public class CitaEntregaBLImpl extends BaseBLImpl implements CitaEntregaBL {
         validarDatos(cita);
         try {
             if (citaDAO.obtenerPorTransaccion(cita.getTransaccion().getIdTransaccion()) != null) {
-                throw new BLException("La transaccion ya tiene una cita; use update para renegociarla");
+                throw new BLException("La transaccion ya tiene una cita; renegocie la cita existente");
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar la cita de la transaccion", e);
@@ -64,13 +64,13 @@ public class CitaEntregaBLImpl extends BaseBLImpl implements CitaEntregaBL {
     public int delete(int idCita) throws BLException {
         CitaEntrega actual = buscarCita(idCita);
         if (actual.getEstado() == EstadoCita.CONFIRMADA || actual.getEstado() == EstadoCita.REALIZADA) {
-            throw new BLException("No se puede delete una cita " + actual.getEstado()
+            throw new BLException("No se puede eliminar una cita " + actual.getEstado()
                     + "; cancele la transaccion si corresponde");
         }
         try {
             return citaDAO.delete(idCita);
         } catch (SQLException e) {
-            throw new BLException("No se pudo delete la cita", e);
+            throw new BLException("No se pudo eliminar la cita", e);
         }
     }
 

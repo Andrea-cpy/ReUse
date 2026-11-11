@@ -86,9 +86,14 @@ public class AnunciosResource {
         return Response.ok(AnuncioMapper.toDTO(anuncio)).build();
     }
 
+    /** Publica el anuncio con sus fotos (URLs en 'imagenes'); anuncio e imagenes se guardan en una sola transaccion. */
     @POST
     public Response insert(AnuncioDTO anuncioDTO) throws BLException {
+        if (anuncioDTO == null) {
+            return Respuestas.solicitudInvalida("Debe enviar los datos del anuncio");
+        }
         Anuncio anuncio = AnuncioMapper.toModelo(anuncioDTO);
+        ImagenesRemotas.agregar(anuncio, anuncioDTO.getImagenes());
         int id = anuncioBL.insert(anuncio);
         URI uri = uriInfo.getAbsolutePathBuilder().path(String.valueOf(id)).build();
         return Response.created(uri).entity(AnuncioMapper.toDTO(anuncioBL.findById(id))).build();

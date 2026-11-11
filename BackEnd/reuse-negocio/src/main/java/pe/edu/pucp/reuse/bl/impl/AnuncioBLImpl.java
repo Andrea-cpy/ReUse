@@ -82,7 +82,7 @@ public class AnuncioBLImpl extends BaseBLImpl implements AnuncioBL {
         buscarAnuncio(idAnuncio);
         try {
             if (anuncioDAO.contarTransacciones(idAnuncio) > 0) {
-                throw new BLException("No se puede delete un anuncio que tiene transacciones");
+                throw new BLException("No se puede eliminar un anuncio que tiene transacciones");
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar las transacciones del anuncio", e);
@@ -98,7 +98,7 @@ public class AnuncioBLImpl extends BaseBLImpl implements AnuncioBL {
             if (TransactionsManager.activa()) {
                 TransactionsManager.rollback();
             }
-            throw new BLException("No se pudo delete el anuncio", e);
+            throw new BLException("No se pudo eliminar el anuncio", e);
         }
     }
 

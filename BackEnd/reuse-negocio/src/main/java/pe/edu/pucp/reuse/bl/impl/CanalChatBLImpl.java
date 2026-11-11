@@ -73,7 +73,7 @@ public class CanalChatBLImpl extends BaseBLImpl implements CanalChatBL {
         try {
             return chatDAO.delete(idChat);
         } catch (SQLException e) {
-            throw new BLException("No se pudo delete el chat", e);
+            throw new BLException("No se pudo eliminar el chat", e);
         }
     }
 
