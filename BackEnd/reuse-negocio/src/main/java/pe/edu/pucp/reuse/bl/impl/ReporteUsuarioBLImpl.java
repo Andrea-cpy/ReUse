@@ -12,6 +12,7 @@ import pe.edu.pucp.reuse.dao.impl.ReporteUsuarioDAOImpl;
 import pe.edu.pucp.reuse.dao.transacciones.TransactionsManager;
 import pe.edu.pucp.reuse.modelo.enums.EstadoCuenta;
 import pe.edu.pucp.reuse.modelo.enums.EstadoRevisionReporte;
+import pe.edu.pucp.reuse.modelo.enums.TipoNotificacion;
 import pe.edu.pucp.reuse.modelo.moderacion.ReporteUsuario;
 import pe.edu.pucp.reuse.modelo.transacciones.Transaccion;
 import pe.edu.pucp.reuse.modelo.usuarios.AdministradorPUCP;
@@ -115,18 +116,34 @@ public class ReporteUsuarioBLImpl extends BaseBLImpl implements ReporteUsuarioBL
         ReporteUsuario reporte = buscarReportePendiente(idReporte);
         validarAdministrador(idAdministrador);
         int idDenunciado = reporte.getDenunciado().getIdUsuario();
+        // El listado del reporte solo trae datos de referencia: se lee el estado real de la cuenta.
+        UsuarioPUCP denunciado = buscarUsuario(idDenunciado, "denunciado");
 
         TransactionsManager.iniciar();
         try {
             if (reporteDAO.resolver(idReporte, EstadoRevisionReporte.SANCIONADO, idAdministrador) == 0) {
                 throw new BLException("El reporte " + idReporte + " ya fue resuelto por otro administrador");
             }
-            boolean suspender = reporteDAO.contarSancionesRecientes(idDenunciado, DIAS_VENTANA_SANCIONES)
-                    >= SANCIONES_PARA_SUSPENDER;
+            int sanciones = reporteDAO.contarSancionesRecientes(idDenunciado, DIAS_VENTANA_SANCIONES);
+            // RF-13: reincidente. Solo se suspende una cuenta que aun no lo esta.
+            boolean suspender = sanciones >= SANCIONES_PARA_SUSPENDER
+                    && denunciado.getEstadoCuenta() != EstadoCuenta.SUSPENDIDA;
             if (suspender) {
                 usuarioDAO.actualizarEstadoCuenta(idDenunciado, EstadoCuenta.SUSPENDIDA);
             }
             TransactionsManager.commit();
+
+            Notificador notificador = new Notificador();
+            notificador.avisar(reporte.getDenunciante().getIdUsuario(), TipoNotificacion.MODERACION,
+                    "Tu reporte #" + idReporte + " fue revisado: se sanciono al usuario denunciado.");
+            notificador.avisar(idDenunciado, TipoNotificacion.MODERACION,
+                    "Recibiste una sancion por un reporte de " + texto(reporte.getMotivo().name())
+                            + ". Llevas " + sanciones + " sancion(es) en los ultimos " + DIAS_VENTANA_SANCIONES + " dias.");
+            if (suspender) {
+                notificador.avisar(idDenunciado, TipoNotificacion.MODERACION,
+                        "Tu cuenta fue SUSPENDIDA por acumular " + sanciones + " sanciones en "
+                                + DIAS_VENTANA_SANCIONES + " dias.");
+            }
             return suspender;
         } catch (BLException e) {
             TransactionsManager.rollback();
@@ -141,7 +158,7 @@ public class ReporteUsuarioBLImpl extends BaseBLImpl implements ReporteUsuarioBL
 
     @Override
     public void desestimar(int idReporte, int idAdministrador) throws BLException {
-        buscarReportePendiente(idReporte);
+        ReporteUsuario reporte = buscarReportePendiente(idReporte);
         validarAdministrador(idAdministrador);
         try {
             if (reporteDAO.resolver(idReporte, EstadoRevisionReporte.DESESTIMADO, idAdministrador) == 0) {
@@ -150,6 +167,23 @@ public class ReporteUsuarioBLImpl extends BaseBLImpl implements ReporteUsuarioBL
         } catch (SQLException e) {
             throw new BLException("No se pudo desestimar el reporte", e);
         }
+        new Notificador().avisar(reporte.getDenunciante().getIdUsuario(), TipoNotificacion.MODERACION,
+                "Tu reporte #" + idReporte + " fue revisado y se desestimo: no se encontro una infraccion.");
+    }
+
+    @Override
+    public int contarSancionesRecientes(int idUsuario) throws BLException {
+        buscarUsuario(idUsuario, "usuario");
+        try {
+            return reporteDAO.contarSancionesRecientes(idUsuario, DIAS_VENTANA_SANCIONES);
+        } catch (SQLException e) {
+            throw new BLException("No se pudo contar las sanciones del usuario", e);
+        }
+    }
+
+    // "NO_SE_PRESENTO_A_LA_CITA" -> "no se presento a la cita"
+    private static String texto(String valorEnum) {
+        return valorEnum.toLowerCase().replace('_', ' ');
     }
 
     private void validarDatos(ReporteUsuario reporte) throws BLException {

@@ -2,14 +2,16 @@
 @inherits PaginaBase
 @inject IUsuarioService UsuarioService
 @inject IAnuncioService AnuncioService
+@inject IBloqueoService BloqueoService
 
-@* Perfil público de un vendedor: GET /usuarios/{id} y sus anuncios disponibles (GET /anuncios?vendedor=ID) *@
+@* Perfil público: GET /usuarios/{id} y sus anuncios disponibles (GET /anuncios?vendedor=ID).
+   RF-18 reputación e insignias · RF-10 bloquear/desbloquear (POST /bloqueos, PUT /bloqueos/{id}/desbloquear) · RF-04 reportar. *@
 
 <PageTitle>Perfil · ReUse</PageTitle>
 
 <a class="ru-volver" href="javascript:history.back()"><i class="bi bi-arrow-left"></i> Volver</a>
 
-<Alertas Error="@Error" />
+<Alertas Error="@Error" Exito="@Exito" />
 
 @if (usuario is null)
 {
@@ -20,10 +22,44 @@
 }
 else
 {
-    <TarjetaPerfil Usuario="usuario" MostrarPrivado="false" />
+    <TarjetaPerfil Usuario="usuario" MostrarPrivado="false">
+        @if (!esMiPerfil)
+        {
+            <div class="d-flex flex-wrap gap-2 mt-3 pt-3 border-top">
+                @if (bloqueo is null)
+                {
+                    <button class="btn btn-outline-danger btn-sm" disabled="@Procesando" @onclick="() => confirmarBloqueo = true">
+                        <i class="bi bi-slash-circle me-1"></i> Bloquear
+                    </button>
+                }
+                else if (bloqueo.IdBloqueador == idUsuario)
+                {
+                    <button class="btn btn-outline-primary btn-sm" disabled="@Procesando" @onclick="Desbloquear">
+                        <i class="bi bi-unlock me-1"></i> Desbloquear
+                    </button>
+                }
+                <NavLink class="btn btn-light btn-sm text-danger" href="@($"reportes/usuario/{Id}")"><i class="bi bi-flag me-1"></i> Reportar</NavLink>
+            </div>
+        }
+    </TarjetaPerfil>
+
+    @if (bloqueo is not null)
+    {
+        <div class="alert alert-warning mt-3 mb-0">
+            <i class="bi bi-slash-circle me-1"></i>
+            @(bloqueo.IdBloqueador == idUsuario
+                ? $"Bloqueaste a este usuario el {Formato.Fecha(bloqueo.Fecha)}: no ves sus anuncios ni puede contactarte."
+                : "Existe un bloqueo con este usuario: no pueden contactarse ni ver sus anuncios.")
+        </div>
+    }
+
+    <div class="row g-4 mt-1">
+        <div class="col-lg-6"><InsigniasUsuario IdUsuario="Id" /></div>
+        <div class="col-lg-6"><ListaCalificaciones IdUsuario="Id" /></div>
+    </div>
 
     <h2 class="h3 mt-4 mb-3">Anuncios de @usuario.Nombres</h2>
-    if (anuncios.Any())
+    if (bloqueo is null && anuncios.Any())
     {
         <div class="row row-cols-1 row-cols-sm-2 row-cols-xl-4 g-3">
             @foreach (AnuncioDTO a in anuncios)
@@ -34,25 +70,62 @@ else
     }
     else
     {
-        <div class="ru-card"><EstadoVacio Icono="bi-megaphone" Titulo="Sin anuncios disponibles" /></div>
+        <div class="ru-card"><EstadoVacio Icono="bi-megaphone" Titulo="@(bloqueo is null ? "Sin anuncios disponibles" : "Anuncios ocultos por el bloqueo")" /></div>
     }
 }
+
+<ModalConfirmacion @bind-Visible="confirmarBloqueo" Titulo="Bloquear usuario" TextoConfirmar="Bloquear" ClaseBoton="btn-danger" OnConfirmar="Bloquear">
+    <p class="mb-2">¿Bloquear a <strong>@usuario?.Nombres @usuario?.ApellidoPaterno</strong>?</p>
+    <ul class="small mb-0">
+        <li>Se cerrarán los chats abiertos entre ustedes.</li>
+        <li>Ninguno verá los anuncios del otro en el catálogo.</li>
+        <li>No podrán enviarse solicitudes de chat ni ofertas.</li>
+    </ul>
+</ModalConfirmacion>
 
 @code {
     [Parameter] public int Id { get; set; }
 
     private UsuarioDTO? usuario;
     private List<AnuncioDTO> anuncios = [];
+    private BloqueoDTO? bloqueo;
     private bool cargando = true;
+    private bool confirmarBloqueo;
+    private bool esMiPerfil;
+    private int idUsuario;
 
-    protected override async Task OnParametersSetAsync()
+    protected override async Task OnParametersSetAsync() => await Cargar();
+
+    private async Task Cargar()
     {
         cargando = true;
+        idUsuario = await IdUsuarioAsync();
+        esMiPerfil = idUsuario == Id;
+        string? exito = Exito;
         await Ejecutar(async () =>
         {
-            usuario = await UsuarioService.Obtener(Id);
-            anuncios = (await AnuncioService.ListarPorVendedor(Id)).Where(a => a.Estado == "DISPONIBLE").ToList();
+            Task<UsuarioDTO?> tareaUsuario = UsuarioService.Obtener(Id);
+            Task<List<AnuncioDTO>> tareaAnuncios = AnuncioService.ListarPorVendedor(Id);
+            Task<EstadoBloqueoDTO>? tareaBloqueo = esMiPerfil ? null : BloqueoService.Entre(idUsuario, Id);
+            usuario = await tareaUsuario;
+            anuncios = (await tareaAnuncios).Where(a => a.Estado == "DISPONIBLE").ToList();
+            bloqueo = tareaBloqueo is null ? null : (await tareaBloqueo).Bloqueo;
         });
+        Exito ??= exito;
         cargando = false;
+    }
+
+    private async Task Bloquear()
+    {
+        if (await Ejecutar(() => BloqueoService.Bloquear(idUsuario, Id), "Usuario bloqueado. Se cerraron sus chats contigo."))
+            await Cargar();
+    }
+
+    private async Task Desbloquear()
+    {
+        if (bloqueo is null) return;
+        int idBloqueo = bloqueo.IdBloqueo;
+        if (await Ejecutar(() => BloqueoService.Desbloquear(idBloqueo), "Desbloqueaste a este usuario."))
+            await Cargar();
     }
 }

@@ -50,7 +50,9 @@ public class AnunciosResource {
     /**
      * Con ?vendedor=ID devuelve los anuncios de ese vendedor (cualquier estado).
      * Sin vendedor es el catalogo: solo DISPONIBLE, con filtros opcionales
-     * texto, categoria, condicion, precioMin, precioMax y excluirUsuario (el que busca).
+     * texto, categoria, condicion, precioMin, precioMax y excluirUsuario (el que busca; tambien
+     * oculta los anuncios de usuarios con los que tiene un bloqueo activo, RF-10).
+     * Con ?todos=true devuelve todos los anuncios en cualquier estado (moderacion, RF-14).
      */
     @GET
     public Response findAll(@QueryParam("vendedor") int idVendedor,
@@ -59,9 +61,13 @@ public class AnunciosResource {
                             @QueryParam("condicion") String condicion,
                             @QueryParam("precioMin") Double precioMin,
                             @QueryParam("precioMax") Double precioMax,
-                            @QueryParam("excluirUsuario") int idUsuarioExcluido) throws BLException {
+                            @QueryParam("excluirUsuario") int idUsuarioExcluido,
+                            @QueryParam("todos") boolean todos) throws BLException {
         List<Anuncio> anuncios;
-        if (idVendedor > 0) {
+        if (todos) {
+            // RF-14: bandeja de moderacion del administrador (todos los estados).
+            anuncios = anuncioBL.listarTodos();
+        } else if (idVendedor > 0) {
             anuncios = anuncioBL.listarPorVendedor(idVendedor);
         } else {
             CondicionMaterial filtroCondicion = condicion == null || condicion.isBlank()
@@ -130,6 +136,14 @@ public class AnunciosResource {
     @Path("/{id}/republicar")
     public Response republicar(@PathParam("id") int id, @QueryParam("vendedor") int idVendedor) throws BLException {
         anuncioBL.republicar(id, idVendedor);
+        return findById(id);
+    }
+
+    /** RF-14 (administrador): ?accion=OBSERVAR | HABILITAR | ARCHIVAR. Se avisa al vendedor. */
+    @PUT
+    @Path("/{id}/moderar")
+    public Response moderar(@PathParam("id") int id, @QueryParam("accion") String accion) throws BLException {
+        anuncioBL.moderar(id, accion);
         return findById(id);
     }
 

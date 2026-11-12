@@ -61,3 +61,16 @@ FrontEnd/.vs/
 # Lo que GlassFish regenera al arrancar (cache OSGi y logs) no se versiona.
 glassfish8/glassfish/domains/domain1/osgi-cache/
 glassfish8/glassfish/domains/domain1/logs/*.log
+# Estado de ejecución del dominio (se regenera en cada arranque o despliegue). La configuración
+# (domain.xml, keystores, logging.properties) sí se versiona porque la necesita todo el equipo.
+glassfish8/glassfish/domains/domain1/applications/__internal/
+glassfish8/glassfish/domains/domain1/applications/reuse-rest/
+glassfish8/glassfish/domains/domain1/generated/jsp/
+glassfish8/glassfish/domains/domain1/generated/ejb/
+glassfish8/glassfish/domains/domain1/generated/xml/
+glassfish8/glassfish/domains/domain1/autodeploy/.autodeploystatus/
+glassfish8/glassfish/domains/domain1/config/pid
+glassfish8/glassfish/domains/domain1/config/pid.prev
+glassfish8/glassfish/domains/domain1/config/local-password
+glassfish8/glassfish/domains/domain1/config/domain.xml.bak
+glassfish8/glassfish/domains/domain1/config/.consolestate

@@ -1,57 +1,79 @@
 @page "/reportes/anuncio/{Id:int}"
+@inherits PaginaBase
+@inject IAnuncioService AnuncioService
+@inject IDenunciaService DenunciaService
 @inject NavigationManager Nav
+
+@* RF-04 / RF-14: denunciar un anuncio → POST /denuncias/anuncios. Si estaba DISPONIBLE pasa a OBSERVADO
+   (sale del catálogo) hasta que un administrador lo revise. *@
 
 <PageTitle>Reportar anuncio · ReUse</PageTitle>
 
 <EncabezadoPagina Titulo="Reportar anuncio" Subtitulo="Ayúdanos a mantener ReUse como un espacio seguro."
                   Volver="@($"anuncios/{Id}")" TextoVolver="Volver al anuncio" />
 
-<div class="row g-4">
-    <div class="col-lg-8">
-        <EditForm Model="modelo" OnSubmit="@(() => enviado = true)" FormName="reporteAnuncio">
-            <div class="ru-card ru-card-body">
-                <h2 class="h3 mb-3">¿Cuál es el problema?</h2>
-                <div class="d-flex flex-column gap-2 mb-4">
-                    @foreach (var (valor, texto, ayuda) in motivos)
-                    {
-                        <label class="border rounded-3 p-3 d-flex gap-3 cursor-pointer @(modelo.Motivo == valor ? "border-primary bg-primary-subtle" : "")">
-                            <input type="radio" class="form-check-input mt-1" name="motivo"
-                                   checked="@(modelo.Motivo == valor)" @onchange="() => modelo.Motivo = valor" />
-                            <span><span class="fw-semibold d-block">@texto</span><span class="small-muted">@ayuda</span></span>
-                        </label>
-                    }
+<Alertas Error="@Error" />
+
+@if (anuncio is null)
+{
+    if (cargando)
+    {
+        <Cargando />
+    }
+}
+else
+{
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <EditForm Model="modelo" OnValidSubmit="Enviar" FormName="reporteAnuncio">
+                <div class="ru-card ru-card-body">
+                    <h2 class="h3 mb-3">¿Cuál es el problema?</h2>
+                    <div class="d-flex flex-column gap-2 mb-4">
+                        @foreach (var (valor, texto, ayuda) in motivos)
+                        {
+                            <label class="border rounded-3 p-3 d-flex gap-3 cursor-pointer @(modelo.Motivo == valor ? "border-primary bg-primary-subtle" : "")">
+                                <input type="radio" class="form-check-input mt-1" name="motivo"
+                                       checked="@(modelo.Motivo == valor)" @onchange="() => modelo.Motivo = valor" />
+                                <span><span class="fw-semibold d-block">@texto</span><span class="small-muted">@ayuda</span></span>
+                            </label>
+                        }
+                    </div>
+                    <label class="form-label fw-semibold" for="descripcion">Describe lo ocurrido</label>
+                    <InputTextArea id="descripcion" class="form-control mb-4" rows="4" @bind-Value="modelo.Descripcion"
+                                   placeholder="Brinda detalles que ayuden al equipo de moderación." />
+                    <div class="d-flex justify-content-end gap-2">
+                        <NavLink class="btn btn-light" href="@($"anuncios/{Id}")">Cancelar</NavLink>
+                        <button type="submit" class="btn btn-danger" disabled="@Procesando"><i class="bi bi-flag me-1"></i> Enviar reporte</button>
+                    </div>
                 </div>
-                <label class="form-label fw-semibold" for="descripcion">Describe lo ocurrido</label>
-                <InputTextArea id="descripcion" class="form-control mb-4" rows="4" @bind-Value="modelo.Descripcion"
-                               placeholder="Brinda detalles que ayuden al equipo de moderación." />
-                <div class="d-flex justify-content-end gap-2">
-                    <NavLink class="btn btn-light" href="@($"anuncios/{Id}")">Cancelar</NavLink>
-                    <button type="submit" class="btn btn-danger"><i class="bi bi-flag me-1"></i> Enviar reporte</button>
+            </EditForm>
+        </div>
+        <div class="col-lg-4">
+            <div class="ru-card ru-card-body d-flex gap-3">
+                <ImagenMaterial Categoria="@anuncio.NombreCategoria" Url="@anuncio.Imagenes.FirstOrDefault()" Tamano="mini" />
+                <div>
+                    <div class="fw-semibold">@anuncio.Titulo</div>
+                    <div class="small-muted">Publicado por @anuncio.NombreVendedor</div>
                 </div>
             </div>
-        </EditForm>
-    </div>
-    <div class="col-lg-4">
-        <div class="ru-card ru-card-body d-flex gap-3">
-            <ImagenMaterial Categoria="@anuncio.Categoria" Tamano="mini" />
-            <div>
-                <div class="fw-semibold">@anuncio.Titulo</div>
-                <div class="small-muted">Publicado por @anuncio.Vendedor</div>
+            <div class="alert alert-light border small mt-3">
+                <i class="bi bi-eye-slash me-1"></i> Mientras se revisa, el anuncio queda OBSERVADO y no aparece en el catálogo.
             </div>
         </div>
     </div>
-</div>
+}
 
 <ModalConfirmacion @bind-Visible="enviado" Titulo="Reporte enviado" TextoConfirmar="Ver mis reportes"
-                   Mensaje="Gracias. Un administrador revisará el anuncio y te notificaremos el resultado."
+                   Mensaje="Gracias. El anuncio quedó en observación; un administrador lo revisará y te notificaremos el resultado."
                    OnConfirmar="@(() => Nav.NavigateTo("mis-reportes"))" />
 
 @code {
     [Parameter] public int Id { get; set; }
 
-    private AnuncioDemo anuncio = default!;
+    private AnuncioDTO? anuncio;
     private readonly ReporteModelo modelo = new();
     private bool enviado;
+    private bool cargando = true;
 
     // Valores de MotivoReporteAnuncio
     private readonly (string, string, string)[] motivos =
@@ -62,7 +84,32 @@
         ("OTRO", "Otro", "Otro motivo no listado."),
     };
 
-    protected override void OnParametersSet() => anuncio = DatosDemo.Anuncio(Id);
+    protected override async Task OnParametersSetAsync()
+    {
+        await Ejecutar(async () =>
+        {
+            anuncio = await AnuncioService.Obtener(Id);
+            if (anuncio is null) throw new ServicioException("No existe el anuncio.");
+        });
+        cargando = false;
+    }
+
+    private async Task Enviar()
+    {
+        if (string.IsNullOrEmpty(modelo.Motivo))
+        {
+            Error = "Selecciona cuál es el problema del anuncio.";
+            return;
+        }
+        int idUsuario = await IdUsuarioAsync();
+        enviado = await Ejecutar(() => DenunciaService.DenunciarAnuncio(new DenunciaDTO
+        {
+            IdDenunciante = idUsuario,
+            IdAnuncio = Id,
+            Motivo = modelo.Motivo,
+            Descripcion = modelo.Descripcion
+        }));
+    }
 
     private class ReporteModelo
     {

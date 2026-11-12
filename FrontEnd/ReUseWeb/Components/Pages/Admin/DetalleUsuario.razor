@@ -2,8 +2,10 @@
 @inherits PaginaBase
 @inject IUsuarioService UsuarioService
 @inject IAnuncioService AnuncioService
+@inject IInsigniaService InsigniaService
 
-@* RF-01 (administrador): verificar, suspender y reactivar → PUT /usuarios/{id}/verificar | suspender | reactivar *@
+@* RF-01 (administrador): verificar, suspender y reactivar → PUT /usuarios/{id}/verificar | suspender | reactivar.
+   RF-13: suspensión manual o automática al acumular 4 sanciones en 90 días. *@
 
 <PageTitle>Gestionar usuario · Admin ReUse</PageTitle>
 
@@ -40,6 +42,25 @@ else
         </div>
     </TarjetaPerfil>
 
+    @* RF-13: sanciones en la ventana de 90 días (GET /usuarios/{id}/reputacion). Con 4, la suspensión es automática. *@
+    @if (reputacion is not null)
+    {
+        int sanciones = reputacion.SancionesRecientes;
+        <div class="ru-card ru-card-body mt-4">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h2 class="h3 mb-0"><i class="bi bi-hammer me-1"></i> Sanciones de los últimos 90 días</h2>
+                <span class="fw-bold @(sanciones >= 4 ? "text-danger" : sanciones >= 2 ? "text-warning" : "")">@sanciones / 4</span>
+            </div>
+            <div class="progress" style="height:8px">
+                <div class="progress-bar @(sanciones >= 4 ? "bg-danger" : sanciones >= 2 ? "bg-warning" : "bg-success")" style="width:@(Math.Min(sanciones, 4) * 25)%"></div>
+            </div>
+            <div class="small-muted mt-2">
+                @(sanciones >= 4 ? "Alcanzó el límite: la cuenta se suspende automáticamente al sancionar un reporte." :
+                  $"Le faltan {4 - sanciones} sanción(es) para la suspensión automática (RF-13). Nivel de reputación: {Formato.Texto(reputacion.Nivel)}.")
+            </div>
+        </div>
+    }
+
     <div class="ru-card mt-4">
         <div class="p-3 border-bottom"><h2 class="h3 mb-0">Anuncios publicados</h2></div>
         @if (anuncios.Any())
@@ -72,6 +93,7 @@ else
 
     private UsuarioDTO? u;
     private List<AnuncioDTO> anuncios = [];
+    private ReputacionDTO? reputacion;
     private string accion = "";
     private bool mostrarConfirmacion;
     private bool cargando = true;
@@ -98,6 +120,7 @@ else
         {
             u = await UsuarioService.Obtener(Id);
             anuncios = await AnuncioService.ListarPorVendedor(Id);
+            reputacion = await InsigniaService.Reputacion(Id);
         });
         cargando = false;
     }

@@ -3,6 +3,7 @@
 @inject ITransaccionService TransaccionService
 @inject ICitaService CitaService
 @inject IChatService ChatService
+@inject ICalificacionService CalificacionService
 
 @* RF-03 confirmar o retirar la cita · RF-11 confirmación independiente de la entrega · cancelar
    GET /transacciones/{id}, GET /transacciones/{id}/cita, PUT /transacciones/{id}/confirmar-cita | confirmar-entrega | cancelar *@
@@ -180,9 +181,28 @@ else
                 </div>
                 @if (chat is not null)
                 {
-                    <NavLink class="btn btn-outline-primary btn-sm w-100" href="@($"mensajes/{chat.IdChat}")"><i class="bi bi-chat-dots me-1"></i> Ir al chat</NavLink>
+                    <NavLink class="btn btn-outline-primary btn-sm w-100 mb-2" href="@($"mensajes/{chat.IdChat}")"><i class="bi bi-chat-dots me-1"></i> Ir al chat</NavLink>
                 }
+                @* RF-04: denunciar a la contraparte ligando esta transacción (inasistencia, fraude...) *@
+                <NavLink class="btn btn-light btn-sm w-100 text-danger" href="@($"reportes/usuario/{IdContraparte}?transaccion={t.IdTransaccion}")">
+                    <i class="bi bi-flag me-1"></i> Reportar un problema
+                </NavLink>
             </div>
+
+            @if (t.Estado == "COMPLETADA")
+            {
+                <div class="ru-card ru-card-body mb-3 text-center">
+                    @if (yaCalifique)
+                    {
+                        <div class="small"><i class="bi bi-star-fill text-warning me-1"></i> Ya calificaste a @Contraparte.</div>
+                    }
+                    else
+                    {
+                        <div class="small-muted mb-2">¿Cómo fue tu experiencia con @Contraparte?</div>
+                        <NavLink class="btn btn-warning w-100" href="@($"transacciones/{t.IdTransaccion}/calificar")"><i class="bi bi-star me-1"></i> Calificar</NavLink>
+                    }
+                </div>
+            }
 
             @if (t.Estado is "EN_NEGOCIACION" or "CITA_CONFIRMADA")
             {
@@ -211,6 +231,7 @@ else
     private bool confirmarEntrega;
     private bool cancelar;
     private bool cargando = true;
+    private bool yaCalifique;
     private int idUsuario;
 
     private bool SoyComprador => t is not null && t.IdComprador == idUsuario;
@@ -249,6 +270,8 @@ else
             TransaccionDTO actual = t;
             chat = (await ChatService.ListarPorUsuario(idUsuario))
                 .FirstOrDefault(c => c.IdAnuncio == actual.IdAnuncio && c.IdComprador == actual.IdComprador);
+            yaCalifique = actual.Estado == "COMPLETADA"
+                && (await CalificacionService.Hechas(idUsuario)).Any(c => c.IdTransaccion == actual.IdTransaccion);
         });
         Exito ??= exito;
         cargando = false;

@@ -14,4 +14,8 @@ public interface IAnuncioService
     Task<AnuncioDTO> Archivar(int id, int idVendedor);
     Task<AnuncioDTO> Republicar(int id, int idVendedor);
     Task<List<OfertaDTO>> ListarOfertas(int idAnuncio);
+    /// <summary>RF-14 (administrador): todos los anuncios, en cualquier estado.</summary>
+    Task<List<AnuncioDTO>> ListarTodos();
+    /// <summary>RF-14: accion = OBSERVAR | HABILITAR | ARCHIVAR.</summary>
+    Task<AnuncioDTO> Moderar(int id, string accion);
 }

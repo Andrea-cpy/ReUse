@@ -2,13 +2,25 @@ package pe.edu.pucp.reuse.bl.impl;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import pe.edu.pucp.reuse.bl.BLException;
 import pe.edu.pucp.reuse.bl.InsigniaUsuarioBL;
+import pe.edu.pucp.reuse.bl.insignias.EspecificacionesInsignia;
+import pe.edu.pucp.reuse.bl.insignias.MetricasUsuario;
 import pe.edu.pucp.reuse.dao.InsigniaDAO;
 import pe.edu.pucp.reuse.dao.InsigniaUsuarioDAO;
 import pe.edu.pucp.reuse.dao.impl.InsigniaDAOImpl;
 import pe.edu.pucp.reuse.dao.impl.InsigniaUsuarioDAOImpl;
+import pe.edu.pucp.reuse.dao.impl.ReglaInsigniaDAOImpl;
+import pe.edu.pucp.reuse.modelo.enums.TipoMetricaInsignia;
+import pe.edu.pucp.reuse.modelo.enums.TipoNotificacion;
 import pe.edu.pucp.reuse.modelo.gamificacion.Insignia;
 import pe.edu.pucp.reuse.modelo.gamificacion.InsigniaUsuario;
 import pe.edu.pucp.reuse.modelo.gamificacion.ReglaInsignia;
@@ -106,23 +118,83 @@ public class InsigniaUsuarioBLImpl extends BaseBLImpl implements InsigniaUsuario
         } catch (SQLException e) {
             throw new BLException("No se pudo recuperar la insignia", e);
         }
-        if (insignia == null || !insignia.isActivo() || insignia.getReglas().isEmpty()) {
-            return false;
-        }
+        return otorgarSiCumple(usuario, insignia, new MetricasUsuario(idUsuario, usuarioDAO));
+    }
+
+    /**
+     * RF-18: recorre las insignias activas y otorga las que el usuario cumple. Las metricas se
+     * calculan una sola vez (MetricasUsuario) y cada insignia se evalua como una especificacion.
+     */
+    @Override
+    public ArrayList<Insignia> evaluarInsignias(int idUsuario) throws BLException {
+        UsuarioPUCP usuario = buscarUsuario(idUsuario, "usuario");
+        ArrayList<Insignia> otorgadas = new ArrayList<>();
+        // Pocas consultas: catalogo, todas las reglas y las insignias que el usuario ya tiene.
+        Map<Integer, Insignia> candidatas = new LinkedHashMap<>();
+        Set<TipoMetricaInsignia> metricasNecesarias = EnumSet.noneOf(TipoMetricaInsignia.class);
         try {
-            InsigniaUsuario existente = insigniaUsuarioDAO.obtenerPorUsuarioEInsignia(idUsuario, idInsignia);
-            if (existente != null && existente.isActivo()) {
-                return false;
+            Set<Integer> yaObtenidas = new HashSet<>();
+            for (InsigniaUsuario otorgamiento : insigniaUsuarioDAO.listarPorUsuario(idUsuario)) {
+                if (otorgamiento.isActivo() && otorgamiento.getInsignia() != null) {
+                    yaObtenidas.add(otorgamiento.getInsignia().getIdInsignia());
+                }
             }
-            // Todas las reglas deben cumplirse con las metricas reales calculadas en la BD.
-            for (ReglaInsignia regla : insignia.getReglas()) {
-                double valorReal = usuarioDAO.obtenerMetrica(idUsuario, regla.getTipoMetrica());
-                if (!regla.seCumpleCon(valorReal)) {
-                    return false;
+            for (Insignia insignia : insigniaDAO.findAll()) {
+                if (insignia.isActivo() && !yaObtenidas.contains(insignia.getIdInsignia())) {
+                    candidatas.put(insignia.getIdInsignia(), insignia);
+                }
+            }
+            for (ReglaInsignia regla : new ReglaInsigniaDAOImpl().findAll()) {
+                Insignia insignia = regla.getInsignia() == null ? null : candidatas.get(regla.getInsignia().getIdInsignia());
+                if (regla.isActivo() && insignia != null) {
+                    insignia.agregarRegla(regla);
+                    metricasNecesarias.add(regla.getTipoMetrica());
                 }
             }
         } catch (SQLException e) {
-            throw new BLException("No se pudo evaluar las reglas de la insignia", e);
+            throw new BLException("No se pudo cargar las insignias y sus reglas", e);
+        }
+        MetricasUsuario metricas = new MetricasUsuario(idUsuario, usuarioDAO).precargar(metricasNecesarias);
+        for (Insignia insignia : candidatas.values()) {
+            if (otorgarSiCumple(usuario, insignia, metricas)) {
+                otorgadas.add(insignia);
+                new Notificador().avisar(idUsuario, TipoNotificacion.SISTEMA,
+                        "Obtuviste la insignia '" + insignia.getNombre() + "': " + insignia.getDescripcion());
+            }
+        }
+        return otorgadas;
+    }
+
+    /**
+     * Version que no interrumpe la operacion que la invoca (calificar, completar una venta):
+     * si la evaluacion falla, la operacion principal ya quedo guardada y solo se registra el error.
+     */
+    void evaluarSinFallar(int idUsuario) {
+        try {
+            evaluarInsignias(idUsuario);
+        } catch (BLException | RuntimeException e) {
+            Logger.getLogger(InsigniaUsuarioBLImpl.class.getName())
+                    .log(Level.WARNING, "No se pudo evaluar las insignias del usuario " + idUsuario, e);
+        }
+    }
+
+    private boolean otorgarSiCumple(UsuarioPUCP usuario, Insignia insignia, MetricasUsuario metricas)
+            throws BLException {
+        if (insignia == null || !insignia.isActivo() || insignia.getReglas().isEmpty()) {
+            return false;
+        }
+        // Todas las reglas deben cumplirse con las metricas reales calculadas en la BD.
+        if (!EspecificacionesInsignia.deInsignia(insignia).esSatisfechaPor(metricas)) {
+            return false;
+        }
+        try {
+            InsigniaUsuario existente = insigniaUsuarioDAO.obtenerPorUsuarioEInsignia(
+                    usuario.getIdUsuario(), insignia.getIdInsignia());
+            if (existente != null && existente.isActivo()) {
+                return false;
+            }
+        } catch (SQLException e) {
+            throw new BLException("No se pudo verificar las insignias del usuario", e);
         }
         insert(new InsigniaUsuario(usuario, insignia));
         return true;

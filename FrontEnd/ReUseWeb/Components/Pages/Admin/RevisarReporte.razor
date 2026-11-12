@@ -1,116 +1,208 @@
 @page "/admin/reportes/{Id:int}"
-@inject NavigationManager Nav
+@inherits PaginaBase
+@inject IDenunciaService DenunciaService
+@inject IUsuarioService UsuarioService
+@inject IAnuncioService AnuncioService
+@inject IInsigniaService InsigniaService
+
+@* RF-04 resolver o desestimar · RF-13 suspensión automática al llegar a 4 sanciones en 90 días ·
+   RF-14 anuncio: sancionar lo ARCHIVA, desestimar lo vuelve DISPONIBLE.
+   PUT /denuncias/{id}/sancionar | desestimar ?administrador=ID *@
 
 <PageTitle>Reporte #@Id · Admin ReUse</PageTitle>
 
-<EncabezadoPagina Titulo="@($"Reporte #{r.Id}")" Subtitulo="@($"{DatosDemo.Texto(r.Tipo)} · {DatosDemo.Texto(r.Motivo)}")"
+<EncabezadoPagina Titulo="@($"Reporte #{Id}")" Subtitulo="@(d is null ? null : $"{Formato.Texto(d.Tipo)} · {Formato.Texto(d.Motivo)}")"
                   Volver="admin/reportes" TextoVolver="Volver a reportes">
-    <Acciones><BadgeEstado Estado="@r.Estado" /></Acciones>
+    <Acciones>
+        @if (d is not null)
+        {
+            <BadgeEstado Estado="@d.EstadoRevision" />
+        }
+    </Acciones>
 </EncabezadoPagina>
 
-<div class="row g-4">
-    <div class="col-lg-8">
-        <div class="ru-card ru-card-body mb-4">
-            <h2 class="h3 mb-3">Detalle del reporte</h2>
-            <dl class="row mb-0">
-                <dt class="col-sm-4 text-secondary fw-normal">Denunciante</dt>
-                <dd class="col-sm-8">@r.Denunciante</dd>
-                <dt class="col-sm-4 text-secondary fw-normal">Fecha de registro</dt>
-                <dd class="col-sm-8">@r.Fecha</dd>
-                <dt class="col-sm-4 text-secondary fw-normal">Motivo</dt>
-                <dd class="col-sm-8">@DatosDemo.Texto(r.Motivo)</dd>
-                <dt class="col-sm-4 text-secondary fw-normal">Descripción</dt>
-                <dd class="col-sm-8">@r.Descripcion</dd>
-                @if (r.Revisor is not null)
-                {
-                    <dt class="col-sm-4 text-secondary fw-normal">Revisado por</dt>
-                    <dd class="col-sm-8 mb-0">@r.Revisor</dd>
-                }
-            </dl>
-        </div>
+<Alertas Error="@Error" Exito="@Exito" />
 
-        <div class="ru-card ru-card-body mb-4">
-            <h2 class="h3 mb-3">@(r.Tipo == "ANUNCIO" ? "Anuncio reportado" : "Usuario reportado")</h2>
-            @if (r.Tipo == "ANUNCIO")
-            {
-                var a = DatosDemo.Anuncio(r.IdObjetivo);
-                <div class="d-flex flex-wrap align-items-center gap-3">
-                    <ImagenMaterial Categoria="@a.Categoria" Tamano="mini" />
-                    <div class="flex-grow-1">
-                        <div class="fw-semibold">@a.Titulo</div>
-                        <div class="small-muted">Vendedor: @a.Vendedor · S/ @a.Precio.ToString("0.00")</div>
-                    </div>
-                    <BadgeEstado Estado="@a.Estado" />
-                </div>
-                <p class="small mt-3 mb-0">@a.Descripcion</p>
-            }
-            else
-            {
-                var u = DatosDemo.Usuario(r.IdObjetivo);
-                <div class="d-flex flex-wrap align-items-center gap-3">
-                    <span class="ru-avatar">@DatosDemo.Iniciales(u.Nombre)</span>
-                    <div class="flex-grow-1">
-                        <div class="fw-semibold">@u.Nombre</div>
-                        <div class="small-muted">@u.Codigo · @u.Carrera</div>
-                    </div>
-                    <span class="small">Reportes previos: <strong>@u.Reportes</strong></span>
-                    <BadgeEstado Estado="@u.Estado" />
-                    <NavLink class="btn btn-light btn-sm" href="@($"admin/usuarios/{u.Id}")">Ver usuario</NavLink>
-                </div>
-            }
-        </div>
-    </div>
-
-    <div class="col-lg-4">
-        <div class="ru-card ru-card-body">
-            <h2 class="h3 mb-3">Resolución</h2>
-            @if (r.Estado == "PENDIENTE")
-            {
-                <label class="form-label small" for="decision">Decisión</label>
-                <select id="decision" class="form-select mb-3" @bind="decision">
-                    <option value="SANCIONADO">Sancionar</option>
-                    <option value="DESESTIMADO">Desestimar</option>
-                </select>
-
-                if (decision == "SANCIONADO")
-                {
-                    <div class="small fw-semibold mb-2">Acción a aplicar</div>
-                    if (r.Tipo == "ANUNCIO")
+@if (d is null)
+{
+    if (cargando)
+    {
+        <Cargando />
+    }
+}
+else
+{
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="ru-card ru-card-body mb-4">
+                <h2 class="h3 mb-3">Detalle del reporte</h2>
+                <dl class="row mb-0">
+                    <dt class="col-sm-4 text-secondary fw-normal">Denunciante</dt>
+                    <dd class="col-sm-8"><NavLink class="text-body" href="@($"admin/usuarios/{d.IdDenunciante}")">@d.NombreDenunciante</NavLink></dd>
+                    <dt class="col-sm-4 text-secondary fw-normal">Fecha de registro</dt>
+                    <dd class="col-sm-8">@Formato.FechaHora(d.FechaRegistro)</dd>
+                    <dt class="col-sm-4 text-secondary fw-normal">Motivo</dt>
+                    <dd class="col-sm-8">@Formato.Texto(d.Motivo)</dd>
+                    @if (d.IdTransaccion > 0)
                     {
-                        <div class="form-check"><input class="form-check-input" type="radio" name="accion" id="ac1" checked /><label class="form-check-label" for="ac1">Marcar anuncio como OBSERVADO</label></div>
-                        <div class="form-check"><input class="form-check-input" type="radio" name="accion" id="ac2" /><label class="form-check-label" for="ac2">Archivar anuncio</label></div>
+                        <dt class="col-sm-4 text-secondary fw-normal">Transacción</dt>
+                        <dd class="col-sm-8">#@d.IdTransaccion</dd>
                     }
-                    else
+                    <dt class="col-sm-4 text-secondary fw-normal">Descripción</dt>
+                    <dd class="col-sm-8" style="white-space:pre-line">@d.Descripcion</dd>
+                    @if (d.NombreRevisor is not null)
                     {
-                        <div class="form-check"><input class="form-check-input" type="radio" name="accion" id="ac3" checked /><label class="form-check-label" for="ac3">Solo registrar la sanción</label></div>
-                        <div class="form-check"><input class="form-check-input" type="radio" name="accion" id="ac4" /><label class="form-check-label" for="ac4">Suspender la cuenta</label></div>
+                        <dt class="col-sm-4 text-secondary fw-normal">Revisado por</dt>
+                        <dd class="col-sm-8 mb-0">@d.NombreRevisor · @Formato.FechaHora(d.FechaRevision)</dd>
+                    }
+                </dl>
+            </div>
+
+            <div class="ru-card ru-card-body mb-4">
+                <h2 class="h3 mb-3">@(EsAnuncio ? "Anuncio reportado" : "Usuario reportado")</h2>
+                @if (EsAnuncio)
+                {
+                    <div class="d-flex flex-wrap align-items-center gap-3">
+                        <ImagenMaterial Categoria="@anuncio?.NombreCategoria" Tamano="mini" />
+                        <div class="flex-grow-1">
+                            <div class="fw-semibold">@(anuncio?.Titulo ?? d.TituloAnuncio)</div>
+                            @if (anuncio is not null)
+                            {
+                                <div class="small-muted">Vendedor: @anuncio.NombreVendedor · @Formato.Soles(anuncio.Precio)</div>
+                            }
+                        </div>
+                        <BadgeEstado Estado="@(anuncio?.Estado ?? d.EstadoAnuncio)" />
+                        <NavLink class="btn btn-light btn-sm" href="@($"anuncios/{d.IdAnuncio}")">Ver anuncio</NavLink>
+                    </div>
+                    @if (anuncio is not null)
+                    {
+                        <p class="small mt-3 mb-0">@anuncio.Descripcion</p>
                     }
                 }
-                <div class="mb-3"></div>
+                else if (denunciado is not null)
+                {
+                    string nombre = $"{denunciado.Nombres} {denunciado.ApellidoPaterno}";
+                    <div class="d-flex flex-wrap align-items-center gap-3">
+                        <span class="ru-avatar">@Formato.Iniciales(nombre)</span>
+                        <div class="flex-grow-1">
+                            <div class="fw-semibold">@nombre</div>
+                            <div class="small-muted">@denunciado.CodigoPUCP · @denunciado.NombreCarrera</div>
+                        </div>
+                        <BadgeEstado Estado="@denunciado.EstadoCuenta" />
+                        <NavLink class="btn btn-light btn-sm" href="@($"admin/usuarios/{denunciado.IdUsuario}")">Ver usuario</NavLink>
+                    </div>
+                    <div class="row g-2 mt-3 small">
+                        <div class="col-sm-4"><div class="border rounded p-2">Reportes recibidos: <strong>@denunciado.ContadorReportes</strong></div></div>
+                        <div class="col-sm-4"><div class="border rounded p-2 @(Sanciones >= 3 ? "border-danger" : "")">Sanciones (90 días): <strong>@Sanciones / 4</strong></div></div>
+                        <div class="col-sm-4"><div class="border rounded p-2">Rep. vendedor: <strong>@denunciado.ReputacionVendedor.ToString("0.0")</strong></div></div>
+                    </div>
+                }
+            </div>
+        </div>
 
-                <button class="btn @(decision == "SANCIONADO" ? "btn-danger" : "btn-primary") w-100" @onclick="() => confirmar = true">
-                    Registrar resolución
-                </button>
-            }
-            else
-            {
-                <p class="small-muted mb-0">Este reporte ya fue resuelto como <BadgeEstado Estado="@r.Estado" />.</p>
-            }
+        <div class="col-lg-4">
+            <div class="ru-card ru-card-body">
+                <h2 class="h3 mb-3">Resolución</h2>
+                @if (d.EstadoRevision == "PENDIENTE")
+                {
+                    <label class="form-label small" for="decision">Decisión</label>
+                    <select id="decision" class="form-select mb-3" @bind="decision">
+                        <option value="SANCIONADO">Sancionar</option>
+                        <option value="DESESTIMADO">Desestimar</option>
+                    </select>
+
+                    <div class="alert alert-light border small">
+                        <i class="bi bi-info-circle me-1"></i> @Consecuencia
+                    </div>
+                    @if (!EsAnuncio && decision == "SANCIONADO" && Sanciones + 1 >= 4 && denunciado?.EstadoCuenta != "SUSPENDIDA")
+                    {
+                        <div class="alert alert-danger small">
+                            <i class="bi bi-exclamation-octagon me-1"></i>
+                            Es su sanción n.º @(Sanciones + 1) en 90 días: la cuenta quedará <strong>SUSPENDIDA</strong> automáticamente (RF-13).
+                        </div>
+                    }
+
+                    <button class="btn @(decision == "SANCIONADO" ? "btn-danger" : "btn-primary") w-100" disabled="@Procesando" @onclick="() => confirmar = true">
+                        Registrar resolución
+                    </button>
+                }
+                else
+                {
+                    <p class="small-muted mb-0">Este reporte ya fue resuelto como <BadgeEstado Estado="@d.EstadoRevision" />.</p>
+                }
+            </div>
         </div>
     </div>
-</div>
+}
 
 <ModalConfirmacion @bind-Visible="confirmar" Titulo="Confirmar resolución" TextoConfirmar="Confirmar"
                    ClaseBoton="@(decision == "SANCIONADO" ? "btn-danger" : "btn-primary")"
-                   Mensaje="@($"El reporte #{r.Id} quedará como {DatosDemo.Texto(decision)} y se notificará al denunciante.")"
-                   OnConfirmar="@(() => Nav.NavigateTo("admin/reportes"))" />
+                   Mensaje="@($"El reporte #{Id} quedará como {Formato.Texto(decision)}. {Consecuencia} Se notificará al denunciante.")"
+                   OnConfirmar="Resolver" />
 
 @code {
     [Parameter] public int Id { get; set; }
 
-    private ReporteDemo r = default!;
+    private DenunciaDTO? d;
+    private UsuarioDTO? denunciado;
+    private AnuncioDTO? anuncio;
+    private ReputacionDTO? reputacion;
     private string decision = "SANCIONADO";
     private bool confirmar;
+    private bool cargando = true;
 
-    protected override void OnParametersSet() => r = DatosDemo.Reporte(Id);
+    private bool EsAnuncio => d?.Tipo == "ANUNCIO";
+    private int Sanciones => reputacion?.SancionesRecientes ?? 0;
+
+    private string Consecuencia => (EsAnuncio, decision) switch
+    {
+        (true, "SANCIONADO") => "El anuncio se ARCHIVARÁ (sale del catálogo sin borrarse) y se avisará al vendedor.",
+        (true, _) => "Si el anuncio estaba OBSERVADO, volverá a estar DISPONIBLE.",
+        (false, "SANCIONADO") => "Se registra una sanción al usuario; con 4 en 90 días su cuenta se suspende.",
+        _ => "No se aplica ninguna sanción al usuario."
+    };
+
+    protected override async Task OnParametersSetAsync() => await Cargar();
+
+    private async Task Cargar()
+    {
+        cargando = true;
+        string? exito = Exito;
+        await Ejecutar(async () =>
+        {
+            d = await DenunciaService.Obtener(Id);
+            if (d is null) throw new ServicioException("No existe el reporte.");
+            if (EsAnuncio)
+            {
+                anuncio = await AnuncioService.Obtener(d.IdAnuncio);
+            }
+            else
+            {
+                Task<UsuarioDTO?> tareaUsuario = UsuarioService.Obtener(d.IdDenunciado);
+                Task<ReputacionDTO?> tareaReputacion = InsigniaService.Reputacion(d.IdDenunciado);
+                denunciado = await tareaUsuario;
+                reputacion = await tareaReputacion;
+            }
+        });
+        Exito ??= exito;
+        cargando = false;
+    }
+
+    private async Task Resolver()
+    {
+        int idAdmin = await IdUsuarioAsync();
+        DenunciaDTO? resultado = null;
+        bool ok = await Ejecutar(async () =>
+            resultado = decision == "SANCIONADO"
+                ? await DenunciaService.Sancionar(Id, idAdmin)
+                : await DenunciaService.Desestimar(Id, idAdmin));
+        if (!ok || resultado is null) return;
+
+        Exito = decision == "DESESTIMADO"
+            ? "Reporte desestimado. Se notificó al denunciante."
+            : resultado.CuentaSuspendida
+                ? "Sanción registrada. El usuario acumuló 4 sanciones y su cuenta quedó SUSPENDIDA."
+                : EsAnuncio ? "Sanción registrada. El anuncio fue archivado." : "Sanción registrada.";
+        await Cargar();
+    }
 }

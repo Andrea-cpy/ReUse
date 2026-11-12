@@ -141,6 +141,14 @@ else
                 </div>
             }
 
+            @if (!esMio && anuncio.Estado == "DISPONIBLE")
+            {
+                @* RF-04 / RF-14: el anuncio denunciado queda OBSERVADO hasta que lo revise un administrador *@
+                <NavLink class="btn btn-link btn-sm text-danger w-100 mb-3" href="@($"reportes/anuncio/{anuncio.IdAnuncio}")">
+                    <i class="bi bi-flag me-1"></i> Reportar este anuncio
+                </NavLink>
+            }
+
             @if (puntos.Count > 0)
             {
                 <div class="ru-card ru-card-body">

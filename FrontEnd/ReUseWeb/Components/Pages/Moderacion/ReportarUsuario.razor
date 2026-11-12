@@ -1,87 +1,159 @@
 @page "/reportes/usuario/{Id:int}"
+@inherits PaginaBase
+@inject IUsuarioService UsuarioService
+@inject ITransaccionService TransaccionService
+@inject IDenunciaService DenunciaService
+@inject IBloqueoService BloqueoService
 @inject NavigationManager Nav
+
+@* RF-04: denunciar a un usuario (fraude, inasistencia a la cita...) → POST /denuncias/usuarios.
+   Opcionalmente se liga a una transacción entre ambos y se bloquea al usuario (RF-10, POST /bloqueos). *@
 
 <PageTitle>Reportar usuario · ReUse</PageTitle>
 
 <EncabezadoPagina Titulo="Reportar usuario" Subtitulo="Cuéntanos qué pasó. Tu reporte es confidencial."
                   Volver="@($"usuarios/{Id}")" TextoVolver="Volver al perfil" />
 
-<div class="row g-4">
-    <div class="col-lg-8">
-        <EditForm Model="modelo" OnSubmit="@(() => enviado = true)" FormName="reporteUsuario">
-            <div class="ru-card ru-card-body">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold" for="motivo">Motivo</label>
-                        <InputSelect id="motivo" class="form-select" @bind-Value="modelo.Motivo">
-                            <option value="">Selecciona…</option>
-                            <option value="FRAUDE_O_ESTAFA">Fraude o estafa</option>
-                            <option value="NO_SE_PRESENTO_A_LA_CITA">No se presentó a la cita</option>
-                            <option value="PRODUCTO_NO_COINCIDE">El producto no coincide</option>
-                            <option value="COMPORTAMIENTO_INAPROPIADO">Comportamiento inapropiado</option>
-                            <option value="OTRO">Otro</option>
-                        </InputSelect>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold" for="transaccion">Transacción relacionada (opcional)</label>
-                        <select id="transaccion" class="form-select">
-                            <option>Ninguna</option>
-                            @foreach (var t in DatosDemo.Transacciones.Where(t => t.IdContraparte == Id))
-                            {
-                                <option>#@t.Id — @t.Anuncio</option>
-                            }
-                        </select>
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label fw-semibold" for="descripcion">Descripción</label>
-                        <InputTextArea id="descripcion" class="form-control" rows="5" @bind-Value="modelo.Descripcion"
-                                       placeholder="Fecha, lugar y detalles de lo ocurrido." />
-                    </div>
-                    <div class="col-12">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="bloquearTambien" />
-                            <label class="form-check-label" for="bloquearTambien">Bloquear también a este usuario</label>
+<Alertas Error="@Error" />
+
+@if (usuario is null)
+{
+    if (cargando)
+    {
+        <Cargando />
+    }
+}
+else
+{
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <EditForm Model="modelo" OnValidSubmit="Enviar" FormName="reporteUsuario">
+                <div class="ru-card ru-card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" for="motivo">Motivo</label>
+                            <InputSelect id="motivo" class="form-select" @bind-Value="modelo.Motivo">
+                                <option value="">Selecciona…</option>
+                                <option value="FRAUDE_O_ESTAFA">Fraude o estafa</option>
+                                <option value="NO_SE_PRESENTO_A_LA_CITA">No se presentó a la cita</option>
+                                <option value="PRODUCTO_NO_COINCIDE">El producto no coincide</option>
+                                <option value="COMPORTAMIENTO_INAPROPIADO">Comportamiento inapropiado</option>
+                                <option value="OTRO">Otro</option>
+                            </InputSelect>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" for="transaccion">Transacción relacionada (opcional)</label>
+                            <InputSelect id="transaccion" class="form-select" @bind-Value="modelo.IdTransaccion">
+                                <option value="0">Ninguna</option>
+                                @foreach (TransaccionDTO t in transacciones)
+                                {
+                                    <option value="@t.IdTransaccion">#@t.IdTransaccion — @t.TituloAnuncio (@Formato.Texto(t.Estado))</option>
+                                }
+                            </InputSelect>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold" for="descripcion">Descripción</label>
+                            <InputTextArea id="descripcion" class="form-control" rows="5" @bind-Value="modelo.Descripcion"
+                                           placeholder="Fecha, lugar y detalles de lo ocurrido." />
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <InputCheckbox id="bloquearTambien" class="form-check-input" @bind-Value="modelo.Bloquear" />
+                                <label class="form-check-label" for="bloquearTambien">Bloquear también a este usuario (se cerrarán sus chats contigo)</label>
+                            </div>
                         </div>
                     </div>
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <NavLink class="btn btn-light" href="@($"usuarios/{Id}")">Cancelar</NavLink>
+                        <button type="submit" class="btn btn-danger" disabled="@Procesando"><i class="bi bi-flag me-1"></i> Enviar reporte</button>
+                    </div>
                 </div>
-                <div class="d-flex justify-content-end gap-2 mt-4">
-                    <NavLink class="btn btn-light" href="@($"usuarios/{Id}")">Cancelar</NavLink>
-                    <button type="submit" class="btn btn-danger"><i class="bi bi-flag me-1"></i> Enviar reporte</button>
+            </EditForm>
+        </div>
+        <div class="col-lg-4">
+            <div class="ru-card ru-card-body d-flex align-items-center gap-3">
+                <span class="ru-avatar">@Formato.Iniciales(Nombre)</span>
+                <div>
+                    <div class="fw-semibold">@Nombre</div>
+                    <div class="small-muted">@usuario.NombreCarrera</div>
                 </div>
             </div>
-        </EditForm>
-    </div>
-    <div class="col-lg-4">
-        <div class="ru-card ru-card-body d-flex align-items-center gap-3">
-            <span class="ru-avatar">@DatosDemo.Iniciales(u.Nombre)</span>
-            <div>
-                <div class="fw-semibold">@u.Nombre</div>
-                <div class="small-muted">@u.Carrera</div>
+            <div class="alert alert-light border small mt-3">
+                <i class="bi bi-shield-check me-1"></i>
+                Un administrador revisará el caso. Si el usuario acumula 4 sanciones en 90 días, su cuenta se suspende.
             </div>
         </div>
-        <div class="alert alert-light border small mt-3">
-            <i class="bi bi-shield-check me-1"></i>
-            Los reportes falsos o malintencionados pueden afectar tu propia reputación.
-        </div>
     </div>
-</div>
+}
 
 <ModalConfirmacion @bind-Visible="enviado" Titulo="Reporte enviado" TextoConfirmar="Ver mis reportes"
-                   Mensaje="Gracias. Un administrador revisará el caso y te notificaremos el resultado."
-                   OnConfirmar="@(() => Nav.NavigateTo("mis-reportes"))" />
+                   Mensaje="@mensajeEnviado" OnConfirmar="@(() => Nav.NavigateTo("mis-reportes"))" />
 
 @code {
     [Parameter] public int Id { get; set; }
 
-    private UsuarioDemo u = default!;
+    /// <summary>Al llegar desde una transacción se preselecciona: /reportes/usuario/4?transaccion=12</summary>
+    [SupplyParameterFromQuery(Name = "transaccion")]
+    public int? IdTransaccion { get; set; }
+
+    private UsuarioDTO? usuario;
+    private List<TransaccionDTO> transacciones = [];
     private readonly ReporteModelo modelo = new();
     private bool enviado;
+    private bool cargando = true;
+    private string mensajeEnviado = "";
 
-    protected override void OnParametersSet() => u = DatosDemo.Usuario(Id);
+    private string Nombre => $"{usuario?.Nombres} {usuario?.ApellidoPaterno}";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        int idUsuario = await IdUsuarioAsync();
+        modelo.IdTransaccion = IdTransaccion ?? 0;
+        await Ejecutar(async () =>
+        {
+            usuario = await UsuarioService.Obtener(Id);
+            if (usuario is null) throw new ServicioException("No existe el usuario.");
+            // Solo las transacciones entre ambos pueden ligarse al reporte.
+            transacciones = (await TransaccionService.ListarPorUsuario(idUsuario))
+                .Where(t => t.IdComprador == Id || t.IdVendedor == Id).ToList();
+        });
+        cargando = false;
+    }
+
+    private async Task Enviar()
+    {
+        int idUsuario = await IdUsuarioAsync();
+        if (string.IsNullOrEmpty(modelo.Motivo))
+        {
+            Error = "Selecciona el motivo del reporte.";
+            return;
+        }
+        DenunciaDTO denuncia = new()
+        {
+            IdDenunciante = idUsuario,
+            IdDenunciado = Id,
+            Motivo = modelo.Motivo,
+            Descripcion = modelo.Descripcion,
+            IdTransaccion = modelo.IdTransaccion
+        };
+        bool ok = await Ejecutar(async () =>
+        {
+            DenunciaDTO creada = await DenunciaService.DenunciarUsuario(denuncia);
+            mensajeEnviado = $"Tu reporte #{creada.IdReporte} quedó PENDIENTE. Un administrador lo revisará y te notificaremos el resultado.";
+            if (modelo.Bloquear)
+            {
+                await BloqueoService.Bloquear(idUsuario, Id);
+                mensajeEnviado += " Además bloqueaste a este usuario.";
+            }
+        });
+        enviado = ok;
+    }
 
     private class ReporteModelo
     {
         public string Motivo { get; set; } = "";
         public string Descripcion { get; set; } = "";
+        public int IdTransaccion { get; set; }
+        public bool Bloquear { get; set; }
     }
 }

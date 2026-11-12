@@ -18,6 +18,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <jasperreports.version>7.0.6</jasperreports.version>
     </properties>
 
     <dependencies>
@@ -43,6 +44,24 @@
             <artifactId>jakarta.servlet-api</artifactId>
             <version>6.1.0</version>
             <scope>provided</scope>
+        </dependency>
+
+        <!-- RF-04: reportes PDF con JasperReports (Sesion 25). Las plantillas .jrxml estan en
+             src/main/resources/reports y se precompilan a .jasper (ver reports/LEEME.md). -->
+        <dependency>
+            <groupId>net.sf.jasperreports</groupId>
+            <artifactId>jasperreports</artifactId>
+            <version>${jasperreports.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.sf.jasperreports</groupId>
+            <artifactId>jasperreports-pdf</artifactId>
+            <version>${jasperreports.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.sf.jasperreports</groupId>
+            <artifactId>jasperreports-fonts</artifactId>
+            <version>${jasperreports.version}</version>
         </dependency>
     </dependencies>
 

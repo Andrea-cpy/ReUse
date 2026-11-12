@@ -1,8 +1,10 @@
 @page "/transacciones"
 @inherits PaginaBase
 @inject ITransaccionService TransaccionService
+@inject ICalificacionService CalificacionService
 
-@* RF-15: historial de compras y ventas → GET /transacciones?usuario=ID *@
+@* RF-15: historial de compras y ventas → GET /transacciones?usuario=ID.
+   Las COMPLETADAS que aún no calificaste muestran "Calificar" (GET /calificaciones?calificador=ID). *@
 
 <PageTitle>Transacciones · ReUse</PageTitle>
 
@@ -82,7 +84,20 @@
                             </td>
                             <td><BadgeEstado Estado="@t.Estado" /></td>
                             <td class="small-muted">@Formato.Fecha(t.FechaInicio)</td>
-                            <td class="text-end"><NavLink class="btn btn-light btn-sm" href="@($"transacciones/{t.IdTransaccion}")">Ver detalle</NavLink></td>
+                            <td class="text-end text-nowrap">
+                                @if (t.Estado == "COMPLETADA" && !calificadas.Contains(t.IdTransaccion))
+                                {
+                                    @* RF-15: calificar directamente desde el historial *@
+                                    <NavLink class="btn btn-warning btn-sm me-1" href="@($"transacciones/{t.IdTransaccion}/calificar?desde=historial")">
+                                        <i class="bi bi-star"></i> Calificar
+                                    </NavLink>
+                                }
+                                else if (t.Estado == "COMPLETADA")
+                                {
+                                    <span class="small-muted me-2" title="Ya calificaste"><i class="bi bi-star-fill text-warning"></i> Calificada</span>
+                                }
+                                <NavLink class="btn btn-light btn-sm" href="@($"transacciones/{t.IdTransaccion}")">Ver detalle</NavLink>
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -105,6 +120,7 @@
     };
 
     private List<TransaccionDTO> transacciones = [];
+    private HashSet<int> calificadas = [];
     private string rol = "";
     private string filtroEstado = "";
     private bool cargando = true;
@@ -118,7 +134,12 @@
     protected override async Task OnInitializedAsync()
     {
         idUsuario = await IdUsuarioAsync();
-        await Ejecutar(async () => transacciones = await TransaccionService.ListarPorUsuario(idUsuario));
+        await Ejecutar(async () =>
+        {
+            Task<List<CalificacionDTO>> tareaCalificaciones = CalificacionService.Hechas(idUsuario);
+            transacciones = await TransaccionService.ListarPorUsuario(idUsuario);
+            calificadas = (await tareaCalificaciones).Select(c => c.IdTransaccion).ToHashSet();
+        });
         cargando = false;
     }
 

@@ -23,6 +23,13 @@ builder.Services.AddScoped<ITransaccionService, TransaccionService>();
 builder.Services.AddScoped<ICitaService, CitaService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IRespuestaRapidaService, RespuestaRapidaService>();
+// Lab 12: moderación (RF-04, 13, 14), bloqueos (RF-10), recordatorios (RF-12), calificaciones e insignias (RF-15, 18)
+builder.Services.AddScoped<IDenunciaService, DenunciaService>();
+builder.Services.AddScoped<IReportePdfService, ReportePdfService>();
+builder.Services.AddScoped<IBloqueoService, BloqueoService>();
+builder.Services.AddScoped<INotificacionService, NotificacionService>();
+builder.Services.AddScoped<ICalificacionService, CalificacionService>();
+builder.Services.AddScoped<IInsigniaService, InsigniaService>();
 
 var app = builder.Build();
 
@@ -44,5 +51,6 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 app.MapSesionEndpoints();
+app.MapDescargasEndpoints();
 
 app.Run();

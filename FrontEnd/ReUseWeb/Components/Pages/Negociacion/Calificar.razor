@@ -1,43 +1,119 @@
 @page "/transacciones/{Id:int}/calificar"
+@inherits PaginaBase
+@inject ITransaccionService TransaccionService
+@inject ICalificacionService CalificacionService
 @inject NavigationManager Nav
+
+@* RF-15: calificar a la otra parte de una transacción COMPLETADA → POST /calificaciones.
+   RF-18: el backend recalcula la reputación (recalcular_reputacion) y evalúa las insignias del calificado. *@
 
 <PageTitle>Calificar · ReUse</PageTitle>
 
-<EncabezadoPagina Titulo="Calificar transacción" Subtitulo="@t.Anuncio"
-                  Volver="@($"transacciones/{Id}")" TextoVolver="Volver a la transacción" />
+<EncabezadoPagina Titulo="Calificar transacción" Subtitulo="@t?.TituloAnuncio"
+                  Volver="@Volver" TextoVolver="Volver" />
 
-<div class="row justify-content-center">
-    <div class="col-lg-7">
-        <div class="ru-card ru-card-body text-center">
-            <span class="ru-avatar lg mb-2">@DatosDemo.Iniciales(t.Contraparte)</span>
-            <h2 class="h3 mb-0">@t.Contraparte</h2>
-            <div class="small-muted mb-4">Calificación como @(t.Rol == "COMPRADOR" ? "vendedor" : "comprador")</div>
+<Alertas Error="@Error" />
 
-            <div class="ru-estrellas input mb-1">
-                @for (int i = 1; i <= 5; i++)
-                {
-                    int valor = i;
-                    <i class="bi @(puntaje >= valor ? "bi-star-fill" : "bi-star")" @onclick="() => puntaje = valor"></i>
-                }
-            </div>
-            <div class="small-muted mb-4">@etiquetas[puntaje]</div>
+@if (t is null)
+{
+    if (cargando)
+    {
+        <Cargando />
+    }
+}
+else if (yaCalifique)
+{
+    <div class="ru-card ru-card-body text-center">
+        <i class="bi bi-star-fill text-warning fs-1"></i>
+        <h2 class="h4 mt-2">Ya calificaste esta transacción</h2>
+        <p class="small-muted">Cada parte califica una sola vez.</p>
+        <NavLink class="btn btn-primary" href="transacciones">Volver al historial</NavLink>
+    </div>
+}
+else
+{
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+            <div class="ru-card ru-card-body text-center">
+                <span class="ru-avatar lg mb-2">@Formato.Iniciales(Contraparte)</span>
+                <h2 class="h3 mb-0">@Contraparte</h2>
+                <div class="small-muted mb-4">Calificación como @(SoyComprador ? "vendedor" : "comprador") · @Formato.Soles(t.MontoAcordado)</div>
 
-            <textarea class="form-control mb-4" rows="3" placeholder="Cuéntale a la comunidad cómo fue la experiencia (opcional)"></textarea>
+                <div class="ru-estrellas input mb-1">
+                    @for (int i = 1; i <= 5; i++)
+                    {
+                        int valor = i;
+                        <i class="bi @(puntaje >= valor ? "bi-star-fill" : "bi-star")" role="button" title="@valor" @onclick="() => puntaje = valor"></i>
+                    }
+                </div>
+                <div class="small-muted mb-4">@etiquetas[puntaje]</div>
 
-            <div class="d-flex gap-2 justify-content-center">
-                <NavLink class="btn btn-light" href="@($"transacciones/{Id}")">Ahora no</NavLink>
-                <button class="btn btn-primary" disabled="@(puntaje == 0)" @onclick="@(() => Nav.NavigateTo("perfil"))">Enviar calificación</button>
+                <textarea class="form-control mb-1" rows="3" maxlength="500" @bind="comentario" @bind:event="oninput"
+                          placeholder="Cuéntale a la comunidad cómo fue la experiencia (opcional)"></textarea>
+                <div class="small-muted text-end mb-4">@comentario.Length / 500</div>
+
+                <div class="d-flex gap-2 justify-content-center">
+                    <NavLink class="btn btn-light" href="@Volver">Ahora no</NavLink>
+                    <button class="btn btn-primary" disabled="@(puntaje == 0 || Procesando)" @onclick="Enviar">Enviar calificación</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
+}
+
+<ModalConfirmacion @bind-Visible="enviado" Titulo="¡Gracias por calificar!" TextoConfirmar="Volver al historial"
+                   Mensaje="@($"Calificaste a {Contraparte} con {puntaje} estrella(s). Su reputación se actualizó.")"
+                   OnConfirmar="@(() => Nav.NavigateTo("transacciones"))" />
 
 @code {
     [Parameter] public int Id { get; set; }
 
-    private TransaccionDemo t = default!;
+    /// <summary>Desde el historial se vuelve al historial (?desde=historial); si no, al detalle.</summary>
+    [SupplyParameterFromQuery(Name = "desde")]
+    public string? Desde { get; set; }
+
+    private TransaccionDTO? t;
+    private int idUsuario;
     private int puntaje;
+    private string comentario = "";
+    private bool yaCalifique;
+    private bool enviado;
+    private bool cargando = true;
     private readonly string[] etiquetas = { "Selecciona de 1 a 5 estrellas", "Muy mala", "Mala", "Regular", "Buena", "Excelente" };
 
-    protected override void OnParametersSet() => t = DatosDemo.Transaccion(Id);
+    private string Volver => Desde == "historial" ? "transacciones" : $"transacciones/{Id}";
+    private bool SoyComprador => t is not null && t.IdComprador == idUsuario;
+    private string Contraparte => (SoyComprador ? t?.NombreVendedor : t?.NombreComprador) ?? "la otra parte";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        idUsuario = await IdUsuarioAsync();
+        await Ejecutar(async () =>
+        {
+            t = await TransaccionService.Obtener(Id);
+            if (t is null) throw new ServicioException("No existe la transacción.");
+            if (t.IdComprador != idUsuario && t.IdVendedor != idUsuario)
+            {
+                t = null;
+                throw new ServicioException("Solo el comprador o el vendedor pueden calificar esta transacción.");
+            }
+            if (t.Estado != "COMPLETADA")
+            {
+                throw new ServicioException("Solo se pueden calificar transacciones COMPLETADAS.");
+            }
+            yaCalifique = (await CalificacionService.Hechas(idUsuario)).Any(c => c.IdTransaccion == Id);
+        });
+        cargando = false;
+    }
+
+    private async Task Enviar()
+    {
+        enviado = await Ejecutar(() => CalificacionService.Calificar(new CalificacionDTO
+        {
+            IdTransaccion = Id,
+            IdCalificador = idUsuario,
+            Puntaje = puntaje,
+            Comentario = string.IsNullOrWhiteSpace(comentario) ? null : comentario.Trim()
+        }));
+    }
 }

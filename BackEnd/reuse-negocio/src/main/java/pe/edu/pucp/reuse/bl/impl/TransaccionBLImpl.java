@@ -192,12 +192,14 @@ public class TransaccionBLImpl extends BaseBLImpl implements TransaccionBL {
         }
         int idAnuncio = transaccion.getAnuncio().getIdAnuncio();
 
+        boolean completada = false;
         TransactionsManager.iniciar();
         try {
             transaccionDAO.registrarConfirmacion(idTransaccion, esComprador);
             // Se relee dentro de la transaccion para ver ambas confirmaciones actualizadas.
             Transaccion actual = transaccionDAO.findById(idTransaccion);
             if (actual.isConfirmacionComprador() && actual.isConfirmacionVendedor()) {
+                completada = true;
                 transaccionDAO.finalizar(idTransaccion, EstadoTransaccion.COMPLETADA);
                 if (anuncioDAO.cambiarEstado(idAnuncio, EstadoAnuncio.RESERVADO, EstadoAnuncio.VENDIDO) == 0) {
                     throw new BLException("El anuncio " + idAnuncio + " no estaba RESERVADO; se revierte (rollback)");
@@ -215,6 +217,12 @@ public class TransaccionBLImpl extends BaseBLImpl implements TransaccionBL {
                 TransactionsManager.rollback();
             }
             throw new BLException("No se pudo confirmar la entrega; se hizo rollback", e);
+        }
+        // RF-18: una venta completada puede desbloquear insignias de ambas partes.
+        if (completada) {
+            InsigniaUsuarioBLImpl insignias = new InsigniaUsuarioBLImpl();
+            insignias.evaluarSinFallar(transaccion.getComprador().getIdUsuario());
+            insignias.evaluarSinFallar(idVendedor(transaccion));
         }
     }
 

@@ -104,6 +104,48 @@ public class InsigniaBLImpl extends BaseBLImpl implements InsigniaBL {
         }
     }
 
+    @Override
+    public ArrayList<Insignia> listarConReglas() throws BLException {
+        ArrayList<Insignia> resultado = new ArrayList<>();
+        for (Insignia insignia : findAll()) {
+            Insignia detalle = findById(insignia.getIdInsignia());
+            resultado.add(detalle != null ? detalle : insignia);
+        }
+        return resultado;
+    }
+
+    // Maestro-detalle: la cabecera y el nuevo juego de reglas se guardan juntos o no se guarda nada.
+    @Override
+    public int actualizarConReglas(Insignia insignia) throws BLException {
+        validarDatos(insignia);
+        validarExiste(insignia.getIdInsignia());
+        validarNombreUnico(insignia);
+        if (insignia.getReglas().isEmpty()) {
+            throw new BLException("La insignia debe tener al menos una regla para poder otorgarse");
+        }
+        for (ReglaInsignia regla : insignia.getReglas()) {
+            ReglaInsigniaBLImpl.validarRegla(regla);
+        }
+
+        TransactionsManager.iniciar();
+        try {
+            int filas = insigniaDAO.update(insignia);
+            for (ReglaInsignia anterior : reglaDAO.listarPorInsignia(insignia.getIdInsignia())) {
+                reglaDAO.delete(anterior.getIdRegla());
+            }
+            for (ReglaInsignia regla : insignia.getReglas()) {
+                reglaDAO.insert(regla);
+            }
+            TransactionsManager.commit();
+            return filas;
+        } catch (SQLException | RuntimeException e) {
+            if (TransactionsManager.activa()) {
+                TransactionsManager.rollback();
+            }
+            throw new BLException("No se pudo actualizar la insignia con sus reglas; se hizo rollback", e);
+        }
+    }
+
     private void validarDatos(Insignia insignia) throws BLException {
         if (insignia == null) {
             throw new BLException("La insignia no puede ser nula");

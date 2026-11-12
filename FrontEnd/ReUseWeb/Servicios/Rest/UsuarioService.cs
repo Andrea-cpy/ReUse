@@ -6,10 +6,12 @@ namespace ReUseWeb.Servicios.Rest;
 public class UsuarioService : IUsuarioService
 {
     private string BaseUrl { get; }
+    private string AuthUrl { get; }
 
     public UsuarioService(IConfiguration configuracion)
     {
         BaseUrl = $"{configuracion["RestApi:BaseUrl"]!.TrimEnd('/')}/usuarios";
+        AuthUrl = $"{configuracion["RestApi:BaseUrl"]!.TrimEnd('/')}/auth";
     }
 
     public Task<List<UsuarioDTO>> Listar() => HttpUtils.DoGet<List<UsuarioDTO>>(BaseUrl);
@@ -27,4 +29,12 @@ public class UsuarioService : IUsuarioService
     public Task<UsuarioDTO> Suspender(int id) => HttpUtils.DoPutAccion<UsuarioDTO>($"{BaseUrl}/{id}/suspender");
 
     public Task<UsuarioDTO> Reactivar(int id) => HttpUtils.DoPutAccion<UsuarioDTO>($"{BaseUrl}/{id}/reactivar");
+
+    /// <summary>RF-01: recuperación de contraseña (POST /auth/recuperar y /auth/restablecer).</summary>
+    public Task<RecuperacionRespuestaDTO> SolicitarRecuperacion(string correo) =>
+        HttpUtils.DoPost<RecuperacionDTO, RecuperacionRespuestaDTO>($"{AuthUrl}/recuperar", new RecuperacionDTO { Correo = correo });
+
+    public Task RestablecerContrasena(string correo, string codigo, string nueva) =>
+        HttpUtils.DoPost<RecuperacionDTO, Dictionary<string, string>>($"{AuthUrl}/restablecer",
+            new RecuperacionDTO { Correo = correo, Codigo = codigo, ContrasenaNueva = nueva });
 }

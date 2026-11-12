@@ -45,10 +45,18 @@ else
         </div>
     </div>
 
+    @* RF-18: nivel, insignias obtenidas y calificaciones recibidas *@
+    <div class="row g-4 mt-1">
+        <div class="col-lg-6"><InsigniasUsuario IdUsuario="usuario.IdUsuario" PermitirEvaluar="true" /></div>
+        <div class="col-lg-6"><ListaCalificaciones IdUsuario="usuario.IdUsuario" /></div>
+    </div>
+
     <div class="d-flex flex-wrap gap-2 mt-4">
         <NavLink class="btn btn-light" href="mis-anuncios"><i class="bi bi-megaphone me-1"></i> Mis anuncios</NavLink>
         <NavLink class="btn btn-light" href="transacciones"><i class="bi bi-arrow-left-right me-1"></i> Mis transacciones</NavLink>
         <NavLink class="btn btn-light" href="favoritos"><i class="bi bi-heart me-1"></i> Favoritos</NavLink>
+        <NavLink class="btn btn-light" href="mis-reportes"><i class="bi bi-flag me-1"></i> Mis reportes</NavLink>
+        <NavLink class="btn btn-light" href="bloqueados"><i class="bi bi-slash-circle me-1"></i> Usuarios bloqueados</NavLink>
     </div>
 }
 
@@ -64,12 +72,16 @@ else
         int id = await IdUsuarioAsync();
         await Ejecutar(async () =>
         {
-            usuario = await UsuarioService.Obtener(id);
-            List<TransaccionDTO> transacciones = await TransaccionService.ListarPorUsuario(id);
+            // Las tres consultas son independientes: se lanzan a la vez.
+            Task<UsuarioDTO?> tareaUsuario = UsuarioService.Obtener(id);
+            Task<List<TransaccionDTO>> tareaTransacciones = TransaccionService.ListarPorUsuario(id);
+            Task<List<AnuncioDTO>> tareaAnuncios = AnuncioService.ListarPorVendedor(id);
+            usuario = await tareaUsuario;
+            List<TransaccionDTO> transacciones = await tareaTransacciones;
             ventas = transacciones.Count(t => t.IdVendedor == id && t.Estado == "COMPLETADA");
             compras = transacciones.Count(t => t.IdComprador == id && t.Estado == "COMPLETADA");
             enCurso = transacciones.Count(t => t.Estado is "EN_NEGOCIACION" or "CITA_CONFIRMADA");
-            anunciosDisponibles = (await AnuncioService.ListarPorVendedor(id)).Count(a => a.Estado == "DISPONIBLE");
+            anunciosDisponibles = (await tareaAnuncios).Count(a => a.Estado == "DISPONIBLE");
         });
     }
 }

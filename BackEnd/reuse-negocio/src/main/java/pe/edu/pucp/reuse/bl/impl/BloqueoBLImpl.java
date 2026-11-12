@@ -109,6 +109,27 @@ public class BloqueoBLImpl extends BaseBLImpl implements BloqueoBL {
         }
     }
 
+    @Override
+    public ArrayList<Bloqueo> listarPorBloqueador(int idBloqueador) throws BLException {
+        ArrayList<Bloqueo> resultado = new ArrayList<>();
+        for (Bloqueo bloqueo : findAll()) {
+            if (bloqueo.isActivo() && bloqueo.getEstado() == EstadoBloqueo.ACTIVO
+                    && bloqueo.getBloqueador() != null && bloqueo.getBloqueador().getIdUsuario() == idBloqueador) {
+                resultado.add(bloqueo);
+            }
+        }
+        return resultado;
+    }
+
+    @Override
+    public Bloqueo obtenerActivoEntre(int idUsuarioA, int idUsuarioB) throws BLException {
+        try {
+            return bloqueoDAO.obtenerActivoEntre(idUsuarioA, idUsuarioB);
+        } catch (SQLException e) {
+            throw new BLException("No se pudo verificar los bloqueos", e);
+        }
+    }
+
     // Devuelve {idBloqueador, idBloqueado}.
     private int[] validarUsuarios(Bloqueo bloqueo) throws BLException {
         if (bloqueo == null) {

@@ -1,39 +1,136 @@
 @page "/notificaciones"
+@inherits PaginaBase
+@inject INotificacionService NotificacionService
+
+@* Bandeja de notificaciones → GET /notificaciones?usuario=ID.
+   RF-12: arriba se muestran las citas confirmadas de las próximas 24 h (GET /notificaciones/recordatorios),
+   que además dejan una notificación RECORDATORIO_CITA. *@
 
 <PageTitle>Notificaciones · ReUse</PageTitle>
 
 <EncabezadoPagina Titulo="Notificaciones">
     <Acciones>
-        <button class="btn btn-light"><i class="bi bi-check2-all me-1"></i> Marcar todas como leídas</button>
+        <button class="btn btn-light" disabled="@(Procesando || !notificaciones.Any(n => n.Estado == "NO_LEIDA"))" @onclick="MarcarTodas">
+            <i class="bi bi-check2-all me-1"></i> Marcar todas como leídas
+        </button>
     </Acciones>
 </EncabezadoPagina>
 
+<Alertas Error="@Error" Exito="@Exito" />
+
+@if (recordatorios.Any())
+{
+    <div class="ru-card ru-card-body mb-4 border-warning">
+        <h2 class="h3 mb-3"><i class="bi bi-alarm text-warning me-1"></i> Citas de entrega en las próximas 24 horas</h2>
+        @foreach (RecordatorioCitaDTO r in recordatorios)
+        {
+            <div class="d-flex flex-wrap align-items-center gap-3 py-2 border-bottom">
+                <span class="ru-stat p-0"><span class="icono tono-3"><i class="bi bi-calendar-event"></i></span></span>
+                <div class="flex-grow-1">
+                    <div class="fw-semibold">@r.TituloAnuncio</div>
+                    <div class="small-muted">
+                        <i class="bi bi-clock"></i> @Formato.FechaHora(r.FechaHora) ·
+                        <i class="bi bi-geo-alt"></i> @r.PuntoEntrega ·
+                        @(r.Rol == "COMPRADOR" ? "Vendedor" : "Comprador"): @r.Contraparte
+                    </div>
+                </div>
+                <NavLink class="btn btn-sm btn-outline-primary" href="@($"transacciones/{r.IdTransaccion}")">Ver transacción</NavLink>
+            </div>
+        }
+    </div>
+}
+
 <ul class="nav nav-pills mb-3 gap-1">
     <li class="nav-item"><button class="nav-link @(soloNoLeidas ? "" : "active")" @onclick="() => soloNoLeidas = false">Todas</button></li>
-    <li class="nav-item"><button class="nav-link @(soloNoLeidas ? "active" : "")" @onclick="() => soloNoLeidas = true">No leídas</button></li>
+    <li class="nav-item"><button class="nav-link @(soloNoLeidas ? "active" : "")" @onclick="() => soloNoLeidas = true">No leídas (@notificaciones.Count(n => n.Estado == "NO_LEIDA"))</button></li>
 </ul>
 
 <div class="ru-card">
-    @foreach (var n in DatosDemo.Notificaciones.Where(n => !soloNoLeidas || !n.Leida))
+    @if (cargando)
     {
-        <NavLink class="@("d-flex gap-3 p-3 border-bottom text-decoration-none text-body " + (n.Leida ? "" : "bg-primary-subtle"))" href="@n.Enlace.TrimStart('/')">
-            <span class="ru-stat p-0"><span class="icono @Tono(n.Tipo)"><i class="bi @Icono(n.Tipo)"></i></span></span>
-            <div class="flex-grow-1">
-                <div class="@(n.Leida ? "" : "fw-semibold")">@n.Mensaje</div>
-                <div class="small-muted">@DatosDemo.Texto(n.Tipo) · @n.Fecha</div>
+        <Cargando />
+    }
+    else if (Visibles.Any())
+    {
+        foreach (NotificacionDTO n in Visibles)
+        {
+            bool leida = n.Estado == "LEIDA";
+            <div class="@("d-flex gap-3 p-3 border-bottom " + (leida ? "" : "bg-primary-subtle"))">
+                <span class="ru-stat p-0"><span class="icono @Tono(n.Tipo)"><i class="bi @Icono(n.Tipo)"></i></span></span>
+                <div class="flex-grow-1">
+                    <div class="@(leida ? "" : "fw-semibold")">@n.Mensaje</div>
+                    <div class="small-muted">@Formato.Texto(n.Tipo) · @Formato.FechaHora(n.FechaHora)</div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    @if (Enlace(n.Tipo) is string enlace)
+                    {
+                        <NavLink class="btn btn-sm btn-light" href="@enlace" @onclick="() => Leer(n)">Ir</NavLink>
+                    }
+                    @if (!leida)
+                    {
+                        <button class="btn btn-sm btn-outline-primary" title="Marcar como leída" disabled="@Procesando" @onclick="() => Leer(n)">
+                            <i class="bi bi-check2"></i>
+                        </button>
+                    }
+                </div>
             </div>
-            @if (!n.Leida)
-            {
-                <span class="badge rounded-pill text-bg-primary align-self-center">Nueva</span>
-            }
-        </NavLink>
+        }
+    }
+    else
+    {
+        <EstadoVacio Icono="bi-bell" Titulo="@(soloNoLeidas ? "No tienes notificaciones sin leer" : "Aún no tienes notificaciones")" />
     }
 </div>
 
 @code {
+    private List<NotificacionDTO> notificaciones = [];
+    private List<RecordatorioCitaDTO> recordatorios = [];
     private bool soloNoLeidas;
+    private bool cargando = true;
 
-    private static string Icono(string tipo) => tipo switch
+    private IEnumerable<NotificacionDTO> Visibles => notificaciones.Where(n => !soloNoLeidas || n.Estado == "NO_LEIDA");
+
+    protected override async Task OnInitializedAsync() => await Cargar();
+
+    private async Task Cargar()
+    {
+        int idUsuario = await IdUsuarioAsync();
+        string? exito = Exito;
+        await Ejecutar(async () =>
+        {
+            // Primero los recordatorios: pueden crear notificaciones nuevas que deben aparecer en la lista.
+            recordatorios = await NotificacionService.Recordatorios(idUsuario);
+            notificaciones = await NotificacionService.Listar(idUsuario);
+        });
+        Exito ??= exito;
+        cargando = false;
+    }
+
+    private async Task Leer(NotificacionDTO n)
+    {
+        if (n.Estado == "LEIDA") return;
+        if (await Ejecutar(() => NotificacionService.MarcarLeida(n.IdNotificacion)))
+            n.Estado = "LEIDA";
+    }
+
+    private async Task MarcarTodas()
+    {
+        int idUsuario = await IdUsuarioAsync();
+        if (await Ejecutar(() => NotificacionService.MarcarTodas(idUsuario), "Marcaste todas las notificaciones como leídas."))
+            await Cargar();
+    }
+
+    private static string? Enlace(string? tipo) => tipo switch
+    {
+        "RECORDATORIO_CITA" => "transacciones",
+        "NUEVO_MENSAJE" or "SOLICITUD_CONTACTO" => "mensajes",
+        "CAMBIO_ESTADO_ANUNCIO" => "mis-anuncios",
+        "MODERACION" => "mis-reportes",
+        "SISTEMA" => "perfil",
+        _ => null
+    };
+
+    private static string Icono(string? tipo) => tipo switch
     {
         "RECORDATORIO_CITA" => "bi-calendar-event",
         "NUEVO_MENSAJE" => "bi-chat-dots",
@@ -43,7 +140,7 @@
         _ => "bi-award"
     };
 
-    private static string Tono(string tipo) => tipo switch
+    private static string Tono(string? tipo) => tipo switch
     {
         "RECORDATORIO_CITA" => "tono-3",
         "NUEVO_MENSAJE" => "tono-1",

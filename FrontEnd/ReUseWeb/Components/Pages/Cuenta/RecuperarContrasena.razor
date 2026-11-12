@@ -1,0 +1,92 @@
+@page "/recuperar-contrasena"
+@inherits PaginaBase
+@inject IUsuarioService UsuarioService
+
+@* RF-01 (flujo secundario): recuperación de contraseña en dos pasos.
+   1) POST /auth/recuperar genera un código de 6 dígitos válido por 15 minutos.
+   2) POST /auth/restablecer valida el código y guarda la nueva contraseña (hash BCrypt).
+   Sin servidor de correo, el backend devuelve el código en modo demostración y aquí se muestra. *@
+
+<PageTitle>Recuperar contraseña · ReUse</PageTitle>
+
+<NavLink class="ru-volver" href="login"><i class="bi bi-arrow-left"></i> Volver a iniciar sesión</NavLink>
+<h1 class="mb-1">Recuperar contraseña</h1>
+
+@if (listo)
+{
+    <div class="alert alert-success d-flex gap-2 mt-3"><i class="bi bi-check-circle-fill mt-1"></i>
+        <div>Tu contraseña fue actualizada. Ya puedes iniciar sesión con la nueva.</div></div>
+    <NavLink class="btn btn-primary w-100 py-2" href="login">Ir a iniciar sesión</NavLink>
+}
+else if (!codigoEnviado)
+{
+    <p class="small-muted mb-4">Ingresa tu correo institucional y te enviaremos un código de verificación.</p>
+    <Alertas Error="@Error" />
+    <div class="mb-3">
+        <label class="form-label" for="correo">Correo institucional</label>
+        <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+            <input id="correo" type="email" class="form-control" placeholder="@("a20221234@pucp.edu.pe")" @bind="correo" @bind:event="oninput" />
+        </div>
+    </div>
+    <button class="btn btn-primary w-100 py-2" disabled="@(Procesando || string.IsNullOrWhiteSpace(correo))" @onclick="Solicitar">
+        Enviar código
+    </button>
+}
+else
+{
+    <p class="small-muted mb-3">Ingresa el código que enviamos a <strong>@correo</strong> y elige tu nueva contraseña.</p>
+    @if (!string.IsNullOrEmpty(codigoDemo))
+    {
+        <div class="alert alert-info small d-flex gap-2"><i class="bi bi-info-circle mt-1"></i>
+            <div><strong>Modo demostración:</strong> el proyecto aún no envía correos. Tu código es
+                <code class="fs-6">@codigoDemo</code> (vence en 15 minutos).</div></div>
+    }
+    <Alertas Error="@Error" />
+    <div class="mb-3">
+        <label class="form-label" for="codigo">Código de 6 dígitos</label>
+        <input id="codigo" class="form-control text-center fs-5" maxlength="6" inputmode="numeric" autocomplete="one-time-code" @bind="codigo" @bind:event="oninput" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label" for="nueva">Nueva contraseña</label>
+        <input id="nueva" type="password" class="form-control" autocomplete="new-password" @bind="nueva" @bind:event="oninput" />
+        <div class="form-text">Mínimo 8 caracteres.</div>
+    </div>
+    <div class="mb-4">
+        <label class="form-label" for="repetir">Repite la contraseña</label>
+        <input id="repetir" type="password" class="form-control" autocomplete="new-password" @bind="repetir" @bind:event="oninput" />
+    </div>
+    <button class="btn btn-primary w-100 py-2" disabled="@Procesando" @onclick="Restablecer">Cambiar contraseña</button>
+    <button class="btn btn-link w-100 mt-2" disabled="@Procesando" @onclick="Solicitar">Enviar un código nuevo</button>
+}
+
+@code {
+    private string correo = "";
+    private string codigo = "";
+    private string nueva = "";
+    private string repetir = "";
+    private string? codigoDemo;
+    private bool codigoEnviado;
+    private bool listo;
+
+    private async Task Solicitar()
+    {
+        RecuperacionRespuestaDTO? respuesta = null;
+        if (await Ejecutar(async () => respuesta = await UsuarioService.SolicitarRecuperacion(correo.Trim())))
+        {
+            codigoEnviado = true;
+            codigoDemo = respuesta?.CodigoDemo;
+            codigo = "";
+        }
+    }
+
+    private async Task Restablecer()
+    {
+        if (nueva != repetir)
+        {
+            Error = "Las contraseñas no coinciden.";
+            return;
+        }
+        listo = await Ejecutar(() => UsuarioService.RestablecerContrasena(correo.Trim(), codigo.Trim(), nueva));
+    }
+}

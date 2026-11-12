@@ -36,13 +36,39 @@ public class CalificacionBLImpl extends BaseBLImpl implements CalificacionBL {
             int idCalificacion = calificacionDAO.insert(calificacion);
             usuarioDAO.recalcularReputacion(calificacion.getCalificado().getIdUsuario());
             TransactionsManager.commit();
-            return idCalificacion;
         } catch (SQLException | RuntimeException e) {
             if (TransactionsManager.activa()) {
                 TransactionsManager.rollback();
             }
             throw new BLException("No se pudo registrar la calificacion; se hizo rollback", e);
         }
+        // RF-18: con la reputacion ya recalculada, se evaluan las insignias del calificado.
+        new InsigniaUsuarioBLImpl().evaluarSinFallar(calificacion.getCalificado().getIdUsuario());
+        return calificacion.getIdCalificacion();
+    }
+
+    @Override
+    public ArrayList<Calificacion> listarPorCalificado(int idCalificado) throws BLException {
+        ArrayList<Calificacion> resultado = new ArrayList<>();
+        for (Calificacion calificacion : findAll()) {
+            if (calificacion.isActivo() && calificacion.getCalificado() != null
+                    && calificacion.getCalificado().getIdUsuario() == idCalificado) {
+                resultado.add(calificacion);
+            }
+        }
+        return resultado;
+    }
+
+    @Override
+    public ArrayList<Calificacion> listarPorCalificador(int idCalificador) throws BLException {
+        ArrayList<Calificacion> resultado = new ArrayList<>();
+        for (Calificacion calificacion : findAll()) {
+            if (calificacion.isActivo() && calificacion.getCalificador() != null
+                    && calificacion.getCalificador().getIdUsuario() == idCalificador) {
+                resultado.add(calificacion);
+            }
+        }
+        return resultado;
     }
 
     @Override

@@ -12,4 +12,7 @@ public interface ReporteUsuarioBL extends RegistroBL<ReporteUsuario> {
     boolean sancionar(int idReporte, int idAdministrador) throws BLException;
 
     void desestimar(int idReporte, int idAdministrador) throws BLException;
+
+    /** RF-13: sanciones recibidas por el usuario en la ventana de dias de la regla de suspension. */
+    int contarSancionesRecientes(int idUsuario) throws BLException;
 }

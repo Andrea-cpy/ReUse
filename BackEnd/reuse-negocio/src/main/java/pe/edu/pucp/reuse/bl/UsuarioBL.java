@@ -1,5 +1,8 @@
 package pe.edu.pucp.reuse.bl;
 
+import java.util.Collection;
+import java.util.Map;
+
 import pe.edu.pucp.reuse.modelo.enums.NivelReputacion;
 import pe.edu.pucp.reuse.modelo.enums.TipoMetricaInsignia;
 import pe.edu.pucp.reuse.modelo.usuarios.UsuarioPUCP;
@@ -29,4 +32,17 @@ public interface UsuarioBL extends RegistroBL<UsuarioPUCP> {
     NivelReputacion obtenerNivelReputacion(int idUsuario) throws BLException;
 
     double obtenerMetrica(int idUsuario, TipoMetricaInsignia metrica) throws BLException;
+
+    /** Varias metricas de una vez (se calculan en paralelo). */
+    Map<TipoMetricaInsignia, Double> obtenerMetricas(int idUsuario,
+            Collection<TipoMetricaInsignia> metricas) throws BLException;
+
+    /**
+     * RF-01 (recuperacion de contrasena): genera un codigo de 6 digitos valido por 15 minutos
+     * para el correo indicado y lo devuelve para que la capa de servicios lo entregue.
+     */
+    String solicitarRecuperacion(String correoInstitucional) throws BLException;
+
+    /** RF-01: valida el codigo de recuperacion y guarda la nueva contrasena (hash BCrypt). */
+    void restablecerContrasena(String correoInstitucional, String codigo, String contrasenaNueva) throws BLException;
 }

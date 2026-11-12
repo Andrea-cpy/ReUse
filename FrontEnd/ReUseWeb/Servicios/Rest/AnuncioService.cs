@@ -29,4 +29,8 @@ public class AnuncioService : IAnuncioService
     public Task<AnuncioDTO> Republicar(int id, int idVendedor) => HttpUtils.DoPutAccion<AnuncioDTO>($"{BaseUrl}/{id}/republicar?vendedor={idVendedor}");
 
     public Task<List<OfertaDTO>> ListarOfertas(int idAnuncio) => HttpUtils.DoGet<List<OfertaDTO>>($"{BaseUrl}/{idAnuncio}/ofertas");
+
+    public Task<List<AnuncioDTO>> ListarTodos() => HttpUtils.DoGet<List<AnuncioDTO>>($"{BaseUrl}?todos=true");
+
+    public Task<AnuncioDTO> Moderar(int id, string accion) => HttpUtils.DoPutAccion<AnuncioDTO>($"{BaseUrl}/{id}/moderar?accion={accion}");
 }

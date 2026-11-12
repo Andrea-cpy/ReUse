@@ -68,6 +68,14 @@ public static class HttpUtils
         return (await response.Content.ReadFromJsonAsync<TResponse>())!;
     }
 
+    /// <summary>GET de un archivo binario (por ejemplo, un reporte PDF de JasperReports).</summary>
+    public static async Task<byte[]> DoGetBytes(string url)
+    {
+        HttpResponseMessage response = await Enviar(() => http.GetAsync(url));
+        await VerificarRespuesta(response);
+        return await response.Content.ReadAsByteArrayAsync();
+    }
+
     public static async Task DoDelete(string url)
     {
         HttpResponseMessage response = await Enviar(() => http.DeleteAsync(url));

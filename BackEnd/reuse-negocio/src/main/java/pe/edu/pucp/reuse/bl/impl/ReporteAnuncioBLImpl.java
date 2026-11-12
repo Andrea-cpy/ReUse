@@ -13,6 +13,7 @@ import pe.edu.pucp.reuse.dao.transacciones.TransactionsManager;
 import pe.edu.pucp.reuse.modelo.catalogo.Anuncio;
 import pe.edu.pucp.reuse.modelo.enums.EstadoAnuncio;
 import pe.edu.pucp.reuse.modelo.enums.EstadoRevisionReporte;
+import pe.edu.pucp.reuse.modelo.enums.TipoNotificacion;
 import pe.edu.pucp.reuse.modelo.moderacion.ReporteAnuncio;
 import pe.edu.pucp.reuse.modelo.usuarios.AdministradorPUCP;
 import pe.edu.pucp.reuse.modelo.usuarios.UsuarioPUCP;
@@ -117,10 +118,22 @@ public class ReporteAnuncioBLImpl extends BaseBLImpl implements ReporteAnuncioBL
             if (reporteDAO.resolver(idReporte, EstadoRevisionReporte.SANCIONADO, idAdministrador) == 0) {
                 throw new BLException("El reporte " + idReporte + " ya fue resuelto por otro administrador");
             }
-            if (anuncio.getEstado() == EstadoAnuncio.OBSERVADO || anuncio.getEstado() == EstadoAnuncio.DISPONIBLE) {
+            boolean archivado = anuncio.getEstado() == EstadoAnuncio.OBSERVADO
+                    || anuncio.getEstado() == EstadoAnuncio.DISPONIBLE;
+            if (archivado) {
                 anuncioDAO.cambiarEstado(anuncio.getIdAnuncio(), anuncio.getEstado(), EstadoAnuncio.ARCHIVADO);
             }
             TransactionsManager.commit();
+
+            Notificador notificador = new Notificador();
+            notificador.avisar(reporte.getDenunciante().getIdUsuario(), TipoNotificacion.MODERACION,
+                    "Tu reporte #" + idReporte + " sobre '" + anuncio.getTitulo()
+                            + "' fue revisado: el anuncio fue sancionado.");
+            if (archivado) {
+                notificador.avisar(anuncio.getVendedor().getIdUsuario(), TipoNotificacion.MODERACION,
+                        "Tu anuncio '" + anuncio.getTitulo() + "' fue ARCHIVADO por moderacion ("
+                                + reporte.getMotivo().name().toLowerCase().replace('_', ' ') + ").");
+            }
         } catch (BLException e) {
             TransactionsManager.rollback();
             throw e;
@@ -146,6 +159,9 @@ public class ReporteAnuncioBLImpl extends BaseBLImpl implements ReporteAnuncioBL
             anuncioDAO.cambiarEstado(reporte.getAnuncio().getIdAnuncio(),
                     EstadoAnuncio.OBSERVADO, EstadoAnuncio.DISPONIBLE);
             TransactionsManager.commit();
+            new Notificador().avisar(reporte.getDenunciante().getIdUsuario(), TipoNotificacion.MODERACION,
+                    "Tu reporte #" + idReporte + " sobre '" + reporte.getAnuncio().getTitulo()
+                            + "' fue revisado y se desestimo.");
         } catch (BLException e) {
             TransactionsManager.rollback();
             throw e;

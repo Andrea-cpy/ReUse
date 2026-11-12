@@ -3,12 +3,10 @@ namespace ReUseWeb.Datos;
 // =====================================================================
 // DATOS DE EJEMPLO — SOLO PARA LAS PANTALLAS QUE AÚN NO SE INTEGRAN
 //
-// Desde el Lab 11, las pantallas de los requerimientos integrados
-// (RF-01, 02, 03, 05, 06, 07, 08, 09, 11, 15, 16 y 17) consumen los
-// servicios REST del backend Java (carpeta Servicios/Rest) y ya no usan
-// esta clase. Siguen usándola solo las pantallas de reportes, bloqueos,
-// notificaciones, calificaciones, insignias, materiales y facultades,
-// que no figuran en los menús hasta que se integren.
+// Desde el Lab 12, las pantallas de los 18 requerimientos funcionales
+// consumen los servicios REST del backend Java (carpeta Servicios/Rest).
+// Solo las pantallas de administración de materiales y facultades
+// (fuera del catálogo de RF y fuera de los menús) siguen usando esta clase.
 // =====================================================================
 
 public record AnuncioDemo(int Id, string Titulo, string Material, string Categoria, decimal Precio,

@@ -1,4 +1,4 @@
-# ReUse — Backend Java (Lab 11: servicios web RESTful)
+# ReUse — Backend Java (Lab 12: 18 de 18 RF integrados)
 
 Marketplace de materiales académicos entre estudiantes PUCP. Equipo **Erasmolovers** · Programación 3 (1INF30).
 
@@ -60,6 +60,20 @@ Todos usan la contraseña **`Demo1234`** (en la base solo se guarda su hash BCry
 | RF-11 Confirmar entrega | `PUT /transacciones/{id}/confirmar-entrega?usuario=`, `PUT /transacciones/{id}/cancelar` | Cada parte confirma una vez; con ambas, COMPLETADA y anuncio VENDIDO (con rollback) |
 
 Las fechas viajan como texto ISO (`2026-11-12T12:30`) y los enums como su nombre (`DISPONIBLE`).
+
+### Endpoints agregados en el Lab 12
+
+| Requerimiento | Método y ruta | Regla principal en la BL |
+|---|---|---|
+| RF-01 Recuperar contraseña | `POST /auth/recuperar` `{correo}` · `POST /auth/restablecer` `{correo, codigo, contrasenaNueva}` | Código de 6 dígitos (hash BCrypt), 15 min, 5 intentos, un solo uso. Sin servidor de correo, la respuesta trae `codigoDemo` (`AuthResource.ENTREGAR_CODIGO_EN_RESPUESTA`) |
+| RF-04 Denuncias | `GET /denuncias?tipo=&estado=&denunciante=`, `GET /denuncias/{id}`, `POST /denuncias/usuarios`, `POST /denuncias/anuncios`, `PUT /denuncias/{id}/sancionar?administrador=` · `/desestimar?administrador=` | Solo un administrador activo resuelve; solo reportes PENDIENTE; se notifica al denunciante |
+| RF-04 Reportes PDF (JasperReports) | `GET /reportes/incidentes?estado=&tipo=`, `GET /reportes/transacciones?estado=`, `GET /reportes/usuarios` (+ `&administrador=ID`) | `application/pdf` con `Content-Disposition: attachment`. Ver `src/main/resources/reports/LEEME.md` |
+| RF-10 Bloqueos | `GET /bloqueos?usuario=`, `GET /bloqueos/entre?usuarioA=&usuarioB=`, `POST /bloqueos`, `PUT /bloqueos/{id}/desbloquear` | Cierra los chats con `bloquear_chats_entre` en la misma transacción; oculta los anuncios en ambos sentidos y bloquea chats y ofertas |
+| RF-12 Recordatorios | `GET /notificaciones?usuario=`, `PUT /notificaciones/{id}/leer`, `PUT /notificaciones/leer-todas?usuario=`, `GET /notificaciones/recordatorios?usuario=&horas=24` | Citas CONFIRMADAS en las próximas horas (1–168); deja un RECORDATORIO_CITA por cita, sin duplicar |
+| RF-13 Reincidentes | `PUT /denuncias/{id}/sancionar` (campo `cuentaSuspendida`), `GET /usuarios/{id}/sanciones` | Con 4 sanciones en 90 días (`contar_sanciones_recientes`) la cuenta pasa a SUSPENDIDA en la misma transacción |
+| RF-14 Moderación de anuncios | `GET /anuncios?todos=true`, `PUT /anuncios/{id}/moderar?accion=OBSERVAR\|HABILITAR\|ARCHIVAR` | Denunciar deja el anuncio OBSERVADO; sancionar lo ARCHIVA (borrado lógico); desestimar lo vuelve DISPONIBLE |
+| RF-15 Calificar desde el historial | `GET /calificaciones?calificado=` · `?calificador=`, `POST /calificaciones` | Solo transacciones COMPLETADAS, 1–5, una vez por parte; recalcula la reputación (`recalcular_reputacion`) |
+| RF-18 Reputación e insignias | `GET /usuarios/{id}/reputacion`, `GET /usuarios/{id}/insignias`, `POST /usuarios/{id}/insignias/evaluar`, `GET/POST/PUT/DELETE /insignias[/{id}]` | Patrón *Specification* (`bl/insignias`): cada insignia es la conjunción de sus reglas; se evalúa sola al calificar y al completar una venta |
 
 ## Reputación separada (observación del Lab 9)
 

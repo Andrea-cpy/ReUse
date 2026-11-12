@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- RF-04: reporte de incidentes y denuncias (JasperReports 7). Datos: JRBeanCollectionDataSource de FilaIncidente.
+     Despues de modificarlo, ejecutar CompilarReportes para regenerar el .jasper. -->
+<jasperReport name="ReporteIncidentes" language="java" pageWidth="842" pageHeight="595" orientation="Landscape"
+              columnWidth="782" leftMargin="30" rightMargin="30" topMargin="28" bottomMargin="28"
+              whenNoDataType="AllSectionsNoDetail">
+	<style name="Base" default="true" fontName="DejaVu Sans" fontSize="8.5" forecolor="#1F2A2E"/>
+	<style name="Encabezado" style="Base" mode="Opaque" forecolor="#FFFFFF" backcolor="#1D6B52" fontSize="8.5" bold="true" vTextAlign="Middle">
+		<box leftPadding="4" rightPadding="4"/>
+	</style>
+	<style name="Celda" style="Base" vTextAlign="Middle">
+		<box leftPadding="4" rightPadding="4"/>
+	</style>
+	<parameter name="TITULO" class="java.lang.String"/>
+	<parameter name="FILTROS" class="java.lang.String"/>
+	<parameter name="GENERADO_POR" class="java.lang.String"/>
+	<parameter name="FECHA_GENERACION" class="java.lang.String"/>
+	<parameter name="TOTAL_PENDIENTES" class="java.lang.Integer"/>
+	<parameter name="TOTAL_SANCIONADOS" class="java.lang.Integer"/>
+	<parameter name="TOTAL_DESESTIMADOS" class="java.lang.Integer"/>
+	<field name="id" class="java.lang.Integer"/>
+	<field name="tipo" class="java.lang.String"/>
+	<field name="reportado" class="java.lang.String"/>
+	<field name="motivo" class="java.lang.String"/>
+	<field name="denunciante" class="java.lang.String"/>
+	<field name="fecha" class="java.lang.String"/>
+	<field name="estado" class="java.lang.String"/>
+	<field name="descripcion" class="java.lang.String"/>
+	<field name="revisor" class="java.lang.String"/>
+	<title height="74">
+		<element kind="rectangle" x="0" y="0" width="782" height="50" backcolor="#1D6B52" mode="Opaque">
+			<pen lineWidth="0.0"/>
+		</element>
+		<element kind="staticText" x="14" y="6" width="300" height="20" forecolor="#F2C14E" fontSize="15.0" bold="true" style="Base">
+			<text><![CDATA[ReUse]]></text>
+		</element>
+		<element kind="staticText" x="14" y="27" width="420" height="16" forecolor="#E7F3EE" fontSize="8.5" style="Base">
+			<text><![CDATA[Marketplace académico PUCP · Programación 3 (1INF30)]]></text>
+		</element>
+		<element kind="textField" x="380" y="8" width="388" height="20" forecolor="#FFFFFF" fontSize="14.0" bold="true" hTextAlign="Right" style="Base">
+			<expression><![CDATA[$P{TITULO}]]></expression>
+		</element>
+		<element kind="textField" x="380" y="28" width="388" height="16" forecolor="#E7F3EE" hTextAlign="Right" style="Base">
+			<expression><![CDATA["Generado el " + $P{FECHA_GENERACION} + " por " + $P{GENERADO_POR}]]></expression>
+		</element>
+		<element kind="textField" x="0" y="56" width="782" height="14" forecolor="#6B7A80" style="Base">
+			<expression><![CDATA["Filtros: " + $P{FILTROS}]]></expression>
+		</element>
+	</title>
+	<columnHeader height="20">
+		<element kind="staticText" x="0" y="0" width="36" height="20" style="Encabezado"><text><![CDATA[#]]></text></element>
+		<element kind="staticText" x="36" y="0" width="60" height="20" style="Encabezado"><text><![CDATA[Tipo]]></text></element>
+		<element kind="staticText" x="96" y="0" width="190" height="20" style="Encabezado"><text><![CDATA[Reportado]]></text></element>
+		<element kind="staticText" x="286" y="0" width="150" height="20" style="Encabezado"><text><![CDATA[Motivo]]></text></element>
+		<element kind="staticText" x="436" y="0" width="140" height="20" style="Encabezado"><text><![CDATA[Denunciante]]></text></element>
+		<element kind="staticText" x="576" y="0" width="70" height="20" style="Encabezado"><text><![CDATA[Fecha]]></text></element>
+		<element kind="staticText" x="646" y="0" width="136" height="20" style="Encabezado"><text><![CDATA[Estado / revisor]]></text></element>
+	</columnHeader>
+	<detail>
+		<band height="34" splitType="Prevent">
+			<element kind="rectangle" x="0" y="0" width="782" height="34" mode="Opaque" backcolor="#F5F7F6" stretchType="ContainerHeight">
+				<printWhenExpression><![CDATA[$V{REPORT_COUNT} % 2 == 0]]></printWhenExpression>
+				<pen lineWidth="0.0"/>
+			</element>
+			<element kind="textField" x="0" y="2" width="36" height="16" style="Celda">
+				<expression><![CDATA[$F{id}]]></expression>
+			</element>
+			<element kind="textField" x="36" y="2" width="60" height="16" style="Celda">
+				<expression><![CDATA[$F{tipo}]]></expression>
+			</element>
+			<element kind="textField" x="96" y="2" width="190" height="16" bold="true" textAdjust="ScaleFont" style="Celda">
+				<expression><![CDATA[$F{reportado}]]></expression>
+			</element>
+			<element kind="textField" x="286" y="2" width="150" height="16" textAdjust="ScaleFont" style="Celda">
+				<expression><![CDATA[$F{motivo}]]></expression>
+			</element>
+			<element kind="textField" x="436" y="2" width="140" height="16" textAdjust="ScaleFont" style="Celda">
+				<expression><![CDATA[$F{denunciante}]]></expression>
+			</element>
+			<element kind="textField" x="576" y="2" width="70" height="16" style="Celda">
+				<expression><![CDATA[$F{fecha}]]></expression>
+			</element>
+			<element kind="textField" x="646" y="2" width="136" height="16" bold="true" style="Celda"
+			         forecolor="#1D6B52">
+				<expression><![CDATA[$F{estado}]]></expression>
+			</element>
+			<element kind="textField" x="96" y="18" width="550" height="14" forecolor="#6B7A80" fontSize="7.5" italic="true" textAdjust="StretchHeight" style="Celda">
+				<expression><![CDATA[$F{descripcion}]]></expression>
+			</element>
+			<element kind="textField" x="646" y="18" width="136" height="14" forecolor="#6B7A80" fontSize="7.5" style="Celda">
+				<expression><![CDATA[$F{revisor} == null ? "Sin revisar" : "Revisó: " + $F{revisor}]]></expression>
+			</element>
+			<element kind="line" x="0" y="33" width="782" height="1" positionType="Float">
+				<pen lineWidth="0.5" lineColor="#E1E7E4"/>
+			</element>
+		</band>
+	</detail>
+	<pageFooter height="20">
+		<element kind="textField" x="0" y="4" width="500" height="14" forecolor="#6B7A80" fontSize="7.5" style="Base">
+			<expression><![CDATA["ReUse · Reporte confidencial para el equipo de moderación"]]></expression>
+		</element>
+		<element kind="textField" x="582" y="4" width="160" height="14" forecolor="#6B7A80" fontSize="7.5" hTextAlign="Right" style="Base">
+			<expression><![CDATA["Página " + $V{PAGE_NUMBER} + " de"]]></expression>
+		</element>
+		<element kind="textField" x="742" y="4" width="40" height="14" forecolor="#6B7A80" fontSize="7.5" evaluationTime="Report" style="Base">
+			<expression><![CDATA[" " + $V{PAGE_NUMBER}]]></expression>
+		</element>
+	</pageFooter>
+	<summary height="64">
+		<element kind="staticText" x="0" y="12" width="200" height="16" fontSize="10.0" bold="true" style="Base">
+			<text><![CDATA[Resumen]]></text>
+		</element>
+		<element kind="textField" x="0" y="32" width="190" height="26" mode="Opaque" backcolor="#E7F3EE" fontSize="9.0" vTextAlign="Middle" style="Base">
+			<expression><![CDATA["Total de denuncias: " + $V{REPORT_COUNT}]]></expression>
+			<box leftPadding="8"/>
+		</element>
+		<element kind="textField" x="198" y="32" width="190" height="26" mode="Opaque" backcolor="#FDF3DC" fontSize="9.0" vTextAlign="Middle" style="Base">
+			<expression><![CDATA["Pendientes: " + $P{TOTAL_PENDIENTES}]]></expression>
+			<box leftPadding="8"/>
+		</element>
+		<element kind="textField" x="396" y="32" width="190" height="26" mode="Opaque" backcolor="#FBE3E1" fontSize="9.0" vTextAlign="Middle" style="Base">
+			<expression><![CDATA["Sancionadas: " + $P{TOTAL_SANCIONADOS}]]></expression>
+			<box leftPadding="8"/>
+		</element>
+		<element kind="textField" x="594" y="32" width="188" height="26" mode="Opaque" backcolor="#EEF1F2" fontSize="9.0" vTextAlign="Middle" style="Base">
+			<expression><![CDATA["Desestimadas: " + $P{TOTAL_DESESTIMADOS}]]></expression>
+			<box leftPadding="8"/>
+		</element>
+	</summary>
+	<noData height="40">
+		<element kind="staticText" x="0" y="10" width="782" height="20" hTextAlign="Center" style="Base">
+			<text><![CDATA[No hay denuncias con los filtros seleccionados.]]></text>
+		</element>
+	</noData>
+</jasperReport>

@@ -1,13 +1,20 @@
 package pe.edu.pucp.reuse.bl.impl;
 
+import java.security.SecureRandom;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 import org.mindrot.jbcrypt.BCrypt;
 
 import pe.edu.pucp.reuse.bl.BLException;
 import pe.edu.pucp.reuse.bl.UsuarioBL;
+import pe.edu.pucp.reuse.bl.insignias.MetricasUsuario;
 import pe.edu.pucp.reuse.dao.CarreraDAO;
 import pe.edu.pucp.reuse.dao.impl.CarreraDAOImpl;
 import pe.edu.pucp.reuse.modelo.academico.Carrera;
@@ -27,7 +34,77 @@ public class UsuarioBLImpl extends BaseBLImpl implements UsuarioBL {
     // Mismo mensaje si el correo no existe o la clave no coincide: no revela que correos estan registrados.
     private static final String CREDENCIALES_INVALIDAS = "Correo o contrasena incorrectos";
 
+    // Recuperacion de contrasena: codigo de 6 digitos, 15 minutos de validez y 5 intentos.
+    private static final int MINUTOS_VALIDEZ_CODIGO = 15;
+    private static final int INTENTOS_MAXIMOS_CODIGO = 5;
+    private static final SecureRandom ALEATORIO = new SecureRandom();
+    // Solo se guarda el hash del codigo (como con las contrasenas). Vive en memoria del servidor:
+    // un reinicio invalida los codigos pendientes, que es aceptable para un codigo de 15 minutos.
+    private static final Map<String, SolicitudRecuperacion> RECUPERACIONES = new ConcurrentHashMap<>();
+
     private final CarreraDAO carreraDAO = new CarreraDAOImpl();
+
+    private static final class SolicitudRecuperacion {
+        private final String hashCodigo;
+        private final LocalDateTime vence;
+        private int intentos;
+
+        private SolicitudRecuperacion(String hashCodigo, LocalDateTime vence) {
+            this.hashCodigo = hashCodigo;
+            this.vence = vence;
+        }
+    }
+
+    @Override
+    public String solicitarRecuperacion(String correoInstitucional) throws BLException {
+        UsuarioPUCP usuario = obtenerPorCorreo(correoInstitucional);
+        if (usuario == null || !usuario.isActivo()) {
+            throw new BLException("No existe una cuenta registrada con el correo " + correoInstitucional.trim());
+        }
+        if (usuario.getEstadoCuenta() == EstadoCuenta.SUSPENDIDA) {
+            throw new BLException("La cuenta esta SUSPENDIDA: comunicate con un administrador de ReUse");
+        }
+        String codigo = String.format("%06d", ALEATORIO.nextInt(1_000_000));
+        RECUPERACIONES.put(usuario.getCorreoInstitucional().toLowerCase(), new SolicitudRecuperacion(
+                hashear(codigo), LocalDateTime.now().plusMinutes(MINUTOS_VALIDEZ_CODIGO)));
+        return codigo;
+    }
+
+    @Override
+    public void restablecerContrasena(String correoInstitucional, String codigo, String contrasenaNueva)
+            throws BLException {
+        validarTexto(correoInstitucional, "Debe indicar el correo institucional");
+        validarTexto(codigo, "Debe indicar el codigo de recuperacion");
+        String clave = correoInstitucional.trim().toLowerCase();
+        SolicitudRecuperacion solicitud = RECUPERACIONES.get(clave);
+        if (solicitud == null) {
+            throw new BLException("No hay una solicitud de recuperacion vigente para este correo; solicita un codigo nuevo");
+        }
+        if (LocalDateTime.now().isAfter(solicitud.vence)) {
+            RECUPERACIONES.remove(clave);
+            throw new BLException("El codigo vencio (dura " + MINUTOS_VALIDEZ_CODIGO + " minutos); solicita uno nuevo");
+        }
+        if (!coincide(codigo.trim(), solicitud.hashCodigo)) {
+            solicitud.intentos++;
+            if (solicitud.intentos >= INTENTOS_MAXIMOS_CODIGO) {
+                RECUPERACIONES.remove(clave);
+                throw new BLException("Codigo incorrecto. Se agotaron los intentos; solicita un codigo nuevo");
+            }
+            throw new BLException("Codigo incorrecto. Te quedan " + (INTENTOS_MAXIMOS_CODIGO - solicitud.intentos)
+                    + " intento(s)");
+        }
+        validarContrasena(contrasenaNueva);
+        UsuarioPUCP usuario = obtenerPorCorreo(clave);
+        if (usuario == null || !usuario.isActivo()) {
+            throw new BLException("No existe una cuenta registrada con el correo " + clave);
+        }
+        try {
+            usuarioDAO.cambiarContrasena(usuario.getIdUsuario(), hashear(contrasenaNueva));
+        } catch (SQLException e) {
+            throw new BLException("No se pudo guardar la nueva contrasena", e);
+        }
+        RECUPERACIONES.remove(clave); // el codigo es de un solo uso
+    }
 
     // Toda cuenta nueva queda pendiente de verificacion. La contrasena se guarda como hash BCrypt.
     @Override
@@ -196,8 +273,22 @@ public class UsuarioBLImpl extends BaseBLImpl implements UsuarioBL {
 
     @Override
     public NivelReputacion obtenerNivelReputacion(int idUsuario) throws BLException {
-        double completadas = obtenerMetrica(idUsuario, TipoMetricaInsignia.TRANSACCIONES_COMPLETADAS);
-        double promedio = obtenerMetrica(idUsuario, TipoMetricaInsignia.CALIFICACION_PROMEDIO);
+        Map<TipoMetricaInsignia, Double> metricas = obtenerMetricas(idUsuario,
+                List.of(TipoMetricaInsignia.TRANSACCIONES_COMPLETADAS, TipoMetricaInsignia.CALIFICACION_PROMEDIO));
+        return nivelSegun(metricas.get(TipoMetricaInsignia.TRANSACCIONES_COMPLETADAS),
+                metricas.get(TipoMetricaInsignia.CALIFICACION_PROMEDIO));
+    }
+
+    // Valida al usuario una vez y calcula las metricas en paralelo (cada una es un procedimiento).
+    @Override
+    public Map<TipoMetricaInsignia, Double> obtenerMetricas(int idUsuario, Collection<TipoMetricaInsignia> metricas)
+            throws BLException {
+        buscarUsuario(idUsuario, "usuario");
+        return new MetricasUsuario(idUsuario, usuarioDAO).precargar(metricas).comoMapa();
+    }
+
+    /** Escala de NivelReputacion segun transacciones completadas y calificacion promedio. */
+    public static NivelReputacion nivelSegun(double completadas, double promedio) {
         if (completadas >= 25 && promedio >= 4.8) {
             return NivelReputacion.EXPERTO;
         }

@@ -218,6 +218,10 @@ public class OfertaBLImpl extends BaseBLImpl implements OfertaBL {
         if (anuncio.getVendedor().getIdUsuario() == comprador.getIdUsuario()) {
             throw new BLException("El vendedor no puede ofertar por su propio anuncio");
         }
+        // RF-10: con un bloqueo activo (en cualquier sentido) no se puede negociar.
+        if (new BloqueoBLImpl().obtenerActivoEntre(comprador.getIdUsuario(), anuncio.getVendedor().getIdUsuario()) != null) {
+            throw new BLException("No puedes ofertar: existe un bloqueo activo entre tu cuenta y la del vendedor");
+        }
         if (oferta.getMontoPropuesto() > anuncio.getPrecio()) {
             throw new BLException(String.format("La oferta (S/ %.2f) no puede superar el precio publicado (S/ %.2f)",
                     oferta.getMontoPropuesto(), anuncio.getPrecio()));

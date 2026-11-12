@@ -13,4 +13,6 @@ public interface IUsuarioService
     Task<UsuarioDTO> Verificar(int id);
     Task<UsuarioDTO> Suspender(int id);
     Task<UsuarioDTO> Reactivar(int id);
+    Task<RecuperacionRespuestaDTO> SolicitarRecuperacion(string correo);
+    Task RestablecerContrasena(string correo, string codigo, string nueva);
 }

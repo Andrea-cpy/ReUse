@@ -1,40 +1,67 @@
 @page "/mis-reportes"
+@inherits PaginaBase
+@inject IDenunciaService DenunciaService
+
+@* RF-04: seguimiento de los reportes que envió el usuario → GET /denuncias?denunciante=ID *@
 
 <PageTitle>Mis reportes · ReUse</PageTitle>
 
 <EncabezadoPagina Titulo="Mis reportes" Subtitulo="Seguimiento de los reportes que enviaste." />
 
+<Alertas Error="@Error" />
+
 <div class="ru-card">
-    <div class="table-responsive">
-        <table class="table ru-table">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Tipo</th>
-                    <th>Reportado</th>
-                    <th>Motivo</th>
-                    <th>Fecha</th>
-                    <th>Estado</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var r in reportes)
-                {
-                    <tr>
-                        <td class="small-muted">@r.Id</td>
-                        <td><i class="bi @(r.Tipo == "ANUNCIO" ? "bi-megaphone" : "bi-person")"></i> @DatosDemo.Texto(r.Tipo)</td>
-                        <td class="fw-semibold">@r.Objetivo</td>
-                        <td>@DatosDemo.Texto(r.Motivo)</td>
-                        <td class="small-muted">@r.Fecha</td>
-                        <td><BadgeEstado Estado="@r.Estado" /></td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
+    @if (cargando)
+    {
+        <Cargando />
+    }
+    else if (reportes.Any())
+    {
+        <div class="table-responsive">
+            <table class="table ru-table">
+                <thead>
+                    <tr><th>#</th><th>Tipo</th><th>Reportado</th><th>Motivo</th><th>Fecha</th><th>Estado</th><th>Revisión</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (DenunciaDTO r in reportes)
+                    {
+                        <tr>
+                            <td class="small-muted">@r.IdReporte</td>
+                            <td class="text-nowrap"><i class="bi @(r.Tipo == "ANUNCIO" ? "bi-megaphone" : "bi-person")"></i> @Formato.Texto(r.Tipo)</td>
+                            <td class="fw-semibold">
+                                @if (r.Tipo == "ANUNCIO")
+                                {
+                                    <NavLink class="text-body" href="@($"anuncios/{r.IdAnuncio}")">@r.TituloAnuncio</NavLink>
+                                }
+                                else
+                                {
+                                    <NavLink class="text-body" href="@($"usuarios/{r.IdDenunciado}")">@r.NombreDenunciado</NavLink>
+                                }
+                            </td>
+                            <td>@Formato.Texto(r.Motivo)</td>
+                            <td class="small-muted text-nowrap">@Formato.Fecha(r.FechaRegistro)</td>
+                            <td><BadgeEstado Estado="@r.EstadoRevision" /></td>
+                            <td class="small-muted">@(r.FechaRevision is null ? "En revisión" : Formato.Fecha(r.FechaRevision))</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <EstadoVacio Icono="bi-flag" Titulo="No has enviado reportes" Mensaje="Puedes reportar un anuncio o un usuario desde su página." />
+    }
 </div>
 
 @code {
-    // En la demo se muestran todos los reportes como si los hubiera enviado el usuario actual
-    private readonly List<ReporteDemo> reportes = DatosDemo.Reportes.Take(3).ToList();
+    private List<DenunciaDTO> reportes = [];
+    private bool cargando = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        int idUsuario = await IdUsuarioAsync();
+        await Ejecutar(async () => reportes = await DenunciaService.Listar(idDenunciante: idUsuario));
+        cargando = false;
+    }
 }

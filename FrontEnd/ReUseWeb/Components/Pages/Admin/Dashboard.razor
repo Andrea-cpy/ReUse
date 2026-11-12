@@ -4,12 +4,22 @@
 @inject IAnuncioService AnuncioService
 @inject ICategoriaService CategoriaService
 @inject IPuntoEntregaService PuntoEntregaService
+@inject IDenunciaService DenunciaService
 
 @* Resumen con datos reales del backend (observación del Lab 9): GET /usuarios, /anuncios, /categorias, /puntos-entrega *@
 
 <PageTitle>Resumen · Admin ReUse</PageTitle>
 
-<EncabezadoPagina Titulo="Resumen" Subtitulo="Actividad general de la plataforma, calculada con los datos de la base." />
+<EncabezadoPagina Titulo="Resumen" Subtitulo="Actividad general de la plataforma, calculada con los datos de la base.">
+    <Acciones>
+        @* RF-04: reportes PDF generados con JasperReports en el backend Java *@
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-outline-primary btn-sm" href="descargas/reportes/incidentes" target="_blank" download><i class="bi bi-file-earmark-pdf me-1"></i> Incidentes</a>
+            <a class="btn btn-outline-primary btn-sm" href="descargas/reportes/transacciones" target="_blank" download><i class="bi bi-file-earmark-pdf me-1"></i> Transacciones</a>
+            <a class="btn btn-outline-primary btn-sm" href="descargas/reportes/usuarios" target="_blank" download><i class="bi bi-file-earmark-pdf me-1"></i> Usuarios</a>
+        </div>
+    </Acciones>
+</EncabezadoPagina>
 
 <Alertas Error="@Error" />
 
@@ -114,6 +124,8 @@ else
     private List<AnuncioDTO> disponibles = [];
     private int categoriasActivas;
     private int puntosActivos;
+    private int denunciasPendientes;
+    private int anunciosObservados;
     private bool cargando = true;
 
     private IEnumerable<UsuarioDTO> Pendientes =>
@@ -137,8 +149,8 @@ else
         ("bi-hourglass-split", "tono-4", Pendientes.Count(), "Cuentas por verificar", "admin/usuarios?estado=PENDIENTE_VERIFICACION"),
         ("bi-slash-circle", "tono-5", usuarios.Count(u => u.EstadoCuenta == "SUSPENDIDA"), "Cuentas suspendidas", "admin/usuarios?estado=SUSPENDIDA"),
         ("bi-tags", "tono-6", categoriasActivas, "Categorías activas", "admin/categorias"),
-        ("bi-geo-alt", "tono-1", puntosActivos, "Puntos de entrega activos", "admin/puntos-entrega"),
-        ("bi-person-plus", "tono-2", usuarios.Count, "Usuarios registrados", "admin/usuarios"),
+        ("bi-flag", "tono-5", denunciasPendientes, "Reportes por revisar", "admin/reportes"),
+        ("bi-eye-slash", "tono-4", anunciosObservados, "Anuncios observados", "admin/anuncios"),
     ];
 
     protected override async Task OnInitializedAsync()
@@ -150,6 +162,8 @@ else
             disponibles = await AnuncioService.Buscar(new FiltroAnuncios());
             categoriasActivas = (await CategoriaService.Listar()).Count(c => c.Activo);
             puntosActivos = (await PuntoEntregaService.Listar()).Count(p => p.Activo);
+            denunciasPendientes = (await DenunciaService.Listar(estado: "PENDIENTE")).Count;
+            anunciosObservados = (await AnuncioService.ListarTodos()).Count(a => a.Estado == "OBSERVADO");
         });
         cargando = false;
     }

@@ -3,12 +3,16 @@ package pe.edu.pucp.reuse.bl.impl;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import pe.edu.pucp.reuse.bl.AnuncioBL;
 import pe.edu.pucp.reuse.bl.BLException;
+import pe.edu.pucp.reuse.dao.BloqueoDAO;
 import pe.edu.pucp.reuse.dao.ImagenProductoDAO;
 import pe.edu.pucp.reuse.dao.MaterialAcademicoDAO;
+import pe.edu.pucp.reuse.dao.impl.BloqueoDAOImpl;
 import pe.edu.pucp.reuse.dao.impl.ImagenProductoDAOImpl;
 import pe.edu.pucp.reuse.dao.impl.MaterialAcademicoDAOImpl;
 import pe.edu.pucp.reuse.dao.transacciones.TransactionsManager;
@@ -17,11 +21,84 @@ import pe.edu.pucp.reuse.modelo.catalogo.ImagenProducto;
 import pe.edu.pucp.reuse.modelo.catalogo.MaterialAcademico;
 import pe.edu.pucp.reuse.modelo.enums.CondicionMaterial;
 import pe.edu.pucp.reuse.modelo.enums.EstadoAnuncio;
+import pe.edu.pucp.reuse.modelo.enums.EstadoBloqueo;
+import pe.edu.pucp.reuse.modelo.enums.TipoNotificacion;
+import pe.edu.pucp.reuse.modelo.moderacion.Bloqueo;
 
 public class AnuncioBLImpl extends BaseBLImpl implements AnuncioBL {
 
     private final ImagenProductoDAO imagenDAO = new ImagenProductoDAOImpl();
     private final MaterialAcademicoDAO materialDAO = new MaterialAcademicoDAOImpl();
+    private final BloqueoDAO bloqueoDAO = new BloqueoDAOImpl();
+
+    /**
+     * RF-14: el administrador modera un anuncio sin borrarlo. Cada accion solo procede desde
+     * los estados indicados; la BD cambia el estado solo si sigue siendo el esperado.
+     */
+    @Override
+    public void moderar(int idAnuncio, String accion) throws BLException {
+        Anuncio anuncio = buscarAnuncio(idAnuncio);
+        EstadoAnuncio actual = anuncio.getEstado();
+        EstadoAnuncio nuevo;
+        String aviso;
+        switch (accion == null ? "" : accion.trim().toUpperCase()) {
+            case "OBSERVAR" -> {
+                if (actual != EstadoAnuncio.DISPONIBLE) {
+                    throw new BLException("Solo se puede observar un anuncio DISPONIBLE (estado actual: " + actual + ")");
+                }
+                nuevo = EstadoAnuncio.OBSERVADO;
+                aviso = "Tu anuncio '" + anuncio.getTitulo() + "' quedo OBSERVADO mientras moderacion lo revisa.";
+            }
+            case "HABILITAR" -> {
+                if (actual != EstadoAnuncio.OBSERVADO) {
+                    throw new BLException("Solo se puede habilitar un anuncio OBSERVADO (estado actual: " + actual + ")");
+                }
+                nuevo = EstadoAnuncio.DISPONIBLE;
+                aviso = "Tu anuncio '" + anuncio.getTitulo() + "' fue revisado y vuelve a estar DISPONIBLE.";
+            }
+            case "ARCHIVAR" -> {
+                if (actual != EstadoAnuncio.DISPONIBLE && actual != EstadoAnuncio.OBSERVADO) {
+                    throw new BLException("Solo se puede archivar un anuncio DISPONIBLE u OBSERVADO (estado actual: "
+                            + actual + ")");
+                }
+                nuevo = EstadoAnuncio.ARCHIVADO;
+                aviso = "Tu anuncio '" + anuncio.getTitulo() + "' fue ARCHIVADO por moderacion.";
+            }
+            default -> throw new BLException("Accion de moderacion no valida: use OBSERVAR, HABILITAR o ARCHIVAR");
+        }
+        try {
+            if (anuncioDAO.cambiarEstado(idAnuncio, actual, nuevo) == 0) {
+                throw new BLException("El anuncio " + idAnuncio + " cambio de estado mientras se moderaba; vuelva a intentarlo");
+            }
+        } catch (SQLException e) {
+            throw new BLException("No se pudo moderar el anuncio", e);
+        }
+        new Notificador().avisar(anuncio.getVendedor().getIdUsuario(), TipoNotificacion.CAMBIO_ESTADO_ANUNCIO, aviso);
+    }
+
+    // RF-10: vendedores con los que el usuario tiene un bloqueo ACTIVO (en cualquier sentido).
+    private Set<Integer> usuariosBloqueadosCon(int idUsuario) throws BLException {
+        Set<Integer> bloqueados = new HashSet<>();
+        if (idUsuario <= 0) {
+            return bloqueados;
+        }
+        try {
+            for (Bloqueo bloqueo : bloqueoDAO.findAll()) {
+                if (!bloqueo.isActivo() || bloqueo.getEstado() != EstadoBloqueo.ACTIVO
+                        || bloqueo.getBloqueador() == null || bloqueo.getBloqueado() == null) {
+                    continue;
+                }
+                if (bloqueo.getBloqueador().getIdUsuario() == idUsuario) {
+                    bloqueados.add(bloqueo.getBloqueado().getIdUsuario());
+                } else if (bloqueo.getBloqueado().getIdUsuario() == idUsuario) {
+                    bloqueados.add(bloqueo.getBloqueador().getIdUsuario());
+                }
+            }
+        } catch (SQLException e) {
+            throw new BLException("No se pudo verificar los bloqueos del usuario", e);
+        }
+        return bloqueados;
+    }
 
     /**
      * Registra el anuncio y todas sus imagenes en una sola transaccion: si
@@ -122,6 +199,20 @@ public class AnuncioBLImpl extends BaseBLImpl implements AnuncioBL {
 
 
     @Override
+    public ArrayList<Anuncio> listarTodos() throws BLException {
+        Map<Integer, MaterialAcademico> materiales = materialesPorId();
+        ArrayList<Anuncio> resultado = findAll();
+        for (Anuncio anuncio : resultado) {
+            MaterialAcademico material = anuncio.getMaterialAcademico() == null ? null
+                    : materiales.get(anuncio.getMaterialAcademico().getIdMaterial());
+            if (material != null) {
+                anuncio.setMaterialAcademico(material);
+            }
+        }
+        return resultado;
+    }
+
+    @Override
     public ArrayList<Anuncio> listarPorVendedor(int idVendedor) throws BLException {
         ArrayList<Anuncio> resultado = new ArrayList<>();
         for (Anuncio anuncio : findAll()) {
@@ -141,12 +232,17 @@ public class AnuncioBLImpl extends BaseBLImpl implements AnuncioBL {
         }
         Map<Integer, MaterialAcademico> materiales = materialesPorId();
         String textoBuscado = texto == null ? "" : texto.trim().toLowerCase();
+        // RF-10: el bloqueo es bidireccional, ninguno ve los anuncios del otro.
+        Set<Integer> bloqueados = usuariosBloqueadosCon(idUsuarioExcluido);
         ArrayList<Anuncio> resultado = new ArrayList<>();
         for (Anuncio anuncio : findAll()) {
             if (anuncio.getEstado() != EstadoAnuncio.DISPONIBLE) {
                 continue;
             }
             if (idUsuarioExcluido > 0 && anuncio.getVendedor().getIdUsuario() == idUsuarioExcluido) {
+                continue;
+            }
+            if (bloqueados.contains(anuncio.getVendedor().getIdUsuario())) {
                 continue;
             }
             // El listado solo trae id y titulo del material: se completa con su categoria.

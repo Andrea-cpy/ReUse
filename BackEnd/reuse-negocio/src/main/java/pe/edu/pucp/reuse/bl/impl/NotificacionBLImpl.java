@@ -1,18 +1,102 @@
 package pe.edu.pucp.reuse.bl.impl;
 
 import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 
 import pe.edu.pucp.reuse.bl.BLException;
 import pe.edu.pucp.reuse.bl.NotificacionBL;
+import pe.edu.pucp.reuse.dao.CitaEntregaDAO;
 import pe.edu.pucp.reuse.dao.NotificacionDAO;
+import pe.edu.pucp.reuse.dao.impl.CitaEntregaDAOImpl;
 import pe.edu.pucp.reuse.dao.impl.NotificacionDAOImpl;
+import pe.edu.pucp.reuse.modelo.enums.EstadoCita;
 import pe.edu.pucp.reuse.modelo.enums.EstadoNotificacion;
+import pe.edu.pucp.reuse.modelo.enums.EstadoTransaccion;
+import pe.edu.pucp.reuse.modelo.enums.TipoNotificacion;
 import pe.edu.pucp.reuse.modelo.mensajeria.Notificacion;
+import pe.edu.pucp.reuse.modelo.transacciones.CitaEntrega;
+import pe.edu.pucp.reuse.modelo.transacciones.Transaccion;
 
 public class NotificacionBLImpl extends BaseBLImpl implements NotificacionBL {
 
+    private static final int HORAS_MAXIMAS_RECORDATORIO = 7 * 24;
+    private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy 'a las' HH:mm");
+
     private final NotificacionDAO notificacionDAO = new NotificacionDAOImpl();
+    private final CitaEntregaDAO citaDAO = new CitaEntregaDAOImpl();
+
+    @Override
+    public int marcarTodasComoLeidas(int idDestinatario) throws BLException {
+        int cambiadas = 0;
+        for (Notificacion notificacion : listarPorDestinatario(idDestinatario)) {
+            if (notificacion.isActivo() && notificacion.getEstado() == EstadoNotificacion.NO_LEIDA) {
+                notificacion.setEstado(EstadoNotificacion.LEIDA);
+                try {
+                    notificacionDAO.update(notificacion);
+                } catch (SQLException e) {
+                    throw new BLException("No se pudo marcar las notificaciones como leidas", e);
+                }
+                cambiadas++;
+            }
+        }
+        return cambiadas;
+    }
+
+    /**
+     * RF-12: una cita CONFIRMADA de una transaccion CITA_CONFIRMADA que ocurre entre ahora y
+     * las proximas 'horas' genera un recordatorio. La transaccion se identifica en el texto
+     * ("transaccion #ID") para no duplicar el aviso si el usuario vuelve a consultar.
+     */
+    @Override
+    public ArrayList<CitaEntrega> generarRecordatoriosCitas(int idUsuario, int horas) throws BLException {
+        buscarUsuario(idUsuario, "usuario");
+        if (horas <= 0 || horas > HORAS_MAXIMAS_RECORDATORIO) {
+            throw new BLException("La ventana del recordatorio debe estar entre 1 y " + HORAS_MAXIMAS_RECORDATORIO + " horas");
+        }
+        LocalDateTime ahora = LocalDateTime.now();
+        LocalDateTime limite = ahora.plusHours(horas);
+
+        ArrayList<Transaccion> transacciones = new TransaccionBLImpl().listarPorUsuario(idUsuario);
+        ArrayList<Notificacion> existentes = listarPorDestinatario(idUsuario);
+
+        ArrayList<CitaEntrega> proximas = new ArrayList<>();
+        for (Transaccion transaccion : transacciones) {
+            CitaEntrega resumen = transaccion.getCitaEntrega();
+            if (transaccion.getEstado() != EstadoTransaccion.CITA_CONFIRMADA || resumen == null
+                    || resumen.getEstado() != EstadoCita.CONFIRMADA || resumen.getFechaHora() == null
+                    || resumen.getFechaHora().isBefore(ahora) || resumen.getFechaHora().isAfter(limite)) {
+                continue;
+            }
+            CitaEntrega cita;
+            try {
+                cita = citaDAO.obtenerPorTransaccion(transaccion.getIdTransaccion()); // trae el punto de entrega
+            } catch (SQLException e) {
+                throw new BLException("No se pudo recuperar la cita de la transaccion " + transaccion.getIdTransaccion(), e);
+            }
+            if (cita == null) {
+                continue;
+            }
+            cita.setTransaccion(transaccion);
+            proximas.add(cita);
+
+            String marca = "transaccion #" + transaccion.getIdTransaccion();
+            boolean yaAvisado = existentes.stream().anyMatch(n -> n.isActivo()
+                    && n.getTipo() == TipoNotificacion.RECORDATORIO_CITA
+                    && n.getMensaje() != null && n.getMensaje().contains(marca));
+            if (!yaAvisado) {
+                String lugar = cita.getPuntoEntrega() == null || cita.getPuntoEntrega().getNombre() == null
+                        ? "el punto acordado" : cita.getPuntoEntrega().getNombre();
+                new Notificador().avisar(idUsuario, TipoNotificacion.RECORDATORIO_CITA,
+                        "Recordatorio: tienes una cita de entrega por '" + transaccion.getAnuncio().getTitulo()
+                                + "' (" + marca + ") el " + cita.getFechaHora().format(FORMATO_FECHA)
+                                + " en " + lugar + ".");
+            }
+        }
+        proximas.sort((a, b) -> a.getFechaHora().compareTo(b.getFechaHora()));
+        return proximas;
+    }
 
     @Override
     public int insert(Notificacion notificacion) throws BLException {
