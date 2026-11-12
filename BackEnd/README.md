@@ -19,7 +19,7 @@ Marketplace de materiales académicos entre estudiantes PUCP. Equipo **Erasmolov
 
 1. **Base de datos**: ejecutar completo `ScriptSQL/reuse_schema.sql` (en la raíz del repo; crea tablas, procedimientos y datos de prueba).
 2. **Conexión**: copiar `reuse-dbmanager/src/main/resources/db.properties.example` como `db.properties` en la misma carpeta y completar sus datos (ese archivo está en `.gitignore`).
-3. **Compilar**: en NetBeans, abrir la carpeta `BackEnd` y hacer *Clean and Build* del proyecto padre `ReUse` (o `mvn clean install` dentro de `BackEnd`). Se genera `reuse-rest/target/reuse-rest.war`.
+3. **Compilar**: en IntelliJ IDEA, abrir la carpeta `BackEnd` y hacer *Clean and Build* del proyecto padre `ReUse` (o `mvn clean install` dentro de `BackEnd`). Se genera `reuse-rest/target/reuse-rest.war`.
 4. **Desplegar**: usar el GlassFish 8.0.5 del laboratorio que está en la carpeta `glassfish8` del repo. En NetBeans: *Services → Servers → Add Server → GlassFish* apuntando a esa carpeta, y luego *Run* sobre `reuse-rest`. También se puede copiar el war a `glassfish8/glassfish/domains/domain1/autodeploy`. Su `domain.xml` espera el JDK en `C:\Program Files\Java\jdk-25.0.4`; si su JDK está en otra ruta, cambien `java-home` en `glassfish8/glassfish/domains/domain1/config/domain.xml`.
 5. **Probar**: abrir `http://localhost:8080/reuse-rest/api/v1/categorias` → debe devolver un JSON con las categorías.
 
