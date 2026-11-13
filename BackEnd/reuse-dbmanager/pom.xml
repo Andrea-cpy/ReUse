@@ -17,6 +17,20 @@
             <artifactId>mysql-connector-j</artifactId>
             <version>26.7.0</version>
         </dependency>
+        <!-- Pool de conexiones JDBC: evita abrir una conexion SSL nueva contra AWS en cada consulta. -->
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>5.1.0</version>
+        </dependency>
+        <!-- HikariCP registra con SLF4J; este puente envia esos mensajes a java.util.logging
+             (server.log de GlassFish). Sin el, SLF4J descarta los mensajes del pool. -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-jdk14</artifactId>
+            <version>1.7.36</version>
+            <scope>runtime</scope>
+        </dependency>
     </dependencies>
 
 </project>
