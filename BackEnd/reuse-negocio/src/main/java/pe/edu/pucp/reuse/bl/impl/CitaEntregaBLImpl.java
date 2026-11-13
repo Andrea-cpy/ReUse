@@ -133,7 +133,7 @@ public class CitaEntregaBLImpl extends BaseBLImpl implements CitaEntregaBL {
     private CitaEntrega buscarCita(int idCita) throws BLException {
         CitaEntrega cita = findById(idCita);
         if (cita == null || !cita.isActivo()) {
-            throw new BLException("No existe la cita con id " + idCita);
+            throw new BLException("La cita no existe o ya no esta disponible");
         }
         return cita;
     }

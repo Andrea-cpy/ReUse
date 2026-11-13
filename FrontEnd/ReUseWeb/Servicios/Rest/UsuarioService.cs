@@ -20,6 +20,11 @@ public class UsuarioService : IUsuarioService
 
     public Task<UsuarioDTO> Registrar(UsuarioDTO usuario) => HttpUtils.DoPost<UsuarioDTO, UsuarioDTO>(BaseUrl, usuario);
 
+    /// <summary>RF-01 con Google: POST /auth/google/registro. La cuenta queda ACTIVA y verificada.</summary>
+    public Task<UsuarioDTO> RegistrarConGoogle(string idToken, UsuarioDTO usuario) =>
+        HttpUtils.DoPost<RegistroGoogleDTO, UsuarioDTO>($"{AuthUrl}/google/registro",
+            new RegistroGoogleDTO { IdToken = idToken, Usuario = usuario });
+
     public Task<UsuarioDTO> ActualizarPerfil(UsuarioDTO usuario) => HttpUtils.DoPut<UsuarioDTO, UsuarioDTO>($"{BaseUrl}/{usuario.IdUsuario}", usuario);
 
     public Task CambiarContrasena(int id, string actual, string nueva) => HttpUtils.DoPut($"{BaseUrl}/{id}/contrasena", new CambioContrasenaDTO { ContrasenaActual = actual, ContrasenaNueva = nueva });

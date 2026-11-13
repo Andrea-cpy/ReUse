@@ -20,7 +20,8 @@ public class EntradaInvalidaMapper implements ExceptionMapper<IllegalArgumentExc
         LOG.info("[" + idSolicitud + "] Solicitud invalida: " + ex.getMessage());
         return Response.status(Response.Status.BAD_REQUEST)
                 .type(MediaType.APPLICATION_JSON)
-                .entity(Map.of("error", "Datos invalidos: " + ex.getMessage(), "idSolicitud", idSolicitud))
+                // El detalle (clases, enums, formatos internos) solo va al log, con el idSolicitud para ubicarlo.
+                .entity(Map.of("error", "Los datos enviados no son validos.", "idSolicitud", idSolicitud))
                 .build();
     }
 }

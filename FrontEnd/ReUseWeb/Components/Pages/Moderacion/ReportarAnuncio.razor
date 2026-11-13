@@ -26,24 +26,29 @@ else
     <div class="row g-4">
         <div class="col-lg-8">
             <EditForm Model="modelo" OnValidSubmit="Enviar" FormName="reporteAnuncio">
+                <DataAnnotationsValidator />
                 <div class="ru-card ru-card-body">
-                    <h2 class="h3 mb-3">¿Cuál es el problema?</h2>
-                    <div class="d-flex flex-column gap-2 mb-4">
-                        @foreach (var (valor, texto, ayuda) in motivos)
-                        {
-                            <label class="border rounded-3 p-3 d-flex gap-3 cursor-pointer @(modelo.Motivo == valor ? "border-primary bg-primary-subtle" : "")">
-                                <input type="radio" class="form-check-input mt-1" name="motivo"
-                                       checked="@(modelo.Motivo == valor)" @onchange="() => modelo.Motivo = valor" />
-                                <span><span class="fw-semibold d-block">@texto</span><span class="small-muted">@ayuda</span></span>
-                            </label>
-                        }
-                    </div>
-                    <label class="form-label fw-semibold" for="descripcion">Describe lo ocurrido</label>
-                    <InputTextArea id="descripcion" class="form-control mb-4" rows="4" @bind-Value="modelo.Descripcion"
-                                   placeholder="Brinda detalles que ayuden al equipo de moderación." />
+                    <h2 class="h3 mb-1 requerido">¿Cuál es el problema?</h2>
+                    <p class="ru-nota-requeridos mb-3">Campos obligatorios</p>
+                    <InputRadioGroup @bind-Value="modelo.Motivo">
+                        <div class="d-flex flex-column gap-2 mb-4">
+                            @foreach (var (valor, texto, ayuda) in motivos)
+                            {
+                                <label class="border rounded-3 p-3 d-flex gap-3 cursor-pointer @(modelo.Motivo == valor ? "border-primary bg-primary-subtle" : "")">
+                                    <InputRadio class="form-check-input mt-1" Value="valor" />
+                                    <span><span class="fw-semibold d-block">@texto</span><span class="small-muted">@ayuda</span></span>
+                                </label>
+                            }
+                        </div>
+                    </InputRadioGroup>
+                    <label class="form-label fw-semibold requerido" for="descripcion">Describe lo ocurrido</label>
+                    <AreaTexto id="descripcion" class="form-control" rows="4" maxlength="1000" @bind-Value="modelo.Descripcion"
+                               placeholder="Brinda detalles que ayuden al equipo de moderación." />
+                    <ValidationMessage For="() => modelo.Descripcion" />
+                    <div class="mb-4"></div>
                     <div class="d-flex justify-content-end gap-2">
                         <NavLink class="btn btn-light" href="@($"anuncios/{Id}")">Cancelar</NavLink>
-                        <button type="submit" class="btn btn-danger" disabled="@Procesando"><i class="bi bi-flag me-1"></i> Enviar reporte</button>
+                        <div class="text-end"><BotonEnviar Texto="Enviar reporte" Icono="bi-flag" Clase="btn-danger" Procesando="@Procesando" /></div>
                     </div>
                 </div>
             </EditForm>
@@ -96,11 +101,6 @@ else
 
     private async Task Enviar()
     {
-        if (string.IsNullOrEmpty(modelo.Motivo))
-        {
-            Error = "Selecciona cuál es el problema del anuncio.";
-            return;
-        }
         int idUsuario = await IdUsuarioAsync();
         enviado = await Ejecutar(() => DenunciaService.DenunciarAnuncio(new DenunciaDTO
         {
@@ -113,7 +113,10 @@ else
 
     private class ReporteModelo
     {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Elige cuál es el problema.")]
         public string Motivo { get; set; } = "";
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Describe lo ocurrido.")]
         public string Descripcion { get; set; } = "";
     }
 }

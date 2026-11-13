@@ -61,7 +61,7 @@ public class ChatsResource {
     public Response findById(@PathParam("id") int id) throws BLException {
         CanalChat chat = chatBL.findById(id);
         if (chat == null) {
-            return Respuestas.noEncontrado("No existe el chat con id " + id);
+            return Respuestas.noEncontrado("El chat no existe o ya no esta disponible");
         }
         CanalChatDTO dto = ChatMapper.toDTO(chat);
         completarNombres(dto, new NombresUsuario());

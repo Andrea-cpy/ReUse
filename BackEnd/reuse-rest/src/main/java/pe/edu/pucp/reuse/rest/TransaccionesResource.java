@@ -55,7 +55,7 @@ public class TransaccionesResource {
     public Response findById(@PathParam("id") int id) throws BLException {
         Transaccion transaccion = transaccionBL.findById(id);
         if (transaccion == null) {
-            return Respuestas.noEncontrado("No existe la transaccion con id " + id);
+            return Respuestas.noEncontrado("La transaccion no existe o ya no esta disponible");
         }
         TransaccionDTO dto = TransaccionMapper.toDTO(transaccion);
         dto.setNombreVendedor(new NombresUsuario().de(dto.getIdVendedor()));
@@ -68,7 +68,7 @@ public class TransaccionesResource {
     public Response cita(@PathParam("id") int id) throws BLException {
         CitaEntrega cita = citaBL.obtenerPorTransaccion(id);
         if (cita == null) {
-            return Respuestas.noEncontrado("La transaccion " + id + " aun no tiene cita");
+            return Respuestas.noEncontrado("La transaccion aun no tiene cita");
         }
         return Response.ok(CitaEntregaMapper.toDTO(cita)).build();
     }

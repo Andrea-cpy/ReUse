@@ -40,7 +40,7 @@ public class CalificacionBLImpl extends BaseBLImpl implements CalificacionBL {
             if (TransactionsManager.activa()) {
                 TransactionsManager.rollback();
             }
-            throw new BLException("No se pudo registrar la calificacion; se hizo rollback", e);
+            throw new BLException("No se pudo registrar la calificacion. Intentalo de nuevo.", e);
         }
         // RF-18: con la reputacion ya recalculada, se evaluan las insignias del calificado.
         new InsigniaUsuarioBLImpl().evaluarSinFallar(calificacion.getCalificado().getIdUsuario());
@@ -90,7 +90,7 @@ public class CalificacionBLImpl extends BaseBLImpl implements CalificacionBL {
             if (TransactionsManager.activa()) {
                 TransactionsManager.rollback();
             }
-            throw new BLException("No se pudo actualizar la calificacion; se hizo rollback", e);
+            throw new BLException("No se pudo actualizar la calificacion. Intentalo de nuevo.", e);
         }
     }
 
@@ -108,7 +108,7 @@ public class CalificacionBLImpl extends BaseBLImpl implements CalificacionBL {
             if (TransactionsManager.activa()) {
                 TransactionsManager.rollback();
             }
-            throw new BLException("No se pudo eliminar la calificacion; se hizo rollback", e);
+            throw new BLException("No se pudo eliminar la calificacion. Intentalo de nuevo.", e);
         }
     }
 
@@ -176,7 +176,7 @@ public class CalificacionBLImpl extends BaseBLImpl implements CalificacionBL {
     private Calificacion buscarCalificacion(int idCalificacion) throws BLException {
         Calificacion calificacion = findById(idCalificacion);
         if (calificacion == null || !calificacion.isActivo()) {
-            throw new BLException("No existe la calificacion con id " + idCalificacion);
+            throw new BLException("La calificacion no existe o ya no esta disponible");
         }
         return calificacion;
     }

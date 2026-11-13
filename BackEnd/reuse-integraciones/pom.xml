@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>pe.edu.pucp.reuse</groupId>
+        <artifactId>ReUse</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <!-- Comunicacion con sistemas externos (Google, servidor de correo), como reuse-dbmanager
+         lo es para la BD. No conoce las reglas de negocio ni depende de reuse-negocio. -->
+    <artifactId>reuse-integraciones</artifactId>
+
+    <dependencies>
+        <!-- Ingreso con Google: validacion de la firma y los datos del ID token (JWT). -->
+        <dependency>
+            <groupId>com.nimbusds</groupId>
+            <artifactId>nimbus-jose-jwt</artifactId>
+            <version>10.0.2</version>
+        </dependency>
+        <!-- Envio de correos (SMTP). "provided": GlassFish 8 trae la API y su implementacion
+             (Angus Mail) en glassfish8/glassfish/modules. -->
+        <dependency>
+            <groupId>jakarta.mail</groupId>
+            <artifactId>jakarta.mail-api</artifactId>
+            <version>2.1.5</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+</project>

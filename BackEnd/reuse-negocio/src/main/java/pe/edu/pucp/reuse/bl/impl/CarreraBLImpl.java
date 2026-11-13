@@ -95,7 +95,7 @@ public class CarreraBLImpl extends BaseBLImpl implements CarreraBL {
         try {
             Facultad facultad = facultadDAO.findById(carrera.getFacultad().getIdFacultad());
             if (facultad == null || !facultad.isActivo()) {
-                throw new BLException("No existe la facultad " + carrera.getFacultad().getIdFacultad());
+                throw new BLException("La facultad no existe o ya no esta disponible");
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar la facultad", e);
@@ -104,7 +104,7 @@ public class CarreraBLImpl extends BaseBLImpl implements CarreraBL {
 
     private void validarExiste(int idCarrera) throws BLException {
         if (findById(idCarrera) == null) {
-            throw new BLException("No existe una carrera con id " + idCarrera);
+            throw new BLException("La carrera no existe o ya no esta disponible");
         }
     }
 

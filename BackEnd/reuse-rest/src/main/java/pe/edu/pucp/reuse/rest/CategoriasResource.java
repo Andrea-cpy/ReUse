@@ -44,7 +44,7 @@ public class CategoriasResource {
     public Response findById(@PathParam("id") int id) throws BLException {
         CategoriaMaterial categoria = categoriaBL.findById(id);
         if (categoria == null) {
-            return Respuestas.noEncontrado("No existe la categoria con id " + id);
+            return Respuestas.noEncontrado("La categoria no existe o ya no esta disponible");
         }
         return Response.ok(CategoriaMaterialMapper.toDTO(categoria)).build();
     }
@@ -61,7 +61,7 @@ public class CategoriasResource {
     @Path("/{id}")
     public Response update(@PathParam("id") int id, CategoriaMaterialDTO dto) throws BLException {
         if (dto == null || id != dto.getIdCategoria()) {
-            return Respuestas.solicitudInvalida("El id y el payload no coinciden");
+            return Respuestas.solicitudInvalida("No se pudo guardar el cambio.");
         }
         categoriaBL.update(CategoriaMaterialMapper.toModelo(dto));
         return Response.ok(CategoriaMaterialMapper.toDTO(categoriaBL.findById(id))).build();

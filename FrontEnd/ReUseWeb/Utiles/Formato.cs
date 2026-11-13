@@ -26,6 +26,14 @@ public static class Formato
     /// <summary>Formato que espera el backend Java (LocalDateTime.parse).</summary>
     public static string AIso(DateTime fecha) => fecha.ToString("yyyy-MM-dd'T'HH:mm", CultureInfo.InvariantCulture);
 
+    /// <summary>"FABRICIO BENJAMIN DE LA CRUZ" → "Fabricio".</summary>
+    public static string PrimerNombre(string? nombreCompleto)
+    {
+        if (string.IsNullOrWhiteSpace(nombreCompleto)) return "";
+        string primero = nombreCompleto.Split(' ', StringSplitOptions.RemoveEmptyEntries)[0];
+        return char.ToUpper(primero[0], Peru) + primero[1..].ToLower(Peru);
+    }
+
     public static string Iniciales(string? nombre)
     {
         if (string.IsNullOrWhiteSpace(nombre)) return "?";

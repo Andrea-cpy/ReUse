@@ -17,9 +17,9 @@ public class AdministradorPUCP extends UsuarioPUCP {
         setEstadoCuenta(EstadoCuenta.ACTIVA);
     }
 
-    public AdministradorPUCP(String codigoPUCP, String nombres, String apellidoPaterno, String apellidoMaterno,
+    public AdministradorPUCP(String codigoPUCP, String nombres, String apellidos,
                              String correoInstitucional, String contrasena) {
-        super(codigoPUCP, nombres, apellidoPaterno, apellidoMaterno, correoInstitucional, contrasena, null);
+        super(codigoPUCP, nombres, apellidos, correoInstitucional, contrasena, null);
         this.reportesRevisados = new ArrayList<>();
         setVerificado(true);
         setEstadoCuenta(EstadoCuenta.ACTIVA);

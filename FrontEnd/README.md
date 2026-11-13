@@ -11,7 +11,7 @@ de la sesión de clase: `Servicios/Rest/HttpUtils` + un servicio por entidad + D
 3. Abrir `FrontEnd/ReUseWeb.sln` en Visual Studio y ejecutar con **F5**. Se abre `/login`.
 4. Ingresar con un usuario de prueba (contraseña `Demo1234`): `a20260001@pucp.edu.pe` (estudiante) o `admin.demo@pucp.edu.pe` (administrador).
 
-> Si el backend no está levantado, las pantallas muestran «No se pudo conectar con el servidor de ReUse».
+> Si el backend no está levantado, las pantallas muestran «ReUse no está disponible en este momento. Inténtalo de nuevo en unos minutos.».
 
 ## Cómo está organizado
 
@@ -53,7 +53,42 @@ ReUseWeb/
 | RF-17 Ofertas | `/anuncios/{id}/ofertar`, `/mis-ofertas`, `/mis-anuncios/{id}/ofertas` | `IOfertaService` → `/ofertas` |
 
 La reputación se muestra separada como vendedor y como comprador (perfil, detalle del anuncio y lista de usuarios del admin).
-El login incluye el botón **Iniciar sesión con Google** (solo visual: es la propuesta para el flujo de verificación con la cuenta @pucp.edu.pe).
+El login y el registro incluyen el botón **Continuar con Google** (ver «Ingreso con Google» más abajo).
+
+## Ingreso con Google (cuenta @pucp.edu.pe)
+
+Un solo botón sirve para ingresar y para registrarse:
+
+1. `POST /cuenta/google` lleva a Google (OpenID Connect, con `hd=pucp.edu.pe` para mostrar primero las cuentas PUCP).
+2. Al volver, Blazor envía el **ID token** a `POST /auth/google` del backend. Java valida la firma con las claves de
+   Google, el Client ID, el vencimiento, que el correo esté verificado y que la cuenta sea del dominio `pucp.edu.pe`
+   (claim `hd`). Una cuenta Google personal o de otro dominio se rechaza con un mensaje en `/login`.
+3. Si el correo ya tiene cuenta, se abre la sesión (si estaba `PENDIENTE_VERIFICACION`, queda verificada).
+   Si no, se abre la **misma pantalla de registro** (`/registro/google`) con nombres, apellidos, código PUCP
+   (tomado del correo `aXXXXXXXX@pucp.edu.pe`) y correo ya rellenados; el estudiante elige facultad, carrera y
+   contraseña. Se crea el mismo usuario que con el formulario, pero **ACTIVA y verificada**, sin revisión del
+   administrador (`POST /auth/google/registro`).
+
+**Configuración** (una vez por equipo, en [Google Cloud Console](https://console.cloud.google.com/apis/credentials)):
+
+1. Configurar la **pantalla de consentimiento de OAuth** como **Externa** (un proyecto personal no puede ser
+   «Interno» de la PUCP), con los permisos `openid`, `email` y `profile`. Mientras esté en modo **Prueba**, agregar
+   en *Usuarios de prueba* los correos @pucp.edu.pe que van a ingresar (los del equipo y el del profesor para la demo);
+   cualquier otro correo verá «Acceso bloqueado».
+2. Crear un *ID de cliente de OAuth* de tipo **Aplicación web** con URIs de redirección autorizados
+   `http://localhost:5180/signin-google` y `https://localhost:7180/signin-google` (exactos, sin barra final).
+3. Client ID en `ReUseWeb/appsettings.json` → `Google:ClientId` **y** en
+   `BackEnd/reuse-negocio/src/main/resources/google.properties` → `clientId` (deben ser el mismo).
+   Después de cambiar `google.properties` hay que recompilar y volver a desplegar `reuse-rest`.
+4. Client Secret **solo** con user-secrets (no se sube al repositorio), dentro de `FrontEnd/ReUseWeb`:
+   `dotnet user-secrets set "Google:ClientSecret" "<secreto>"`. Cada integrante que corra el frontend lo configura
+   en su máquina.
+
+Google vuelve a `/signin-google` con una redirección GET (`response_mode=query`), así el ingreso funciona también
+con el perfil http sin errores de cookies («Correlation failed»).
+
+Sin esa configuración el botón se muestra igual: el usuario ve «El ingreso con Google no está disponible por ahora»
+y el motivo exacto (qué clave falta) queda en el log de Blazor o en el `server.log` de GlassFish.
 
 El resumen del administrador (`/admin`) muestra totales reales: usuarios activos, cuentas por verificar y suspendidas,
 vendedores con anuncios, anuncios disponibles por categoría, categorías y puntos activos.

@@ -39,6 +39,7 @@ else
                 <h2 class="h3 mb-0">@Contraparte</h2>
                 <div class="small-muted mb-4">Calificación como @(SoyComprador ? "vendedor" : "comprador") · @Formato.Soles(t.MontoAcordado)</div>
 
+                <div class="fw-semibold small requerido mb-1">Tu calificación</div>
                 <div class="ru-estrellas input mb-1">
                     @for (int i = 1; i <= 5; i++)
                     {
@@ -54,7 +55,13 @@ else
 
                 <div class="d-flex gap-2 justify-content-center">
                     <NavLink class="btn btn-light" href="@Volver">Ahora no</NavLink>
-                    <button class="btn btn-primary" disabled="@(puntaje == 0 || Procesando)" @onclick="Enviar">Enviar calificación</button>
+                    <div>
+                        <button class="btn btn-primary" disabled="@(puntaje == 0 || Procesando)" @onclick="Enviar">Enviar calificación</button>
+                        @if (puntaje == 0)
+                        {
+                            <div class="ru-faltantes"><i class="bi bi-info-circle me-1"></i>Para continuar: elige de 1 a 5 estrellas</div>
+                        }
+                    </div>
                 </div>
             </div>
         </div>

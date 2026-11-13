@@ -19,18 +19,29 @@
 }
 else
 {
-    <EditForm Model="modelo" OnValidSubmit="Guardar" FormName="insignia">
+    <EditForm Model="modelo" OnValidSubmit="Guardar" FormName="insignia" Context="ctx">
         <div class="row g-4">
             <div class="col-lg-6">
                 <div class="ru-card ru-card-body">
-                    <h2 class="h3 mb-3">Datos de la insignia</h2>
+                    <h2 class="h3 mb-1">Datos de la insignia</h2>
+                    <p class="ru-nota-requeridos mb-3">Campos obligatorios</p>
                     <div class="mb-3">
-                        <label class="form-label" for="nombre">Nombre</label>
-                        <InputText id="nombre" class="form-control" maxlength="120" @bind-Value="modelo.Nombre" />
+                        <label class="form-label requerido" for="nombre">Nombre</label>
+                        <InputTexto id="nombre" maxlength="120" @bind-Value="modelo.Nombre"
+                                    class="@($"form-control {(ctx.IsModified(() => modelo.Nombre) && string.IsNullOrWhiteSpace(modelo.Nombre) ? "is-invalid" : "")}")" />
+                        @if (ctx.IsModified(() => modelo.Nombre) && string.IsNullOrWhiteSpace(modelo.Nombre))
+                        {
+                            <span class="ru-error-campo">Escribe el nombre de la insignia.</span>
+                        }
                     </div>
                     <div class="mb-3">
-                        <label class="form-label" for="descripcion">Descripción</label>
-                        <InputTextArea id="descripcion" class="form-control" rows="2" maxlength="400" @bind-Value="modelo.Descripcion" />
+                        <label class="form-label requerido" for="descripcion">Descripción</label>
+                        <AreaTexto id="descripcion" rows="2" maxlength="400" @bind-Value="modelo.Descripcion"
+                                   class="@($"form-control {(ctx.IsModified(() => modelo.Descripcion) && string.IsNullOrWhiteSpace(modelo.Descripcion) ? "is-invalid" : "")}")" />
+                        @if (ctx.IsModified(() => modelo.Descripcion) && string.IsNullOrWhiteSpace(modelo.Descripcion))
+                        {
+                            <span class="ru-error-campo">Escribe la descripción.</span>
+                        }
                     </div>
                     <div class="row g-3 mb-3">
                         <div class="col-sm-6">
@@ -92,7 +103,7 @@ else
                     }
                     @if (!modelo.Reglas.Any())
                     {
-                        <div class="small text-danger">Agrega al menos una regla.</div>
+                        <span class="ru-error-campo">Agrega al menos una regla.</span>
                     }
                 </div>
 
@@ -108,7 +119,10 @@ else
 
                 <div class="d-flex justify-content-end gap-2">
                     <NavLink class="btn btn-light" href="admin/insignias">Cancelar</NavLink>
-                    <button type="submit" class="btn btn-primary" disabled="@Procesando">Guardar</button>
+                    <div class="text-end">
+                        <BotonEnviar Texto="Guardar" Procesando="@Procesando" CondicionExtra="@(FaltantesInsignia.Count == 0)"
+                                     MensajeCondicionExtra="@string.Join(" · ", FaltantesInsignia)" />
+                    </div>
                 </div>
             </div>
         </div>
@@ -116,6 +130,14 @@ else
 }
 
 @code {
+    /// <summary>Lo que falta para poder guardar (las mismas reglas que valida InsigniaBL).</summary>
+    private List<string> FaltantesInsignia =>
+    [
+        .. string.IsNullOrWhiteSpace(modelo.Nombre) ? new[] { "escribe el nombre" } : [],
+        .. string.IsNullOrWhiteSpace(modelo.Descripcion) ? new[] { "escribe la descripción" } : [],
+        .. modelo.Reglas.Count == 0 ? new[] { "agrega al menos una regla" } : [],
+    ];
+
     [Parameter] public int? Id { get; set; }
 
     private InsigniaDTO modelo = new() { Reglas = [new ReglaInsigniaDTO { ValorObjetivo = 1 }] };

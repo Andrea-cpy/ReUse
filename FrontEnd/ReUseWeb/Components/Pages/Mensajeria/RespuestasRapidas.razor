@@ -48,12 +48,17 @@
     <div class="col-lg-5">
         <div class="ru-card ru-card-body">
             <h2 class="h3 mb-3">Nueva respuesta rápida</h2>
-            <textarea class="form-control mb-2" rows="3" maxlength="200" placeholder="Ej. ¿Te parece si nos vemos en el Tinkuy?"
+            <label class="form-label requerido" for="nuevaRespuesta">Texto de la respuesta</label>
+            <textarea id="nuevaRespuesta" class="form-control mb-2" rows="3" maxlength="200" placeholder="Ej. ¿Te parece si nos vemos en el Tinkuy?"
                       @bind="textoNuevo" @bind:event="oninput"></textarea>
-            <div class="form-text mb-3">Máximo 200 caracteres.</div>
+            <div class="form-text mb-3">@textoNuevo.Length / 200 caracteres.</div>
             <button class="btn btn-primary w-100" disabled="@(Procesando || string.IsNullOrWhiteSpace(textoNuevo))" @onclick="Agregar">
                 <i class="bi bi-plus-lg me-1"></i> Agregar
             </button>
+            @if (string.IsNullOrWhiteSpace(textoNuevo))
+            {
+                <div class="ru-faltantes"><i class="bi bi-info-circle me-1"></i>Para continuar: escribe el texto de la respuesta</div>
+            }
         </div>
     </div>
 </div>

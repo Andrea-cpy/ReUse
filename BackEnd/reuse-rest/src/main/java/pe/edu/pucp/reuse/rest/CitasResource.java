@@ -46,7 +46,7 @@ public class CitasResource {
     @Path("/{id}")
     public Response renegociar(@PathParam("id") int id, CitaEntregaDTO citaDTO) throws BLException {
         if (citaDTO == null || id != citaDTO.getIdCita()) {
-            return Respuestas.solicitudInvalida("El id y el payload no coinciden");
+            return Respuestas.solicitudInvalida("No se pudo guardar el cambio.");
         }
         citaBL.update(CitaEntregaMapper.toModelo(citaDTO));
         return Response.ok(CitaEntregaMapper.toDTO(citaBL.findById(id))).build();

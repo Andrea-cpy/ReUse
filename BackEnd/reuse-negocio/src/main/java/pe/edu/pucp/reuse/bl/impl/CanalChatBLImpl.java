@@ -155,7 +155,7 @@ public class CanalChatBLImpl extends BaseBLImpl implements CanalChatBL {
     private CanalChat buscarChat(int idChat) throws BLException {
         CanalChat chat = findById(idChat);
         if (chat == null || !chat.isActivo()) {
-            throw new BLException("No existe el chat con id " + idChat);
+            throw new BLException("El chat no existe o ya no esta disponible");
         }
         return chat;
     }

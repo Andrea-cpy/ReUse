@@ -22,7 +22,7 @@ public abstract class UsuarioBaseDAOImpl<T extends UsuarioPUCP> extends Registro
     // reputacion_vendedor, reputacion_comprador, contador_reportes y fecha_registro no se envian: los asigna la base
     // de datos o los mantiene la capa de negocio con procedimientos propios.
     protected int insertarUsuario(Connection conn, T usuario) throws SQLException {
-        String sql = "{call insertar_usuario(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}";
+        String sql = "{call insertar_usuario(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}";
         try (CallableStatement cmd = conn.prepareCall(sql)) {
             asignarDatosUsuario(cmd, usuario);
             cmd.setString("p_usuario_creacion", usuarioAuditoria(usuario.getUsuarioCreacion()));
@@ -36,7 +36,7 @@ public abstract class UsuarioBaseDAOImpl<T extends UsuarioPUCP> extends Registro
     // Solo datos del perfil: contrasena, verificacion, estado de cuenta y activo se
     // cambian con procedimientos propios; codigo PUCP y correo no son editables.
     protected int modificarUsuario(Connection conn, T usuario) throws SQLException {
-        String sql = "{call modificar_usuario(?, ?, ?, ?, ?, ?, ?, ?)}";
+        String sql = "{call modificar_usuario(?, ?, ?, ?, ?, ?, ?)}";
         try (CallableStatement cmd = conn.prepareCall(sql)) {
             cmd.setInt("p_id", usuario.getIdUsuario());
             asignarDatosPerfil(cmd, usuario);
@@ -70,8 +70,7 @@ public abstract class UsuarioBaseDAOImpl<T extends UsuarioPUCP> extends Registro
 
     private void asignarDatosPerfil(CallableStatement cmd, T usuario) throws SQLException {
         cmd.setString("p_nombres", usuario.getNombres());
-        cmd.setString("p_apellido_paterno", usuario.getApellidoPaterno());
-        cmd.setString("p_apellido_materno", usuario.getApellidoMaterno());
+        cmd.setString("p_apellidos", usuario.getApellidos());
         if (usuario.getCarrera() != null) {
             cmd.setInt("p_id_carrera", usuario.getCarrera().getIdCarrera());
         } else {
@@ -86,8 +85,7 @@ public abstract class UsuarioBaseDAOImpl<T extends UsuarioPUCP> extends Registro
         usuario.setIdUsuario(rs.getInt("id_usuario"));
         usuario.setCodigoPUCP(rs.getString("codigo_pucp"));
         usuario.setNombres(rs.getString("nombres"));
-        usuario.setApellidoPaterno(rs.getString("apellido_paterno"));
-        usuario.setApellidoMaterno(rs.getString("apellido_materno"));
+        usuario.setApellidos(rs.getString("apellidos"));
         usuario.setCorreoInstitucional(rs.getString("correo_institucional"));
         usuario.setContrasena(rs.getString("contrasena"));
         usuario.setVerificado(rs.getBoolean("verificado"));

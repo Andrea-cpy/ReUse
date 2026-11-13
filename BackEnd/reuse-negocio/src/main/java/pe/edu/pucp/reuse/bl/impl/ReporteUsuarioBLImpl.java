@@ -46,7 +46,7 @@ public class ReporteUsuarioBLImpl extends BaseBLImpl implements ReporteUsuarioBL
             if (TransactionsManager.activa()) {
                 TransactionsManager.rollback();
             }
-            throw new BLException("No se pudo registrar el reporte; se hizo rollback", e);
+            throw new BLException("No se pudo registrar el reporte. Intentalo de nuevo.", e);
         }
     }
 
@@ -70,7 +70,7 @@ public class ReporteUsuarioBLImpl extends BaseBLImpl implements ReporteUsuarioBL
             if (TransactionsManager.activa()) {
                 TransactionsManager.rollback();
             }
-            throw new BLException("No se pudo actualizar el reporte; se hizo rollback", e);
+            throw new BLException("No se pudo actualizar el reporte. Intentalo de nuevo.", e);
         }
     }
 
@@ -89,7 +89,7 @@ public class ReporteUsuarioBLImpl extends BaseBLImpl implements ReporteUsuarioBL
             if (TransactionsManager.activa()) {
                 TransactionsManager.rollback();
             }
-            throw new BLException("No se pudo eliminar el reporte; se hizo rollback", e);
+            throw new BLException("No se pudo eliminar el reporte. Intentalo de nuevo.", e);
         }
     }
 
@@ -122,7 +122,7 @@ public class ReporteUsuarioBLImpl extends BaseBLImpl implements ReporteUsuarioBL
         TransactionsManager.iniciar();
         try {
             if (reporteDAO.resolver(idReporte, EstadoRevisionReporte.SANCIONADO, idAdministrador) == 0) {
-                throw new BLException("El reporte " + idReporte + " ya fue resuelto por otro administrador");
+                throw new BLException("El reporte ya fue resuelto por otro administrador");
             }
             int sanciones = reporteDAO.contarSancionesRecientes(idDenunciado, DIAS_VENTANA_SANCIONES);
             // RF-13: reincidente. Solo se suspende una cuenta que aun no lo esta.
@@ -152,7 +152,7 @@ public class ReporteUsuarioBLImpl extends BaseBLImpl implements ReporteUsuarioBL
             if (TransactionsManager.activa()) {
                 TransactionsManager.rollback();
             }
-            throw new BLException("No se pudo sancionar el reporte; se hizo rollback", e);
+            throw new BLException("No se pudo sancionar el reporte. Intentalo de nuevo.", e);
         }
     }
 
@@ -162,7 +162,7 @@ public class ReporteUsuarioBLImpl extends BaseBLImpl implements ReporteUsuarioBL
         validarAdministrador(idAdministrador);
         try {
             if (reporteDAO.resolver(idReporte, EstadoRevisionReporte.DESESTIMADO, idAdministrador) == 0) {
-                throw new BLException("El reporte " + idReporte + " ya fue resuelto por otro administrador");
+                throw new BLException("El reporte ya fue resuelto por otro administrador");
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo desestimar el reporte", e);
@@ -227,7 +227,7 @@ public class ReporteUsuarioBLImpl extends BaseBLImpl implements ReporteUsuarioBL
     private ReporteUsuario buscarReporte(int idReporte) throws BLException {
         ReporteUsuario reporte = findById(idReporte);
         if (reporte == null || !reporte.isActivo()) {
-            throw new BLException("No existe el reporte con id " + idReporte);
+            throw new BLException("El reporte no existe o ya no esta disponible");
         }
         return reporte;
     }
@@ -235,7 +235,7 @@ public class ReporteUsuarioBLImpl extends BaseBLImpl implements ReporteUsuarioBL
     private ReporteUsuario buscarReportePendiente(int idReporte) throws BLException {
         ReporteUsuario reporte = buscarReporte(idReporte);
         if (reporte.getEstadoRevision() != EstadoRevisionReporte.PENDIENTE) {
-            throw new BLException("El reporte " + idReporte + " ya fue resuelto (" + reporte.getEstadoRevision() + ")");
+            throw new BLException("El reporte ya fue resuelto (" + reporte.getEstadoRevision() + ")");
         }
         return reporte;
     }

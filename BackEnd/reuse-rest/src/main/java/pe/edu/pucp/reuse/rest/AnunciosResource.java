@@ -82,7 +82,7 @@ public class AnunciosResource {
     public Response findById(@PathParam("id") int id) throws BLException {
         Anuncio anuncio = anuncioBL.findById(id);
         if (anuncio == null || !anuncio.isActivo()) {
-            return Respuestas.noEncontrado("No existe el anuncio con id " + id);
+            return Respuestas.noEncontrado("El anuncio no existe o ya no esta disponible");
         }
         // El anuncio trae solo id y titulo del material: se completa con su categoria.
         MaterialAcademico material = materialBL.findById(anuncio.getMaterialAcademico().getIdMaterial());
@@ -109,7 +109,7 @@ public class AnunciosResource {
     @Path("/{id}")
     public Response update(@PathParam("id") int id, AnuncioDTO anuncioDTO) throws BLException {
         if (anuncioDTO == null || id != anuncioDTO.getIdAnuncio()) {
-            return Respuestas.solicitudInvalida("El id y el payload no coinciden");
+            return Respuestas.solicitudInvalida("No se pudo guardar el cambio.");
         }
         anuncioBL.update(AnuncioMapper.toModelo(anuncioDTO));
         return Response.ok(AnuncioMapper.toDTO(anuncioBL.findById(id))).build();

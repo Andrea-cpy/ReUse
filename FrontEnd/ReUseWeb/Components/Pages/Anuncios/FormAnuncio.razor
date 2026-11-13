@@ -27,10 +27,11 @@ else
         <div class="row g-4">
             <div class="col-lg-8">
                 <div class="ru-card ru-card-body mb-4">
-                    <h2 class="h3 mb-3">1. ¿Qué vendes?</h2>
+                    <h2 class="h3 mb-1">1. ¿Qué vendes?</h2>
+                    <p class="ru-nota-requeridos mb-3">Campos obligatorios</p>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label" for="categoria">Categoría</label>
+                            <label class="form-label requerido" for="categoria">Categoría</label>
                             <select id="categoria" class="form-select" value="@idCategoria" @onchange="CambiarCategoria">
                                 <option value="0">Todas</option>
                                 @foreach (CategoriaMaterialDTO c in categorias)
@@ -40,7 +41,7 @@ else
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label" for="material">Material académico</label>
+                            <label class="form-label requerido" for="material">Material académico</label>
                             <InputSelect id="material" class="form-select" @bind-Value="modelo.IdMaterial">
                                 <option value="0">Selecciona…</option>
                                 @foreach (MaterialAcademicoDTO m in MaterialesVisibles)
@@ -51,14 +52,14 @@ else
                             <ValidationMessage For="() => modelo.IdMaterial" />
                         </div>
                         <div class="col-12">
-                            <label class="form-label" for="titulo">Título del anuncio</label>
-                            <InputText id="titulo" class="form-control" maxlength="120" @bind-Value="modelo.Titulo"
+                            <label class="form-label requerido" for="titulo">Título del anuncio</label>
+                            <InputTexto id="titulo" class="form-control" maxlength="120" @bind-Value="modelo.Titulo"
                                        placeholder="Ej. Cálculo de una variable — Stewart 8va ed." />
                             <ValidationMessage For="() => modelo.Titulo" />
                         </div>
                         <div class="col-12">
                             <label class="form-label" for="descripcion">Descripción</label>
-                            <InputTextArea id="descripcion" class="form-control" rows="4" @bind-Value="modelo.Descripcion"
+                            <AreaTexto id="descripcion" class="form-control" rows="4" @bind-Value="modelo.Descripcion"
                                            placeholder="Estado, ediciones, si incluye algo adicional…" />
                         </div>
                     </div>
@@ -76,10 +77,10 @@ else
                     </div>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label" for="precio">Precio</label>
+                            <label class="form-label requerido" for="precio">Precio</label>
                             <div class="input-group">
                                 <span class="input-group-text">S/</span>
-                                <InputNumber id="precio" class="form-control" @bind-Value="modelo.Precio" min="0" step="0.50" />
+                                <InputNumero id="precio" class="form-control" @bind-Value="modelo.Precio" min="0" step="0.50" />
                             </div>
                             <ValidationMessage For="() => modelo.Precio" />
                         </div>
@@ -114,7 +115,7 @@ else
                             FotoModelo foto = modelo.Fotos[i];
                             <div class="input-group mb-2">
                                 <span class="input-group-text"><i class="bi bi-image"></i></span>
-                                <InputText class="form-control" @bind-Value="foto.Url" placeholder="https://…/foto.jpg" aria-label="@($"URL de la foto {i + 1}")" />
+                                <InputTexto class="form-control" @bind-Value="foto.Url" placeholder="https://…/foto.jpg" aria-label="@($"URL de la foto {i + 1}")" />
                                 <button type="button" class="btn btn-light text-danger" title="Quitar foto" @onclick="() => modelo.Fotos.Remove(foto)"><i class="bi bi-x-lg"></i></button>
                             </div>
                         }
@@ -132,10 +133,8 @@ else
                     <div class="small-muted mb-2">Vista previa</div>
                     <AnuncioCard Anuncio="VistaPrevia" />
                     <div class="d-grid gap-2 mt-3">
-                        <button type="submit" class="btn btn-primary" disabled="@Procesando">
-                            <i class="bi @(EsEdicion ? "bi-check-lg" : "bi-megaphone") me-1"></i>
-                            @(EsEdicion ? "Guardar cambios" : "Publicar anuncio")
-                        </button>
+                        <BotonEnviar Texto="@(EsEdicion ? "Guardar cambios" : "Publicar anuncio")" Procesando="@Procesando"
+                                     Icono="@(EsEdicion ? "bi-check-lg" : "bi-megaphone")" />
                         <NavLink class="btn btn-light" href="mis-anuncios">Cancelar</NavLink>
                     </div>
                 </div>

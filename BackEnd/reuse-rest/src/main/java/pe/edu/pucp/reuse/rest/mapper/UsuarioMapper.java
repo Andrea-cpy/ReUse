@@ -17,8 +17,7 @@ public final class UsuarioMapper {
         dto.setIdUsuario(usuario.getIdUsuario());
         dto.setCodigoPUCP(usuario.getCodigoPUCP());
         dto.setNombres(usuario.getNombres());
-        dto.setApellidoPaterno(usuario.getApellidoPaterno());
-        dto.setApellidoMaterno(usuario.getApellidoMaterno());
+        dto.setApellidos(usuario.getApellidos());
         dto.setCorreoInstitucional(usuario.getCorreoInstitucional());
         if (usuario.getCarrera() != null) {
             dto.setIdCarrera(usuario.getCarrera().getIdCarrera());
@@ -52,8 +51,7 @@ public final class UsuarioMapper {
         usuario.setIdUsuario(dto.getIdUsuario());
         usuario.setCodigoPUCP(dto.getCodigoPUCP());
         usuario.setNombres(dto.getNombres());
-        usuario.setApellidoPaterno(dto.getApellidoPaterno());
-        usuario.setApellidoMaterno(dto.getApellidoMaterno());
+        usuario.setApellidos(dto.getApellidos() == null ? null : dto.getApellidos().trim());
         usuario.setCorreoInstitucional(dto.getCorreoInstitucional());
         usuario.setContrasena(dto.getContrasena());
         usuario.setFotoPerfil(dto.getFotoPerfil());
@@ -76,7 +74,7 @@ public final class UsuarioMapper {
         if (usuario == null || usuario.getNombres() == null) {
             return null;
         }
-        return usuario.getApellidoPaterno() == null ? usuario.getNombres()
-                : usuario.getNombres() + " " + usuario.getApellidoPaterno();
+        return usuario.getApellidos() == null ? usuario.getNombres()
+                : usuario.getNombres() + " " + usuario.getApellidos();
     }
 }

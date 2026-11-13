@@ -45,6 +45,8 @@ build/
 # Se ignora para no exponer credenciales en el repo.
 # Usar db.properties.example como plantilla.
 BackEnd/reuse-dbmanager/src/main/resources/db.properties
+# correo.properties contiene la clave SMTP; usar correo.properties.example como plantilla.
+BackEnd/reuse-integraciones/src/main/resources/correo.properties
 
 ### FrontEnd (Blazor / Visual Studio) ###
 FrontEnd/**/bin/

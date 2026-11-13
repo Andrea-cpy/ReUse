@@ -151,7 +151,7 @@ public final class ReporteService {
     public byte[] usuarios(String generadoPor) throws ReporteException, BLException {
         ReporteUsuarioBLImpl reportes = new ReporteUsuarioBLImpl();
         List<UsuarioPUCP> usuarios = new UsuarioBLImpl().findAll();
-        usuarios.sort(Comparator.comparing(UsuarioPUCP::getApellidoPaterno, Comparator.nullsLast(String::compareTo)));
+        usuarios.sort(Comparator.comparing(UsuarioPUCP::getApellidos, Comparator.nullsLast(String::compareTo)));
         List<FilaUsuario> filas = new ArrayList<>();
         int activas = 0;
         int suspendidas = 0;
@@ -162,8 +162,7 @@ public final class ReporteService {
                 continue;
             }
             int sanciones = reportes.contarSancionesRecientes(u.getIdUsuario());
-            String nombre = (u.getNombres() + " " + u.getApellidoPaterno() + " "
-                    + (u.getApellidoMaterno() == null ? "" : u.getApellidoMaterno())).trim();
+            String nombre = (u.getNombres() + " " + (u.getApellidos() == null ? "" : u.getApellidos())).trim();
             filas.add(new FilaUsuario(u.getCodigoPUCP(), nombre,
                     u.getCarrera() == null ? "-" : u.getCarrera().getNombre(),
                     texto(u.getEstadoCuenta() == null ? null : u.getEstadoCuenta().name()),

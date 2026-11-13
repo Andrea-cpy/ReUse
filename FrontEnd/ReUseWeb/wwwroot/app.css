@@ -436,3 +436,64 @@ h3, .h3 { font-size: 1.05rem; font-weight: 650; }
 }
 #blazor-error-ui .dismiss { cursor: pointer; position: absolute; right: 0.75rem; top: 0.5rem; }
 .min-w-0 { min-width: 0; }
+
+/* ---------- Ingreso con Google (colores y forma de la guía de marca de Google) ---------- */
+.ru-btn-google {
+    display: flex; align-items: center; justify-content: center; gap: .65rem;
+    min-height: 44px; padding: .5rem 1rem;
+    background: #fff; color: #1f1f1f;
+    border: 1px solid #747775; border-radius: .5rem;
+    font-weight: 500; font-size: .95rem;
+    transition: background-color .15s, box-shadow .15s;
+}
+.ru-btn-google:hover { background: #f8faf9; box-shadow: 0 1px 3px rgba(60, 64, 67, .25); }
+.ru-btn-google:focus-visible { outline: 3px solid rgba(29, 107, 82, .35); outline-offset: 2px; }
+.ru-btn-google:active { background: #eef1f0; }
+.ru-nota-google { font-size: .8rem; color: var(--ru-gris); margin: .55rem 0 0; display: flex; gap: .4rem; }
+.ru-nota-google .bi { color: var(--ru-verde); margin-top: .1rem; }
+
+.ru-separador {
+    display: flex; align-items: center; gap: .75rem;
+    margin: 1.4rem 0; color: var(--ru-gris); font-size: .8rem;
+}
+.ru-separador::before, .ru-separador::after { content: ""; flex: 1; border-top: 1px solid var(--ru-borde); }
+
+.ru-google-destacado {
+    background: var(--ru-verde-claro); border: 1px solid var(--ru-borde);
+    border-radius: .75rem; padding: 1rem;
+}
+.ru-cuenta-google {
+    display: flex; align-items: center; gap: .75rem;
+    border: 1px solid var(--ru-borde); border-radius: .75rem; padding: .7rem .9rem;
+}
+
+/* ---------- Formularios: obligatorios y validación ---------- */
+/* Etiqueta de un campo obligatorio: <label class="form-label requerido"> → "Nombres *" */
+.requerido::after { content: " *"; color: #c62828; font-weight: 700; }
+.ru-nota-requeridos { font-size: .8rem; color: var(--ru-gris); }
+.ru-nota-requeridos::before { content: "* "; color: #c62828; font-weight: 700; }
+
+/* Campo inválido: el que marca Blazor tras modificarlo (modified invalid) y el .is-invalid de Bootstrap */
+.form-control.modified.invalid, .form-select.modified.invalid,
+.form-control.is-invalid, .form-select.is-invalid {
+    border-color: #c62828;
+    background-color: #fff6f6;
+    box-shadow: 0 0 0 .2rem rgba(198, 40, 40, .15);
+}
+.form-check-input.modified.invalid, .form-check-input.is-invalid { border-color: #c62828; box-shadow: 0 0 0 .2rem rgba(198, 40, 40, .15); }
+.form-control.modified.valid, .form-select.modified.valid { border-color: var(--ru-borde); }
+
+/* Mensaje bajo el campo: visible, en rojo y con ícono */
+.validation-message, .ru-error-campo {
+    display: block; margin-top: .3rem;
+    color: #c62828; font-size: .85rem; font-weight: 600;
+}
+.validation-message::before, .ru-error-campo::before {
+    font-family: "bootstrap-icons"; content: "\F332"; margin-right: .3rem; font-weight: 400;
+}
+/* Grupo de opciones (radios, estrellas, tarjetas) sin completar */
+.ru-grupo-invalido { border-radius: .75rem; outline: 2px solid rgba(198, 40, 40, .55); outline-offset: 4px; }
+
+/* Botón deshabilitado: se nota que aún no se puede enviar */
+.btn:disabled, .btn.disabled { opacity: .5; cursor: not-allowed; }
+.ru-faltantes { margin-top: .4rem; font-size: .8rem; color: var(--ru-gris); }

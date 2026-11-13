@@ -189,7 +189,7 @@ public class NotificacionBLImpl extends BaseBLImpl implements NotificacionBL {
     private Notificacion buscarNotificacion(int idNotificacion) throws BLException {
         Notificacion notificacion = findById(idNotificacion);
         if (notificacion == null || !notificacion.isActivo()) {
-            throw new BLException("No existe la notificacion con id " + idNotificacion);
+            throw new BLException("La notificacion no existe o ya no esta disponible");
         }
         return notificacion;
     }

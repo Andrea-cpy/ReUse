@@ -90,7 +90,7 @@ public static class HttpUtils
         }
         catch (HttpRequestException ex)
         {
-            throw new ServicioException("No se pudo conectar con el servidor de ReUse. Verifica que el backend Java esté desplegado.", ex);
+            throw new ServicioException("ReUse no está disponible en este momento. Inténtalo de nuevo en unos minutos.", ex);
         }
         catch (TaskCanceledException ex)
         {
@@ -104,7 +104,7 @@ public static class HttpUtils
         {
             return;
         }
-        string mensaje = $"El servidor respondió con el código {(int)response.StatusCode}.";
+        string mensaje = "Ocurrió un problema al procesar tu solicitud. Inténtalo de nuevo.";
         try
         {
             ErrorDTO? error = await response.Content.ReadFromJsonAsync<ErrorDTO>();

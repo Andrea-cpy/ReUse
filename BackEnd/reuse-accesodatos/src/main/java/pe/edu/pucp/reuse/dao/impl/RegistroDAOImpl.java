@@ -89,7 +89,7 @@ public abstract class RegistroDAOImpl<T extends Registro> {
         usuario.setIdUsuario(idUsuario);
         usuario.setCodigoPUCP(rs.getString(prefijo + "_codigo"));
         usuario.setNombres(rs.getString(prefijo + "_nombres"));
-        usuario.setApellidoPaterno(rs.getString(prefijo + "_apellido"));
+        usuario.setApellidos(rs.getString(prefijo + "_apellido"));
         return usuario;
     }
 

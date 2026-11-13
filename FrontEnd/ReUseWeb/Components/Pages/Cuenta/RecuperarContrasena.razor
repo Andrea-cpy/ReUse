@@ -5,7 +5,8 @@
 @* RF-01 (flujo secundario): recuperación de contraseña en dos pasos.
    1) POST /auth/recuperar genera un código de 6 dígitos válido por 15 minutos.
    2) POST /auth/restablecer valida el código y guarda la nueva contraseña (hash BCrypt).
-   Sin servidor de correo, el backend devuelve el código en modo demostración y aquí se muestra. *@
+   El proyecto aún no envía correos: el código solo queda en el log del servidor (server.log de GlassFish).
+   Nunca se muestra aquí: cualquiera podría cambiar la contraseña de otra cuenta sabiendo su correo. *@
 
 <PageTitle>Recuperar contraseña · ReUse</PageTitle>
 
@@ -22,71 +23,88 @@ else if (!codigoEnviado)
 {
     <p class="small-muted mb-4">Ingresa tu correo institucional y te enviaremos un código de verificación.</p>
     <Alertas Error="@Error" />
-    <div class="mb-3">
-        <label class="form-label" for="correo">Correo institucional</label>
-        <div class="input-group">
-            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-            <input id="correo" type="email" class="form-control" placeholder="@("a20221234@pucp.edu.pe")" @bind="correo" @bind:event="oninput" />
+    <EditForm Model="solicitud" OnValidSubmit="Solicitar" FormName="recuperar-correo">
+        <DataAnnotationsValidator />
+        <p class="ru-nota-requeridos mb-2">Campos obligatorios</p>
+        <div class="mb-3">
+            <label class="form-label requerido" for="correo">Correo institucional</label>
+            <div class="input-group has-validation">
+                <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                <InputTexto id="correo" type="email" class="form-control" placeholder="@("a20221234@pucp.edu.pe")" autocomplete="username" @bind-Value="solicitud.Correo" />
+            </div>
+            <ValidationMessage For="() => solicitud.Correo" />
         </div>
-    </div>
-    <button class="btn btn-primary w-100 py-2" disabled="@(Procesando || string.IsNullOrWhiteSpace(correo))" @onclick="Solicitar">
-        Enviar código
-    </button>
+        <BotonEnviar Texto="Enviar código" Procesando="@Procesando" Clase="btn-primary w-100 py-2" />
+    </EditForm>
 }
 else
 {
-    <p class="small-muted mb-3">Ingresa el código que enviamos a <strong>@correo</strong> y elige tu nueva contraseña.</p>
-    @if (!string.IsNullOrEmpty(codigoDemo))
-    {
-        <div class="alert alert-info small d-flex gap-2"><i class="bi bi-info-circle mt-1"></i>
-            <div><strong>Modo demostración:</strong> el proyecto aún no envía correos. Tu código es
-                <code class="fs-6">@codigoDemo</code> (vence en 15 minutos).</div></div>
-    }
+    <p class="small-muted mb-3">Si <strong>@solicitud.Correo</strong> está registrado en ReUse, te enviamos un código de 6 dígitos (vence en 15 minutos). Ingrésalo y elige tu nueva contraseña.</p>
     <Alertas Error="@Error" />
-    <div class="mb-3">
-        <label class="form-label" for="codigo">Código de 6 dígitos</label>
-        <input id="codigo" class="form-control text-center fs-5" maxlength="6" inputmode="numeric" autocomplete="one-time-code" @bind="codigo" @bind:event="oninput" />
-    </div>
-    <div class="mb-3">
-        <label class="form-label" for="nueva">Nueva contraseña</label>
-        <input id="nueva" type="password" class="form-control" autocomplete="new-password" @bind="nueva" @bind:event="oninput" />
-        <div class="form-text">Mínimo 8 caracteres.</div>
-    </div>
-    <div class="mb-4">
-        <label class="form-label" for="repetir">Repite la contraseña</label>
-        <input id="repetir" type="password" class="form-control" autocomplete="new-password" @bind="repetir" @bind:event="oninput" />
-    </div>
-    <button class="btn btn-primary w-100 py-2" disabled="@Procesando" @onclick="Restablecer">Cambiar contraseña</button>
+    <EditForm Model="cambio" OnValidSubmit="Restablecer" FormName="recuperar-cambio">
+        <DataAnnotationsValidator />
+        <p class="ru-nota-requeridos mb-2">Campos obligatorios</p>
+        <div class="mb-3">
+            <label class="form-label requerido" for="codigo">Código de 6 dígitos</label>
+            <InputTexto id="codigo" class="form-control text-center fs-5" maxlength="6" inputmode="numeric" autocomplete="one-time-code" @bind-Value="cambio.Codigo" />
+            <ValidationMessage For="() => cambio.Codigo" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label requerido" for="nueva">Nueva contraseña</label>
+            <InputTexto id="nueva" type="password" class="form-control" autocomplete="new-password" @bind-Value="cambio.Nueva" />
+            <div class="form-text">Mínimo 8 caracteres.</div>
+            <ValidationMessage For="() => cambio.Nueva" />
+        </div>
+        <div class="mb-4">
+            <label class="form-label requerido" for="repetir">Repite la contraseña</label>
+            <InputTexto id="repetir" type="password" class="form-control" autocomplete="new-password" @bind-Value="cambio.Repetir" />
+            <ValidationMessage For="() => cambio.Repetir" />
+        </div>
+        <BotonEnviar Texto="Cambiar contraseña" Procesando="@Procesando" Clase="btn-primary w-100 py-2" />
+    </EditForm>
     <button class="btn btn-link w-100 mt-2" disabled="@Procesando" @onclick="Solicitar">Enviar un código nuevo</button>
 }
 
 @code {
-    private string correo = "";
-    private string codigo = "";
-    private string nueva = "";
-    private string repetir = "";
-    private string? codigoDemo;
+    private readonly SolicitudModelo solicitud = new();
+    private CambioModelo cambio = new();
     private bool codigoEnviado;
     private bool listo;
 
     private async Task Solicitar()
     {
-        RecuperacionRespuestaDTO? respuesta = null;
-        if (await Ejecutar(async () => respuesta = await UsuarioService.SolicitarRecuperacion(correo.Trim())))
+        // La respuesta es la misma exista o no la cuenta (no revela qué correos están registrados).
+        if (await Ejecutar(() => UsuarioService.SolicitarRecuperacion(solicitud.Correo.Trim())))
         {
             codigoEnviado = true;
-            codigoDemo = respuesta?.CodigoDemo;
-            codigo = "";
+            cambio = new CambioModelo();
         }
     }
 
     private async Task Restablecer()
     {
-        if (nueva != repetir)
-        {
-            Error = "Las contraseñas no coinciden.";
-            return;
-        }
-        listo = await Ejecutar(() => UsuarioService.RestablecerContrasena(correo.Trim(), codigo.Trim(), nueva));
+        listo = await Ejecutar(() => UsuarioService.RestablecerContrasena(solicitud.Correo.Trim(), cambio.Codigo.Trim(), cambio.Nueva));
+    }
+
+    private class SolicitudModelo
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Ingresa tu correo institucional.")]
+        [System.ComponentModel.DataAnnotations.RegularExpression(@"^[^@\s]+@pucp\.edu\.pe$", ErrorMessage = "Usa tu correo @pucp.edu.pe.")]
+        public string Correo { get; set; } = "";
+    }
+
+    private class CambioModelo
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Ingresa el código que recibiste.")]
+        [System.ComponentModel.DataAnnotations.RegularExpression(@"^\d{6}$", ErrorMessage = "El código tiene 6 dígitos.")]
+        public string Codigo { get; set; } = "";
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Ingresa la nueva contraseña.")]
+        [System.ComponentModel.DataAnnotations.MinLength(8, ErrorMessage = "La contraseña debe tener al menos 8 caracteres.")]
+        public string Nueva { get; set; } = "";
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Repite la contraseña.")]
+        [System.ComponentModel.DataAnnotations.Compare(nameof(Nueva), ErrorMessage = "Las contraseñas no coinciden.")]
+        public string Repetir { get; set; } = "";
     }
 }

@@ -43,7 +43,7 @@ public class ReporteAnuncioBLImpl extends BaseBLImpl implements ReporteAnuncioBL
             if (TransactionsManager.activa()) {
                 TransactionsManager.rollback();
             }
-            throw new BLException("No se pudo registrar el reporte del anuncio; se hizo rollback", e);
+            throw new BLException("No se pudo registrar el reporte del anuncio. Intentalo de nuevo.", e);
         }
     }
 
@@ -67,7 +67,7 @@ public class ReporteAnuncioBLImpl extends BaseBLImpl implements ReporteAnuncioBL
             if (TransactionsManager.activa()) {
                 TransactionsManager.rollback();
             }
-            throw new BLException("No se pudo actualizar el reporte; se hizo rollback", e);
+            throw new BLException("No se pudo actualizar el reporte. Intentalo de nuevo.", e);
         }
     }
 
@@ -84,7 +84,7 @@ public class ReporteAnuncioBLImpl extends BaseBLImpl implements ReporteAnuncioBL
             if (TransactionsManager.activa()) {
                 TransactionsManager.rollback();
             }
-            throw new BLException("No se pudo eliminar el reporte; se hizo rollback", e);
+            throw new BLException("No se pudo eliminar el reporte. Intentalo de nuevo.", e);
         }
     }
 
@@ -116,7 +116,7 @@ public class ReporteAnuncioBLImpl extends BaseBLImpl implements ReporteAnuncioBL
         TransactionsManager.iniciar();
         try {
             if (reporteDAO.resolver(idReporte, EstadoRevisionReporte.SANCIONADO, idAdministrador) == 0) {
-                throw new BLException("El reporte " + idReporte + " ya fue resuelto por otro administrador");
+                throw new BLException("El reporte ya fue resuelto por otro administrador");
             }
             boolean archivado = anuncio.getEstado() == EstadoAnuncio.OBSERVADO
                     || anuncio.getEstado() == EstadoAnuncio.DISPONIBLE;
@@ -141,7 +141,7 @@ public class ReporteAnuncioBLImpl extends BaseBLImpl implements ReporteAnuncioBL
             if (TransactionsManager.activa()) {
                 TransactionsManager.rollback();
             }
-            throw new BLException("No se pudo sancionar el reporte; se hizo rollback", e);
+            throw new BLException("No se pudo sancionar el reporte. Intentalo de nuevo.", e);
         }
     }
 
@@ -154,7 +154,7 @@ public class ReporteAnuncioBLImpl extends BaseBLImpl implements ReporteAnuncioBL
         TransactionsManager.iniciar();
         try {
             if (reporteDAO.resolver(idReporte, EstadoRevisionReporte.DESESTIMADO, idAdministrador) == 0) {
-                throw new BLException("El reporte " + idReporte + " ya fue resuelto por otro administrador");
+                throw new BLException("El reporte ya fue resuelto por otro administrador");
             }
             anuncioDAO.cambiarEstado(reporte.getAnuncio().getIdAnuncio(),
                     EstadoAnuncio.OBSERVADO, EstadoAnuncio.DISPONIBLE);
@@ -169,7 +169,7 @@ public class ReporteAnuncioBLImpl extends BaseBLImpl implements ReporteAnuncioBL
             if (TransactionsManager.activa()) {
                 TransactionsManager.rollback();
             }
-            throw new BLException("No se pudo desestimar el reporte; se hizo rollback", e);
+            throw new BLException("No se pudo desestimar el reporte. Intentalo de nuevo.", e);
         }
     }
 
@@ -203,7 +203,7 @@ public class ReporteAnuncioBLImpl extends BaseBLImpl implements ReporteAnuncioBL
     private ReporteAnuncio buscarReporte(int idReporte) throws BLException {
         ReporteAnuncio reporte = findById(idReporte);
         if (reporte == null || !reporte.isActivo()) {
-            throw new BLException("No existe el reporte con id " + idReporte);
+            throw new BLException("El reporte no existe o ya no esta disponible");
         }
         return reporte;
     }
@@ -211,7 +211,7 @@ public class ReporteAnuncioBLImpl extends BaseBLImpl implements ReporteAnuncioBL
     private ReporteAnuncio buscarReportePendiente(int idReporte) throws BLException {
         ReporteAnuncio reporte = buscarReporte(idReporte);
         if (reporte.getEstadoRevision() != EstadoRevisionReporte.PENDIENTE) {
-            throw new BLException("El reporte " + idReporte + " ya fue resuelto (" + reporte.getEstadoRevision() + ")");
+            throw new BLException("El reporte ya fue resuelto (" + reporte.getEstadoRevision() + ")");
         }
         return reporte;
     }

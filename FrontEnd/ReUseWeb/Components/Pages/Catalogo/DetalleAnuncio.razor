@@ -181,7 +181,7 @@ else
     private bool cargando = true;
     private bool mostrarContacto;
 
-    private string NombreVendedor => vendedor is null ? (anuncio?.NombreVendedor ?? "") : $"{vendedor.Nombres} {vendedor.ApellidoPaterno}";
+    private string NombreVendedor => vendedor is null ? (anuncio?.NombreVendedor ?? "") : $"{vendedor.Nombres} {vendedor.Apellidos}";
 
     protected override async Task OnParametersSetAsync()
     {

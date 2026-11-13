@@ -6,8 +6,7 @@ public class UsuarioDTO
     public int IdUsuario { get; set; }
     public string? CodigoPUCP { get; set; }
     public string? Nombres { get; set; }
-    public string? ApellidoPaterno { get; set; }
-    public string? ApellidoMaterno { get; set; }
+    public string? Apellidos { get; set; }
     public string? CorreoInstitucional { get; set; }
     public string? Contrasena { get; set; }
     public int IdCarrera { get; set; }

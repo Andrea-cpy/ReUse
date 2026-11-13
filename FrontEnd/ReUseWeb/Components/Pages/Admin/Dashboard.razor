@@ -62,7 +62,7 @@ else
                                 @foreach (UsuarioDTO u in Pendientes.Take(8))
                                 {
                                     <tr>
-                                        <td class="fw-semibold">@u.Nombres @u.ApellidoPaterno</td>
+                                        <td class="fw-semibold">@u.Nombres @u.Apellidos</td>
                                         <td>@u.CodigoPUCP</td>
                                         <td class="small">@u.NombreCarrera</td>
                                         <td class="small-muted">@Formato.Fecha(u.FechaRegistro)</td>

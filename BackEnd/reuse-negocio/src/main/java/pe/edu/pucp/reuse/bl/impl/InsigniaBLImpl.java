@@ -42,7 +42,7 @@ public class InsigniaBLImpl extends BaseBLImpl implements InsigniaBL {
             if (TransactionsManager.activa()) {
                 TransactionsManager.rollback();
             }
-            throw new BLException("No se pudo registrar la insignia con sus reglas; se hizo rollback", e);
+            throw new BLException("No se pudo registrar la insignia con sus reglas. Intentalo de nuevo.", e);
         }
     }
 
@@ -82,7 +82,7 @@ public class InsigniaBLImpl extends BaseBLImpl implements InsigniaBL {
             if (TransactionsManager.activa()) {
                 TransactionsManager.rollback();
             }
-            throw new BLException("No se pudo eliminar la insignia; se hizo rollback", e);
+            throw new BLException("No se pudo eliminar la insignia. Intentalo de nuevo.", e);
         }
     }
 
@@ -142,7 +142,7 @@ public class InsigniaBLImpl extends BaseBLImpl implements InsigniaBL {
             if (TransactionsManager.activa()) {
                 TransactionsManager.rollback();
             }
-            throw new BLException("No se pudo actualizar la insignia con sus reglas; se hizo rollback", e);
+            throw new BLException("No se pudo actualizar la insignia con sus reglas. Intentalo de nuevo.", e);
         }
     }
 
@@ -161,7 +161,7 @@ public class InsigniaBLImpl extends BaseBLImpl implements InsigniaBL {
 
     private void validarExiste(int idInsignia) throws BLException {
         if (findById(idInsignia) == null) {
-            throw new BLException("No existe una insignia con id " + idInsignia);
+            throw new BLException("La insignia no existe o ya no esta disponible");
         }
     }
 

@@ -28,10 +28,12 @@ else
     <div class="row g-4">
         <div class="col-lg-8">
             <EditForm Model="modelo" OnValidSubmit="Enviar" FormName="reporteUsuario">
+                <DataAnnotationsValidator />
                 <div class="ru-card ru-card-body">
+                    <p class="ru-nota-requeridos mb-3">Campos obligatorios</p>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold" for="motivo">Motivo</label>
+                            <label class="form-label fw-semibold requerido" for="motivo">Motivo</label>
                             <InputSelect id="motivo" class="form-select" @bind-Value="modelo.Motivo">
                                 <option value="">Selecciona…</option>
                                 <option value="FRAUDE_O_ESTAFA">Fraude o estafa</option>
@@ -40,6 +42,7 @@ else
                                 <option value="COMPORTAMIENTO_INAPROPIADO">Comportamiento inapropiado</option>
                                 <option value="OTRO">Otro</option>
                             </InputSelect>
+                            <ValidationMessage For="() => modelo.Motivo" />
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold" for="transaccion">Transacción relacionada (opcional)</label>
@@ -52,9 +55,10 @@ else
                             </InputSelect>
                         </div>
                         <div class="col-12">
-                            <label class="form-label fw-semibold" for="descripcion">Descripción</label>
-                            <InputTextArea id="descripcion" class="form-control" rows="5" @bind-Value="modelo.Descripcion"
-                                           placeholder="Fecha, lugar y detalles de lo ocurrido." />
+                            <label class="form-label fw-semibold requerido" for="descripcion">Descripción</label>
+                            <AreaTexto id="descripcion" class="form-control" rows="5" maxlength="1000" @bind-Value="modelo.Descripcion"
+                                       placeholder="Fecha, lugar y detalles de lo ocurrido." />
+                            <ValidationMessage For="() => modelo.Descripcion" />
                         </div>
                         <div class="col-12">
                             <div class="form-check">
@@ -65,7 +69,7 @@ else
                     </div>
                     <div class="d-flex justify-content-end gap-2 mt-4">
                         <NavLink class="btn btn-light" href="@($"usuarios/{Id}")">Cancelar</NavLink>
-                        <button type="submit" class="btn btn-danger" disabled="@Procesando"><i class="bi bi-flag me-1"></i> Enviar reporte</button>
+                        <div class="text-end"><BotonEnviar Texto="Enviar reporte" Icono="bi-flag" Clase="btn-danger" Procesando="@Procesando" /></div>
                     </div>
                 </div>
             </EditForm>
@@ -103,7 +107,7 @@ else
     private bool cargando = true;
     private string mensajeEnviado = "";
 
-    private string Nombre => $"{usuario?.Nombres} {usuario?.ApellidoPaterno}";
+    private string Nombre => $"{usuario?.Nombres} {usuario?.Apellidos}";
 
     protected override async Task OnParametersSetAsync()
     {
@@ -123,11 +127,6 @@ else
     private async Task Enviar()
     {
         int idUsuario = await IdUsuarioAsync();
-        if (string.IsNullOrEmpty(modelo.Motivo))
-        {
-            Error = "Selecciona el motivo del reporte.";
-            return;
-        }
         DenunciaDTO denuncia = new()
         {
             IdDenunciante = idUsuario,
@@ -151,8 +150,12 @@ else
 
     private class ReporteModelo
     {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Selecciona el motivo.")]
         public string Motivo { get; set; } = "";
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Describe lo ocurrido.")]
         public string Descripcion { get; set; } = "";
+
         public int IdTransaccion { get; set; }
         public bool Bloquear { get; set; }
     }

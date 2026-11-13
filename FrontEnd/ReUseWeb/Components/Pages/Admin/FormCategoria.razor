@@ -17,18 +17,19 @@
         <EditForm Model="modelo" OnValidSubmit="Guardar" FormName="categoria">
             <DataAnnotationsValidator />
             <div class="ru-card ru-card-body">
+                <p class="ru-nota-requeridos mb-2">Campos obligatorios</p>
                 <div class="mb-3">
-                    <label class="form-label" for="nombre">Nombre</label>
-                    <InputText id="nombre" class="form-control" maxlength="80" @bind-Value="modelo.Nombre" />
+                    <label class="form-label requerido" for="nombre">Nombre</label>
+                    <InputTexto id="nombre" class="form-control" maxlength="80" @bind-Value="modelo.Nombre" />
                     <ValidationMessage For="() => modelo.Nombre" />
                 </div>
                 <div class="mb-3">
                     <label class="form-label" for="descripcion">Descripción</label>
-                    <InputTextArea id="descripcion" class="form-control" rows="3" maxlength="300" @bind-Value="modelo.Descripcion" />
+                    <AreaTexto id="descripcion" class="form-control" rows="3" maxlength="300" @bind-Value="modelo.Descripcion" />
                 </div>
                 <div class="d-flex justify-content-end gap-2 mt-4">
-                    <NavLink class="btn btn-light" href="admin/categorias">Cancelar</NavLink>
-                    <button type="submit" class="btn btn-primary" disabled="@Procesando">Guardar</button>
+                    <NavLink class="btn btn-light align-self-start" href="admin/categorias">Cancelar</NavLink>
+                    <div class="text-end"><BotonEnviar Texto="Guardar" Procesando="@Procesando" /></div>
                 </div>
             </div>
         </EditForm>

@@ -140,7 +140,7 @@ public class TransaccionBLImpl extends BaseBLImpl implements TransaccionBL {
         }
         CitaEntrega cita = transaccion.getCitaEntrega();
         if (cita == null || cita.getEstado() != EstadoCita.PROPUESTA) {
-            throw new BLException("La transaccion " + idTransaccion + " no tiene una cita PROPUESTA");
+            throw new BLException("La transaccion no tiene una cita PROPUESTA");
         }
         int idAnuncio = transaccion.getAnuncio().getIdAnuncio();
 
@@ -150,8 +150,8 @@ public class TransaccionBLImpl extends BaseBLImpl implements TransaccionBL {
             citaDAO.cambiarEstado(cita.getIdCita(), EstadoCita.CONFIRMADA);
             // Control optimista: solo se reserva si el anuncio sigue DISPONIBLE en la base de datos.
             if (anuncioDAO.cambiarEstado(idAnuncio, EstadoAnuncio.DISPONIBLE, EstadoAnuncio.RESERVADO) == 0) {
-                throw new BLException("El anuncio " + idAnuncio + " ya no esta DISPONIBLE; "
-                        + "se revierte la confirmacion de la cita (rollback)");
+                // La transaccion de BD se revierte (rollback) en el catch; el usuario solo ve el motivo.
+                throw new BLException("El anuncio ya no esta disponible; no se pudo confirmar la cita");
             }
             // Solo una transaccion por anuncio puede quedar confirmada: las demas se cancelan.
             for (Transaccion otra : transaccionDAO.listarPorAnuncio(idAnuncio)) {
@@ -170,7 +170,7 @@ public class TransaccionBLImpl extends BaseBLImpl implements TransaccionBL {
             if (TransactionsManager.activa()) {
                 TransactionsManager.rollback();
             }
-            throw new BLException("No se pudo confirmar la cita; se hizo rollback", e);
+            throw new BLException("No se pudo confirmar la cita. Intentalo de nuevo.", e);
         }
     }
 
@@ -188,7 +188,7 @@ public class TransaccionBLImpl extends BaseBLImpl implements TransaccionBL {
         }
         if ((esComprador && transaccion.isConfirmacionComprador())
                 || (esVendedor && transaccion.isConfirmacionVendedor())) {
-            throw new BLException("El usuario " + idUsuario + " ya confirmo esta entrega");
+            throw new BLException("Ya confirmaste esta entrega");
         }
         int idAnuncio = transaccion.getAnuncio().getIdAnuncio();
 
@@ -202,7 +202,8 @@ public class TransaccionBLImpl extends BaseBLImpl implements TransaccionBL {
                 completada = true;
                 transaccionDAO.finalizar(idTransaccion, EstadoTransaccion.COMPLETADA);
                 if (anuncioDAO.cambiarEstado(idAnuncio, EstadoAnuncio.RESERVADO, EstadoAnuncio.VENDIDO) == 0) {
-                    throw new BLException("El anuncio " + idAnuncio + " no estaba RESERVADO; se revierte (rollback)");
+                    // La transaccion de BD se revierte (rollback) en el catch.
+                    throw new BLException("El anuncio ya no estaba reservado; no se completo la operacion");
                 }
                 if (actual.getCitaEntrega() != null) {
                     citaDAO.cambiarEstado(actual.getCitaEntrega().getIdCita(), EstadoCita.REALIZADA);
@@ -216,7 +217,7 @@ public class TransaccionBLImpl extends BaseBLImpl implements TransaccionBL {
             if (TransactionsManager.activa()) {
                 TransactionsManager.rollback();
             }
-            throw new BLException("No se pudo confirmar la entrega; se hizo rollback", e);
+            throw new BLException("No se pudo confirmar la entrega. Intentalo de nuevo.", e);
         }
         // RF-18: una venta completada puede desbloquear insignias de ambas partes.
         if (completada) {
@@ -231,7 +232,7 @@ public class TransaccionBLImpl extends BaseBLImpl implements TransaccionBL {
         Transaccion transaccion = buscarTransaccion(idTransaccion);
         EstadoTransaccion estado = transaccion.getEstado();
         if (estado == EstadoTransaccion.COMPLETADA || estado == EstadoTransaccion.CANCELADA) {
-            throw new BLException("La transaccion " + idTransaccion + " ya esta " + estado);
+            throw new BLException("La transaccion ya esta " + estado);
         }
         int idAnuncio = transaccion.getAnuncio().getIdAnuncio();
         CitaEntrega cita = transaccion.getCitaEntrega();
@@ -251,7 +252,7 @@ public class TransaccionBLImpl extends BaseBLImpl implements TransaccionBL {
             if (TransactionsManager.activa()) {
                 TransactionsManager.rollback();
             }
-            throw new BLException("No se pudo cancelar la transaccion; se hizo rollback", e);
+            throw new BLException("No se pudo cancelar la transaccion. Intentalo de nuevo.", e);
         }
     }
 
@@ -283,7 +284,7 @@ public class TransaccionBLImpl extends BaseBLImpl implements TransaccionBL {
             throw new BLException("No se pudo verificar la oferta", e);
         }
         if (oferta == null || !oferta.isActivo()) {
-            throw new BLException("No existe la oferta " + transaccion.getOferta().getIdOferta());
+            throw new BLException("La oferta no existe o ya no esta disponible");
         }
         if (oferta.getAnuncio().getIdAnuncio() != transaccion.getAnuncio().getIdAnuncio()
                 || oferta.getComprador().getIdUsuario() != transaccion.getComprador().getIdUsuario()) {

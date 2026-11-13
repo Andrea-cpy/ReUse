@@ -78,7 +78,7 @@ public class CategoriaMaterialBLImpl extends BaseBLImpl implements CategoriaMate
 
     private void validarExiste(int idCategoria) throws BLException {
         if (findById(idCategoria) == null) {
-            throw new BLException("No existe una categoria con id " + idCategoria);
+            throw new BLException("La categoria no existe o ya no esta disponible");
         }
     }
 

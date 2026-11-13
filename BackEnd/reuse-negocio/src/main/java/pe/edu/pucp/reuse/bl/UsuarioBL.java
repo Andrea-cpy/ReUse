@@ -5,6 +5,7 @@ import java.util.Map;
 
 import pe.edu.pucp.reuse.modelo.enums.NivelReputacion;
 import pe.edu.pucp.reuse.modelo.enums.TipoMetricaInsignia;
+import pe.edu.pucp.reuse.modelo.usuarios.CuentaGoogle;
 import pe.edu.pucp.reuse.modelo.usuarios.UsuarioPUCP;
 
 /**
@@ -39,10 +40,33 @@ public interface UsuarioBL extends RegistroBL<UsuarioPUCP> {
 
     /**
      * RF-01 (recuperacion de contrasena): genera un codigo de 6 digitos valido por 15 minutos
-     * para el correo indicado y lo devuelve para que la capa de servicios lo entregue.
+     * y lo envia en segundo plano al correo institucional. Si el correo no esta configurado
+     * (modo desarrollo), el codigo solo se registra en el log del servidor. El codigo nunca sale
+     * de la capa de negocio. Si el correo no tiene una cuenta habilitada no hace nada (sin lanzar
+     * error), para no revelar que correos estan registrados.
      */
-    String solicitarRecuperacion(String correoInstitucional) throws BLException;
+    void solicitarRecuperacion(String correoInstitucional) throws BLException;
 
     /** RF-01: valida el codigo de recuperacion y guarda la nueva contrasena (hash BCrypt). */
     void restablecerContrasena(String correoInstitucional, String codigo, String contrasenaNueva) throws BLException;
+
+    /**
+     * Ingreso con Google, paso 1: valida el ID token con Google (firma, Client ID, emisor y
+     * vencimiento, en reuse-integraciones), aplica las reglas de ReUse (correo verificado y cuenta
+     * del dominio pucp.edu.pe) y devuelve la identidad confirmada.
+     */
+    CuentaGoogle validarCuentaGoogle(String idToken) throws BLException;
+
+    /**
+     * Ingreso con Google, paso 2: devuelve el usuario con ese correo, o null si aun no tiene cuenta.
+     * Una cuenta PENDIENTE_VERIFICACION queda verificada: Google ya confirmo el correo PUCP.
+     */
+    UsuarioPUCP iniciarSesionConGoogle(CuentaGoogle cuenta) throws BLException;
+
+    /**
+     * Registro con Google: el correo es el que confirmo Google y la cuenta nace ACTIVA y
+     * verificada, sin revision del administrador. Se validan los mismos datos que en el registro
+     * con formulario, incluida la contrasena que elige el estudiante.
+     */
+    int registrarConGoogle(UsuarioPUCP usuario, CuentaGoogle cuenta) throws BLException;
 }

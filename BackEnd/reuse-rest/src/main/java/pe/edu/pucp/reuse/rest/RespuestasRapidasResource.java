@@ -56,7 +56,7 @@ public class RespuestasRapidasResource {
     @Path("/{id}")
     public Response update(@PathParam("id") int id, RespuestaRapidaDTO dto) throws BLException {
         if (dto == null || id != dto.getIdRespuesta()) {
-            return Respuestas.solicitudInvalida("El id y el payload no coinciden");
+            return Respuestas.solicitudInvalida("No se pudo guardar el cambio.");
         }
         respuestaBL.update(ChatMapper.toModelo(dto));
         return Response.ok(ChatMapper.toDTO(respuestaBL.findById(id))).build();

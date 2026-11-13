@@ -98,7 +98,7 @@ else
     private bool mostrarConfirmacion;
     private bool cargando = true;
 
-    private string Nombre => u is null ? "" : $"{u.Nombres} {u.ApellidoPaterno}";
+    private string Nombre => u is null ? "" : $"{u.Nombres} {u.Apellidos}";
 
     private string Titulo => accion switch
     {

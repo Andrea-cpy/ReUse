@@ -1,106 +1,173 @@
 @page "/registro"
+@page "/registro/google"
 @inherits PaginaBase
 @inject IUsuarioService UsuarioService
 @inject IAcademicoService AcademicoService
+@inject RegistrosGooglePendientes Pendientes
 @inject NavigationManager Nav
 
-@* RF-01: registro de estudiante → POST /usuarios. La cuenta queda PENDIENTE_VERIFICACION. *@
+@* RF-01: una sola pantalla de registro y un mismo usuario para los dos caminos.
+   - Formulario ("Regístrate con tu código PUCP") → POST /usuarios: la cuenta queda PENDIENTE_VERIFICACION
+     hasta que un administrador la revise.
+   - Con Google (/registro/google?t=ticket) → POST /auth/google/registro: nombres, apellidos, código y correo
+     vienen de Google; el estudiante completa facultad, carrera y contraseña. Como Google ya confirmó el correo,
+     la cuenta queda ACTIVA sin esperar al administrador. *@
 
 <PageTitle>Crear cuenta · ReUse</PageTitle>
 
 <NavLink class="ru-volver" href="login"><i class="bi bi-arrow-left"></i> Volver a iniciar sesión</NavLink>
-<h1 class="mb-1">Crear cuenta</h1>
-<p class="small-muted mb-4">Solo para estudiantes con correo @@pucp.edu.pe.</p>
 
-<Alertas Error="@Error" />
-
-<EditForm Model="modelo" OnValidSubmit="Registrar" FormName="registro">
-    <DataAnnotationsValidator />
-    <div class="row g-3">
-        <div class="col-12">
-            <label class="form-label" for="nombres">Nombres</label>
-            <InputText id="nombres" class="form-control" @bind-Value="modelo.Nombres" />
-            <ValidationMessage For="() => modelo.Nombres" />
-        </div>
-        <div class="col-sm-6">
-            <label class="form-label" for="apPat">Apellido paterno</label>
-            <InputText id="apPat" class="form-control" @bind-Value="modelo.ApellidoPaterno" />
-            <ValidationMessage For="() => modelo.ApellidoPaterno" />
-        </div>
-        <div class="col-sm-6">
-            <label class="form-label" for="apMat">Apellido materno <span class="small-muted">(opcional)</span></label>
-            <InputText id="apMat" class="form-control" @bind-Value="modelo.ApellidoMaterno" />
-        </div>
-        <div class="col-sm-5">
-            <label class="form-label" for="codigo">Código PUCP</label>
-            <InputText id="codigo" class="form-control" placeholder="20221234" maxlength="8" @bind-Value="modelo.Codigo" />
-            <ValidationMessage For="() => modelo.Codigo" />
-        </div>
-        <div class="col-sm-7">
-            <label class="form-label" for="correo">Correo institucional</label>
-            <InputText id="correo" class="form-control" placeholder="@("a20221234@pucp.edu.pe")" @bind-Value="modelo.Correo" />
-            <ValidationMessage For="() => modelo.Correo" />
-        </div>
-        <div class="col-sm-6">
-            <label class="form-label" for="facultad">Facultad</label>
-            <select id="facultad" class="form-select" value="@idFacultad" @onchange="CambiarFacultad">
-                <option value="0">Selecciona…</option>
-                @foreach (FacultadDTO f in facultades)
-                {
-                    <option value="@f.IdFacultad">@f.Nombre</option>
-                }
-            </select>
-        </div>
-        <div class="col-sm-6">
-            <label class="form-label" for="carrera">Carrera</label>
-            <InputSelect id="carrera" class="form-select" @bind-Value="modelo.IdCarrera" disabled="@(carreras.Count == 0)">
-                <option value="0">Selecciona…</option>
-                @foreach (CarreraDTO c in carreras)
-                {
-                    <option value="@c.IdCarrera">@c.Nombre</option>
-                }
-            </InputSelect>
-            <ValidationMessage For="() => modelo.IdCarrera" />
-        </div>
-        <div class="col-sm-6">
-            <label class="form-label" for="pass1">Contraseña</label>
-            <InputText id="pass1" type="password" class="form-control" @bind-Value="modelo.Contrasena" />
-            <ValidationMessage For="() => modelo.Contrasena" />
-        </div>
-        <div class="col-sm-6">
-            <label class="form-label" for="pass2">Confirmar contraseña</label>
-            <InputText id="pass2" type="password" class="form-control" @bind-Value="modelo.Confirmacion" />
-            <ValidationMessage For="() => modelo.Confirmacion" />
-        </div>
-        <div class="col-12">
-            <div class="form-check">
-                <InputCheckbox id="terminos" class="form-check-input" @bind-Value="modelo.AceptaTerminos" />
-                <label class="form-check-label small" for="terminos">
-                    Acepto las normas de convivencia de ReUse y el uso de mis datos para fines académicos.
-                </label>
-            </div>
-            <ValidationMessage For="() => modelo.AceptaTerminos" />
-        </div>
-        <div class="col-12">
-            <button type="submit" class="btn btn-primary w-100 py-2" disabled="@Procesando">
-                @if (Procesando)
-                {
-                    <span class="spinner-border spinner-border-sm me-1"></span>
-                }
-                Crear cuenta
-            </button>
-        </div>
+@if (googleExpirado)
+{
+    <div class="text-center">
+        <span class="ru-avatar lg mb-3"><i class="bi bi-clock-history"></i></span>
+        <h1 class="mb-2">Tu sesión con Google expiró</h1>
+        <p class="small-muted mb-4">Por seguridad tienes 15 minutos para completar el registro. Vuelve a elegir tu cuenta para continuar.</p>
+        <BotonGoogle Texto="Continuar con Google" />
     </div>
-</EditForm>
+}
+else
+{
+    <h1 class="mb-1">Crear cuenta</h1>
+
+    @if (ConGoogle)
+    {
+        <p class="small-muted mb-3">Es tu primera vez en ReUse. Solo faltan unos datos.</p>
+        <div class="ru-cuenta-google mb-3">
+            <span class="ru-avatar"><i class="bi bi-google"></i></span>
+            <div class="flex-grow-1 text-truncate">
+                <div class="fw-semibold text-truncate">@modelo.Correo</div>
+                <div class="small text-success"><i class="bi bi-patch-check-fill me-1"></i>Verificado por Google</div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <p class="small-muted mb-4">Solo para estudiantes con correo @@pucp.edu.pe.</p>
+        <div class="ru-google-destacado mb-3">
+            <div class="d-flex gap-2 mb-2">
+                <i class="bi bi-lightning-charge-fill text-primary"></i>
+                <div>
+                    <div class="fw-semibold">Regístrate con Google y empieza hoy</div>
+                    <div class="small-muted">Google confirma tu correo PUCP, así que tu cuenta queda activa al instante, sin esperar a un administrador.</div>
+                </div>
+            </div>
+            <BotonGoogle Texto="Registrarme con Google" />
+        </div>
+        <div class="ru-separador"><span>o llena el formulario</span></div>
+        <p class="small-muted small mb-3">
+            <i class="bi bi-hourglass-split me-1"></i>Con el formulario, un administrador revisa tu cuenta antes de que puedas ingresar.
+        </p>
+    }
+
+    <Alertas Error="@Error" />
+
+    <EditForm Model="modelo" OnValidSubmit="Registrar" FormName="registro">
+        <DataAnnotationsValidator />
+        <p class="ru-nota-requeridos mb-2">Campos obligatorios</p>
+        <div class="row g-3">
+            <div class="col-12">
+                <label class="form-label requerido" for="nombres">Nombres</label>
+                <InputTexto id="nombres" class="form-control" maxlength="80" autocomplete="given-name" @bind-Value="modelo.Nombres" />
+                <ValidationMessage For="() => modelo.Nombres" />
+            </div>
+            <div class="col-12">
+                <label class="form-label requerido" for="apellidos">Apellidos</label>
+                <InputTexto id="apellidos" class="form-control" maxlength="120" placeholder="Ej. De La Cruz Pérez" autocomplete="family-name" @bind-Value="modelo.Apellidos" />
+                <ValidationMessage For="() => modelo.Apellidos" />
+            </div>
+            <div class="col-sm-5">
+                <label class="form-label requerido" for="codigo">Código PUCP</label>
+                <InputTexto id="codigo" class="@(codigoDeGoogle ? "form-control bg-light" : "form-control")" readonly="@codigoDeGoogle"
+                            placeholder="20221234" maxlength="8" inputmode="numeric" @bind-Value="modelo.Codigo" />
+                <ValidationMessage For="() => modelo.Codigo" />
+            </div>
+            <div class="col-sm-7">
+                <label class="form-label requerido" for="correo">Correo institucional</label>
+                <InputTexto id="correo" type="email" class="@(ConGoogle ? "form-control bg-light" : "form-control")" readonly="@ConGoogle"
+                            placeholder="@("a20221234@pucp.edu.pe")" autocomplete="email" @bind-Value="modelo.Correo" />
+                <ValidationMessage For="() => modelo.Correo" />
+            </div>
+            <div class="col-sm-6">
+                <label class="form-label requerido" for="facultad">Facultad</label>
+                <select id="facultad" class="form-select" value="@idFacultad" @onchange="CambiarFacultad">
+                    <option value="0">Selecciona…</option>
+                    @foreach (FacultadDTO f in facultades)
+                    {
+                        <option value="@f.IdFacultad">@f.Nombre</option>
+                    }
+                </select>
+            </div>
+            <div class="col-sm-6">
+                <label class="form-label requerido" for="carrera">Carrera</label>
+                <InputSelect id="carrera" class="form-select" @bind-Value="modelo.IdCarrera" disabled="@(carreras.Count == 0)">
+                    <option value="0">Selecciona…</option>
+                    @foreach (CarreraDTO c in carreras)
+                    {
+                        <option value="@c.IdCarrera">@c.Nombre</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="() => modelo.IdCarrera" />
+            </div>
+            <div class="col-sm-6">
+                <label class="form-label requerido" for="pass1">Contraseña</label>
+                <InputTexto id="pass1" type="password" class="form-control" autocomplete="new-password" @bind-Value="modelo.Contrasena" />
+                <ValidationMessage For="() => modelo.Contrasena" />
+            </div>
+            <div class="col-sm-6">
+                <label class="form-label requerido" for="pass2">Confirmar contraseña</label>
+                <InputTexto id="pass2" type="password" class="form-control" autocomplete="new-password" @bind-Value="modelo.Confirmacion" />
+                <ValidationMessage For="() => modelo.Confirmacion" />
+            </div>
+            <div class="col-12">
+                <div class="form-check">
+                    <InputCheckbox id="terminos" class="form-check-input" @bind-Value="modelo.AceptaTerminos" />
+                    <label class="form-check-label small requerido" for="terminos">
+                        Acepto las normas de convivencia de ReUse y el uso de mis datos para fines académicos.
+                    </label>
+                </div>
+                <ValidationMessage For="() => modelo.AceptaTerminos" />
+            </div>
+            <div class="col-12">
+                <BotonEnviar Texto="@(ConGoogle ? "Crear cuenta y entrar" : "Crear cuenta")" Procesando="@Procesando" Clase="btn-primary w-100 py-2" />
+            </div>
+        </div>
+    </EditForm>
+}
 
 @code {
+    /// <summary>Ticket que crea /cuenta/google/continuar; el token de Google queda guardado en el servidor.</summary>
+    [SupplyParameterFromQuery(Name = "t")]
+    public string? Ticket { get; set; }
+
     private readonly RegistroModelo modelo = new();
+    private RegistroGooglePendiente? pendiente;
+    private bool googleExpirado;
+    private bool codigoDeGoogle;
     private List<FacultadDTO> facultades = [];
     private List<CarreraDTO> carreras = [];
     private int idFacultad;
 
+    private bool ConGoogle => pendiente is not null;
+
     protected override async Task OnInitializedAsync()
     {
+        if (Nav.ToBaseRelativePath(Nav.Uri).StartsWith("registro/google", StringComparison.OrdinalIgnoreCase))
+        {
+            pendiente = Pendientes.Obtener(Ticket);
+            if (pendiente is null)
+            {
+                googleExpirado = true;
+                return;
+            }
+            // Datos que ya conoce Google: se rellenan solos.
+            UsuarioDTO perfil = pendiente.Perfil;
+            modelo.Nombres = perfil.Nombres ?? "";
+            modelo.Apellidos = perfil.Apellidos ?? "";
+            modelo.Codigo = perfil.CodigoPUCP ?? "";
+            modelo.Correo = perfil.CorreoInstitucional ?? "";
+            codigoDeGoogle = !string.IsNullOrEmpty(perfil.CodigoPUCP);
+        }
         await Ejecutar(async () => facultades = await AcademicoService.ListarFacultades());
     }
 
@@ -117,21 +184,39 @@
 
     private async Task Registrar()
     {
+        // El mismo usuario por los dos caminos; las reglas (código de 8 dígitos, correo @pucp.edu.pe,
+        // duplicados, longitud de la contraseña) las valida UsuarioBL en Java.
         UsuarioDTO nuevo = new()
         {
             Nombres = modelo.Nombres.Trim(),
-            ApellidoPaterno = modelo.ApellidoPaterno.Trim(),
-            ApellidoMaterno = string.IsNullOrWhiteSpace(modelo.ApellidoMaterno) ? null : modelo.ApellidoMaterno.Trim(),
+            Apellidos = modelo.Apellidos.Trim(),
             CodigoPUCP = modelo.Codigo.Trim(),
             CorreoInstitucional = modelo.Correo.Trim().ToLowerInvariant(),
             Contrasena = modelo.Contrasena,
             IdCarrera = modelo.IdCarrera
         };
-        // Las reglas (código de 8 dígitos, correo @pucp.edu.pe, duplicados, longitud de la contraseña)
-        // las valida UsuarioBL en Java; si alguna falla, su mensaje aparece arriba del formulario.
-        if (await Ejecutar(() => UsuarioService.Registrar(nuevo)))
+
+        if (!ConGoogle)
         {
-            Nav.NavigateTo("verificar-cuenta");
+            if (await Ejecutar(() => UsuarioService.Registrar(nuevo)))
+            {
+                Nav.NavigateTo("verificar-cuenta");
+            }
+            return;
+        }
+
+        // Pudo vencer mientras llenaba el formulario.
+        pendiente = Pendientes.Obtener(Ticket);
+        if (pendiente is null)
+        {
+            googleExpirado = true;
+            return;
+        }
+        // El backend vuelve a validar el token y toma el correo de Google, no del formulario.
+        if (await Ejecutar(() => UsuarioService.RegistrarConGoogle(pendiente.IdToken, nuevo)))
+        {
+            // La cookie de sesión solo se puede crear en una petición HTTP normal (no dentro del circuito).
+            Nav.NavigateTo($"cuenta/google/entrar?t={Ticket}", forceLoad: true);
         }
     }
 
@@ -140,13 +225,11 @@
         [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Ingresa tus nombres.")]
         public string Nombres { get; set; } = "";
 
-        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Ingresa tu apellido paterno.")]
-        public string ApellidoPaterno { get; set; } = "";
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Ingresa tus apellidos.")]
+        public string Apellidos { get; set; } = "";
 
-        public string ApellidoMaterno { get; set; } = "";
-
-        [System.ComponentModel.DataAnnotations.RegularExpression(@"^\d{8}$", ErrorMessage = "El código PUCP tiene 8 dígitos.")]
         [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Ingresa tu código PUCP.")]
+        [System.ComponentModel.DataAnnotations.RegularExpression(@"^\d{8}$", ErrorMessage = "El código PUCP tiene 8 dígitos.")]
         public string Codigo { get; set; } = "";
 
         [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Ingresa tu correo institucional.")]
@@ -160,6 +243,7 @@
         [System.ComponentModel.DataAnnotations.MinLength(8, ErrorMessage = "Usa al menos 8 caracteres.")]
         public string Contrasena { get; set; } = "";
 
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Confirma la contraseña.")]
         [System.ComponentModel.DataAnnotations.Compare(nameof(Contrasena), ErrorMessage = "Las contraseñas no coinciden.")]
         public string Confirmacion { get; set; } = "";
 

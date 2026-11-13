@@ -218,7 +218,7 @@ public class InsigniaUsuarioBLImpl extends BaseBLImpl implements InsigniaUsuario
 
     private void validarExiste(int idInsigniaUsuario) throws BLException {
         if (findById(idInsigniaUsuario) == null) {
-            throw new BLException("No existe el otorgamiento con id " + idInsigniaUsuario);
+            throw new BLException("El otorgamiento no existe o ya no esta disponible");
         }
     }
 }

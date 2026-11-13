@@ -97,7 +97,7 @@ public class MensajeBLImpl extends BaseBLImpl implements MensajeBL {
             throw new BLException("No se pudo recuperar la respuesta rapida", e);
         }
         if (respuesta == null || !respuesta.isActivo()) {
-            throw new BLException("No existe la respuesta rapida " + idRespuestaRapida);
+            throw new BLException("La respuesta rapida no existe o ya no esta disponible");
         }
         if (respuesta.getCreador().getIdUsuario() != idEmisor) {
             throw new BLException("Solo se pueden usar respuestas rapidas propias");
@@ -125,7 +125,7 @@ public class MensajeBLImpl extends BaseBLImpl implements MensajeBL {
             throw new BLException("No se pudo verificar el chat", e);
         }
         if (chat == null || !chat.isActivo()) {
-            throw new BLException("No existe el chat " + mensaje.getCanalChat().getIdChat());
+            throw new BLException("El chat no existe o ya no esta disponible");
         }
         if (chat.getEstado() != EstadoCanalChat.ACTIVO) {
             throw new BLException("No se pueden enviar mensajes: el chat esta " + chat.getEstado());
@@ -140,7 +140,7 @@ public class MensajeBLImpl extends BaseBLImpl implements MensajeBL {
     private Mensaje buscarMensaje(int idMensaje) throws BLException {
         Mensaje mensaje = findById(idMensaje);
         if (mensaje == null || !mensaje.isActivo()) {
-            throw new BLException("No existe el mensaje con id " + idMensaje);
+            throw new BLException("El mensaje no existe o ya no esta disponible");
         }
         return mensaje;
     }

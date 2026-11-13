@@ -40,7 +40,7 @@
                         <NavLink class="d-flex align-items-center gap-2 text-decoration-none text-body ms-2" href="perfil">
                             <span class="ru-avatar">@Formato.Iniciales(context.User.NombreCompleto())</span>
                             <span class="d-none d-lg-block lh-sm">
-                                <span class="fw-semibold d-block small">@context.User.NombreCompleto()</span>
+                                <span class="fw-semibold d-block small">@Formato.PrimerNombre(context.User.NombreCompleto())</span>
                                 <span class="small-muted">@context.User.CodigoPucp()</span>
                             </span>
                         </NavLink>

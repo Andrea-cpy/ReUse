@@ -37,7 +37,7 @@
                 <tbody>
                     @foreach (UsuarioDTO u in Visibles)
                     {
-                        string nombre = $"{u.Nombres} {u.ApellidoPaterno}";
+                        string nombre = $"{u.Nombres} {u.Apellidos}";
                         <tr>
                             <td>
                                 <div class="d-flex align-items-center gap-2">
@@ -79,10 +79,10 @@
     private IEnumerable<UsuarioDTO> Visibles => usuarios
         .Where(u => estado == "" || u.EstadoCuenta == estado)
         .Where(u => string.IsNullOrWhiteSpace(texto) || Coincide(u, texto.Trim()))
-        .OrderBy(u => u.ApellidoPaterno);
+        .OrderBy(u => u.Apellidos);
 
     private static bool Coincide(UsuarioDTO u, string t) =>
-        $"{u.Nombres} {u.ApellidoPaterno} {u.ApellidoMaterno} {u.CodigoPUCP} {u.CorreoInstitucional}"
+        $"{u.Nombres} {u.Apellidos} {u.CodigoPUCP} {u.CorreoInstitucional}"
             .Contains(t, StringComparison.OrdinalIgnoreCase);
 
     protected override async Task OnInitializedAsync()

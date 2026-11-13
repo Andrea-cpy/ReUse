@@ -81,7 +81,7 @@ public class PuntoEntregaBLImpl extends BaseBLImpl implements PuntoEntregaBL {
 
     private void validarExiste(int idPuntoEntrega) throws BLException {
         if (findById(idPuntoEntrega) == null) {
-            throw new BLException("No existe un punto de entrega con id " + idPuntoEntrega);
+            throw new BLException("El punto de entrega no existe o ya no esta disponible");
         }
     }
 

@@ -8,8 +8,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// Sesión con cookie: el login se valida contra el backend Java (POST /auth/login)
-builder.Services.AddSeguridad();
+// Sesión con cookie: el login se valida contra el backend Java (POST /auth/login).
+// Ingreso con Google (OpenID Connect) si hay Google:ClientId y Google:ClientSecret configurados.
+builder.Services.AddSeguridad(builder.Configuration);
 
 // Clientes de los servicios web RESTful del backend Java (URL base en appsettings.json → RestApi:BaseUrl)
 builder.Services.AddScoped<IUsuarioService, UsuarioService>();

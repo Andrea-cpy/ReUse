@@ -27,8 +27,7 @@ public class UsuarioPUCP extends Registro {
     private int idUsuario;
     private String codigoPUCP;
     private String nombres;
-    private String apellidoPaterno;
-    private String apellidoMaterno;
+    private String apellidos;
     private String correoInstitucional;
     private String contrasena;
     private Carrera carrera;
@@ -78,13 +77,12 @@ public class UsuarioPUCP extends Registro {
         this.insignias = new ArrayList<>();
     }
 
-    public UsuarioPUCP(String codigoPUCP, String nombres, String apellidoPaterno, String apellidoMaterno,
+    public UsuarioPUCP(String codigoPUCP, String nombres, String apellidos,
                        String correoInstitucional, String contrasena, Carrera carrera) {
         this();
         this.codigoPUCP = codigoPUCP;
         this.nombres = nombres;
-        this.apellidoPaterno = apellidoPaterno;
-        this.apellidoMaterno = apellidoMaterno;
+        this.apellidos = apellidos;
         this.correoInstitucional = correoInstitucional;
         this.contrasena = contrasena;
         this.carrera = carrera;
@@ -95,9 +93,7 @@ public class UsuarioPUCP extends Registro {
     }
 
     public String getNombreCompleto() {
-        return apellidoMaterno == null
-                ? nombres + " " + apellidoPaterno
-                : nombres + " " + apellidoPaterno + " " + apellidoMaterno;
+        return apellidos == null ? nombres : nombres + " " + apellidos;
     }
 
     public int getIdUsuario() {
@@ -124,20 +120,12 @@ public class UsuarioPUCP extends Registro {
         this.nombres = nombres;
     }
 
-    public String getApellidoPaterno() {
-        return apellidoPaterno;
+    public String getApellidos() {
+        return apellidos;
     }
 
-    public void setApellidoPaterno(String apellidoPaterno) {
-        this.apellidoPaterno = apellidoPaterno;
-    }
-
-    public String getApellidoMaterno() {
-        return apellidoMaterno;
-    }
-
-    public void setApellidoMaterno(String apellidoMaterno) {
-        this.apellidoMaterno = apellidoMaterno;
+    public void setApellidos(String apellidos) {
+        this.apellidos = apellidos;
     }
 
     public String getCorreoInstitucional() {

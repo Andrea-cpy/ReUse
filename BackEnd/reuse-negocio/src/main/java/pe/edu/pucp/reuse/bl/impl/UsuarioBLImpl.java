@@ -6,8 +6,11 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Logger;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.mindrot.jbcrypt.BCrypt;
@@ -17,13 +20,24 @@ import pe.edu.pucp.reuse.bl.UsuarioBL;
 import pe.edu.pucp.reuse.bl.insignias.MetricasUsuario;
 import pe.edu.pucp.reuse.dao.CarreraDAO;
 import pe.edu.pucp.reuse.dao.impl.CarreraDAOImpl;
+import pe.edu.pucp.reuse.integraciones.IntegracionException;
+import pe.edu.pucp.reuse.integraciones.correo.ServicioCorreo;
+import pe.edu.pucp.reuse.integraciones.google.DatosTokenGoogle;
+import pe.edu.pucp.reuse.integraciones.google.VerificadorTokenGoogle;
 import pe.edu.pucp.reuse.modelo.academico.Carrera;
 import pe.edu.pucp.reuse.modelo.enums.EstadoCuenta;
 import pe.edu.pucp.reuse.modelo.enums.NivelReputacion;
 import pe.edu.pucp.reuse.modelo.enums.TipoMetricaInsignia;
+import pe.edu.pucp.reuse.modelo.usuarios.CuentaGoogle;
 import pe.edu.pucp.reuse.modelo.usuarios.UsuarioPUCP;
 
 public class UsuarioBLImpl extends BaseBLImpl implements UsuarioBL {
+    private static final Logger LOG = Logger.getLogger(UsuarioBLImpl.class.getName());
+
+    // Ingreso con Google: solo cuentas del Google Workspace de la PUCP.
+    private static final String DOMINIO_PUCP = "pucp.edu.pe";
+    // Correo de alumno PUCP: "a" + codigo de 8 digitos (a20221234@pucp.edu.pe).
+    private static final Pattern CORREO_ALUMNO = Pattern.compile("^a(\\d{8})@pucp\\.edu\\.pe$");
 
     // Solo correos institucionales @pucp.edu.pe.
     private static final Pattern PATRON_CORREO = Pattern.compile("^[A-Za-z0-9._%+-]+@pucp\\.edu\\.pe$");
@@ -56,18 +70,26 @@ public class UsuarioBLImpl extends BaseBLImpl implements UsuarioBL {
     }
 
     @Override
-    public String solicitarRecuperacion(String correoInstitucional) throws BLException {
+    public void solicitarRecuperacion(String correoInstitucional) throws BLException {
         UsuarioPUCP usuario = obtenerPorCorreo(correoInstitucional);
-        if (usuario == null || !usuario.isActivo()) {
-            throw new BLException("No existe una cuenta registrada con el correo " + correoInstitucional.trim());
+        // Sin cuenta (o suspendida) no se genera codigo, pero tampoco se avisa: si la respuesta
+        // fuera distinta, cualquiera podria averiguar que correos estan registrados.
+        if (usuario == null || !usuario.isActivo() || usuario.getEstadoCuenta() == EstadoCuenta.SUSPENDIDA) {
+            return;
         }
-        if (usuario.getEstadoCuenta() == EstadoCuenta.SUSPENDIDA) {
-            throw new BLException("La cuenta esta SUSPENDIDA: comunicate con un administrador de ReUse");
-        }
+        String correo = usuario.getCorreoInstitucional().toLowerCase();
         String codigo = String.format("%06d", ALEATORIO.nextInt(1_000_000));
-        RECUPERACIONES.put(usuario.getCorreoInstitucional().toLowerCase(), new SolicitudRecuperacion(
+        RECUPERACIONES.put(correo, new SolicitudRecuperacion(
                 hashear(codigo), LocalDateTime.now().plusMinutes(MINUTOS_VALIDEZ_CODIGO)));
-        return codigo;
+        // El codigo solo llega al dueno del correo. Se envia en segundo plano: la respuesta no tarda
+        // mas cuando la cuenta existe, asi que tampoco revela que correos estan registrados.
+        ServicioCorreo servicioCorreo = ServicioCorreo.getInstance();
+        if (servicioCorreo.estaConfigurado()) {
+            servicioCorreo.enviarCodigoRecuperacion(correo, codigo, MINUTOS_VALIDEZ_CODIGO);
+        } else {
+            // Modo desarrollo (sin correo.properties): el codigo queda en el log del servidor.
+            LOG.info("Correo sin configurar. Codigo de recuperacion para " + correo + ": " + codigo);
+        }
     }
 
     @Override
@@ -96,7 +118,7 @@ public class UsuarioBLImpl extends BaseBLImpl implements UsuarioBL {
         validarContrasena(contrasenaNueva);
         UsuarioPUCP usuario = obtenerPorCorreo(clave);
         if (usuario == null || !usuario.isActivo()) {
-            throw new BLException("No existe una cuenta registrada con el correo " + clave);
+            throw new BLException("La cuenta no existe o ya no esta disponible");
         }
         try {
             usuarioDAO.cambiarContrasena(usuario.getIdUsuario(), hashear(contrasenaNueva));
@@ -106,15 +128,114 @@ public class UsuarioBLImpl extends BaseBLImpl implements UsuarioBL {
         RECUPERACIONES.remove(clave); // el codigo es de un solo uso
     }
 
-    // Toda cuenta nueva queda pendiente de verificacion. La contrasena se guarda como hash BCrypt.
+    @Override
+    public CuentaGoogle validarCuentaGoogle(String idToken) throws BLException {
+        if (idToken == null || idToken.isBlank()) {
+            throw new BLException("Falta el token de Google");
+        }
+        DatosTokenGoogle datos;
+        try {
+            datos = VerificadorTokenGoogle.getInstance().verificar(idToken);
+        } catch (IntegracionException e) {
+            // El detalle tecnico viaja como causa (va al log); el usuario solo ve el mensaje.
+            throw new BLException(mensajeErrorGoogle(e), e);
+        }
+        if (datos.getCorreo() == null) {
+            throw new BLException("El token de Google tiene un formato inesperado");
+        }
+        String correo = datos.getCorreo().trim().toLowerCase(Locale.ROOT);
+        // hd solo existe en cuentas administradas por la PUCP (Google Workspace). Una cuenta
+        // Google personal creada con un correo @pucp.edu.pe no lo trae y se rechaza.
+        if (!correo.endsWith("@" + DOMINIO_PUCP) || !DOMINIO_PUCP.equalsIgnoreCase(datos.getHd())) {
+            throw new BLException("Solo puedes ingresar con tu cuenta Google @" + DOMINIO_PUCP
+                    + ". Elegiste " + correo + ".");
+        }
+        if (!Boolean.TRUE.equals(datos.getEmailVerificado())) {
+            throw new BLException("Google no ha verificado el correo " + correo);
+        }
+        Matcher alumno = CORREO_ALUMNO.matcher(correo);
+        String codigoPUCP = alumno.matches() ? alumno.group(1) : null;
+        return new CuentaGoogle(correo, codigoPUCP, datos.getNombres(), datos.getApellidos());
+    }
+
+    // Mensajes que ve el usuario segun el motivo del fallo al validar con Google.
+    private static String mensajeErrorGoogle(IntegracionException e) {
+        return switch (e.getMotivo()) {
+            case SIN_CONFIGURAR -> "El ingreso con Google no esta disponible por ahora. Usa tu correo y contrasena.";
+            case EMISOR_DESCONOCIDO -> "El token no fue emitido por Google";
+            case FORMATO_INESPERADO -> "El token de Google tiene un formato inesperado";
+            case TOKEN_RECHAZADO -> "No se pudo validar tu identidad con Google; vuelve a intentarlo";
+        };
+    }
+
+    @Override
+    public UsuarioPUCP iniciarSesionConGoogle(CuentaGoogle cuenta) throws BLException {
+        if (cuenta == null) {
+            throw new BLException("Debe validar primero la cuenta de Google");
+        }
+        UsuarioPUCP usuario = obtenerPorCorreo(cuenta.getCorreo());
+        if (usuario == null) {
+            return null; // aun no tiene cuenta: el frontend le pide completar el registro
+        }
+        if (!usuario.isActivo()) {
+            throw new BLException("La cuenta asociada a " + cuenta.getCorreo()
+                    + " fue dada de baja; comunicate con un administrador de ReUse");
+        }
+        if (usuario.getEstadoCuenta() == EstadoCuenta.SUSPENDIDA) {
+            throw new BLException("La cuenta " + usuario.getCodigoPUCP() + " esta SUSPENDIDA");
+        }
+        // Se registro con contrasena y esperaba al administrador: Google ya confirmo que el correo es suyo.
+        if (usuario.getEstadoCuenta() == EstadoCuenta.PENDIENTE_VERIFICACION) {
+            try {
+                usuarioDAO.verificarCuenta(usuario.getIdUsuario());
+            } catch (SQLException e) {
+                throw new BLException("No se pudo verificar la cuenta", e);
+            }
+            usuario = findById(usuario.getIdUsuario());
+        }
+        return usuario;
+    }
+
+    @Override
+    public int registrarConGoogle(UsuarioPUCP usuario, CuentaGoogle cuenta) throws BLException {
+        if (cuenta == null) {
+            throw new BLException("Debe validar primero la cuenta de Google");
+        }
+        if (usuario == null) {
+            throw new BLException("El usuario no puede ser nulo");
+        }
+        // El correo no lo elige el usuario: es el que Google confirmo.
+        usuario.setCorreoInstitucional(cuenta.getCorreo());
+        String codigoDelCorreo = cuenta.getCodigoPUCP();
+        if (codigoDelCorreo != null && usuario.getCodigoPUCP() != null
+                && !codigoDelCorreo.equals(usuario.getCodigoPUCP().trim())) {
+            throw new BLException("El codigo PUCP debe ser " + codigoDelCorreo + ", el de tu correo " + cuenta.getCorreo());
+        }
+        if (usuario.getCodigoPUCP() == null || usuario.getCodigoPUCP().isBlank()) {
+            usuario.setCodigoPUCP(codigoDelCorreo);
+        }
+        // Google ya confirmo que el correo PUCP es suyo: la cuenta no espera al administrador.
+        return registrar(usuario, true);
+    }
+
+    // Registro con formulario: la cuenta queda pendiente hasta que un administrador la verifique.
     @Override
     public int insert(UsuarioPUCP usuario) throws BLException {
+        return registrar(usuario, false);
+    }
+
+    /**
+     * Crea el mismo usuario por los dos caminos (formulario o Google): mismas validaciones y
+     * contrasena elegida por el estudiante (hash BCrypt). Solo cambia el estado inicial:
+     * verificado = true deja la cuenta ACTIVA; false, PENDIENTE_VERIFICACION.
+     */
+    private int registrar(UsuarioPUCP usuario, boolean verificado) throws BLException {
         validarDatosPersonales(usuario);
         validarContrasena(usuario.getContrasena());
         validarCarrera(usuario);
         validarUnicidad(usuario);
-        usuario.setVerificado(false);
-        usuario.setEstadoCuenta(EstadoCuenta.PENDIENTE_VERIFICACION);
+        usuario.setVerificado(verificado);
+        usuario.setEstadoCuenta(verificado ? EstadoCuenta.ACTIVA : EstadoCuenta.PENDIENTE_VERIFICACION);
         usuario.setContrasena(hashear(usuario.getContrasena()));
         try {
             return usuarioDAO.insert(usuario);
@@ -322,7 +443,8 @@ public class UsuarioBLImpl extends BaseBLImpl implements UsuarioBL {
             throw new BLException("El usuario no puede ser nulo");
         }
         validarTexto(usuario.getNombres(), "Los nombres son obligatorios");
-        validarTexto(usuario.getApellidoPaterno(), "El apellido paterno es obligatorio");
+        validarTexto(usuario.getApellidos(), "Los apellidos son obligatorios");
+        validarLongitudMaxima(usuario.getApellidos(), 120, "Los apellidos");
     }
 
     // Perfil + identificadores institucionales; se usa al registrar.
@@ -366,16 +488,20 @@ public class UsuarioBLImpl extends BaseBLImpl implements UsuarioBL {
         }
     }
 
-    // El UNIQUE de la BD es la ultima defensa; aqui se da un mensaje claro antes.
+    // El UNIQUE de la BD es la ultima defensa; aqui se da un mensaje claro antes. El mensaje no
+    // dice si choco el correo o el codigo, ni los repite: no confirma que datos estan registrados.
+    private static final String CUENTA_DUPLICADA = "Ya existe una cuenta con esos datos."
+            + " Si es tuya, inicia sesion o recupera tu contrasena.";
+
     void validarUnicidad(UsuarioPUCP usuario) throws BLException {
         try {
             UsuarioPUCP porCorreo = usuarioDAO.obtenerPorCorreo(usuario.getCorreoInstitucional());
             if (porCorreo != null && porCorreo.getIdUsuario() != usuario.getIdUsuario()) {
-                throw new BLException("Ya existe un usuario con el correo " + usuario.getCorreoInstitucional());
+                throw new BLException(CUENTA_DUPLICADA);
             }
             UsuarioPUCP porCodigo = usuarioDAO.obtenerPorCodigo(usuario.getCodigoPUCP());
             if (porCodigo != null && porCodigo.getIdUsuario() != usuario.getIdUsuario()) {
-                throw new BLException("Ya existe un usuario con el codigo PUCP " + usuario.getCodigoPUCP());
+                throw new BLException(CUENTA_DUPLICADA);
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar la unicidad del correo y del codigo", e);
@@ -390,7 +516,7 @@ public class UsuarioBLImpl extends BaseBLImpl implements UsuarioBL {
         try {
             Carrera carrera = carreraDAO.findById(usuario.getCarrera().getIdCarrera());
             if (carrera == null || !carrera.isActivo()) {
-                throw new BLException("No existe la carrera " + usuario.getCarrera().getIdCarrera());
+                throw new BLException("La carrera no existe o ya no esta disponible");
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar la carrera", e);
@@ -399,7 +525,7 @@ public class UsuarioBLImpl extends BaseBLImpl implements UsuarioBL {
 
     private void validarExiste(int idUsuario) throws BLException {
         if (findById(idUsuario) == null) {
-            throw new BLException("No existe un usuario con id " + idUsuario);
+            throw new BLException("El usuario no existe o ya no esta disponible");
         }
     }
 }

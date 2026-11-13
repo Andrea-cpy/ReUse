@@ -45,7 +45,7 @@ public class BloqueoBLImpl extends BaseBLImpl implements BloqueoBL {
             if (TransactionsManager.activa()) {
                 TransactionsManager.rollback();
             }
-            throw new BLException("No se pudo registrar el bloqueo; se hizo rollback", e);
+            throw new BLException("No se pudo registrar el bloqueo. Intentalo de nuevo.", e);
         }
     }
 
@@ -146,7 +146,7 @@ public class BloqueoBLImpl extends BaseBLImpl implements BloqueoBL {
     private Bloqueo buscarBloqueo(int idBloqueo) throws BLException {
         Bloqueo bloqueo = findById(idBloqueo);
         if (bloqueo == null || !bloqueo.isActivo()) {
-            throw new BLException("No existe el bloqueo con id " + idBloqueo);
+            throw new BLException("El bloqueo no existe o ya no esta disponible");
         }
         return bloqueo;
     }

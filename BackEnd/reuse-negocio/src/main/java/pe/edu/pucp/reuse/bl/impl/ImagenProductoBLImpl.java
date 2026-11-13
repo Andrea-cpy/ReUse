@@ -111,7 +111,7 @@ public class ImagenProductoBLImpl extends BaseBLImpl implements ImagenProductoBL
 
     private void validarExiste(int idImagen) throws BLException {
         if (findById(idImagen) == null) {
-            throw new BLException("No existe una imagen con id " + idImagen);
+            throw new BLException("La imagen no existe o ya no esta disponible");
         }
     }
 }

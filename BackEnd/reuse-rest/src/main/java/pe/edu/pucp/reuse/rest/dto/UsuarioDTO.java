@@ -5,8 +5,7 @@ public class UsuarioDTO {
     private int idUsuario;
     private String codigoPUCP;
     private String nombres;
-    private String apellidoPaterno;
-    private String apellidoMaterno;
+    private String apellidos;
     private String correoInstitucional;
     private String contrasena;
     private int idCarrera;
@@ -49,20 +48,12 @@ public class UsuarioDTO {
         this.nombres = nombres;
     }
 
-    public String getApellidoPaterno() {
-        return apellidoPaterno;
+    public String getApellidos() {
+        return apellidos;
     }
 
-    public void setApellidoPaterno(String apellidoPaterno) {
-        this.apellidoPaterno = apellidoPaterno;
-    }
-
-    public String getApellidoMaterno() {
-        return apellidoMaterno;
-    }
-
-    public void setApellidoMaterno(String apellidoMaterno) {
-        this.apellidoMaterno = apellidoMaterno;
+    public void setApellidos(String apellidos) {
+        this.apellidos = apellidos;
     }
 
     public String getCorreoInstitucional() {

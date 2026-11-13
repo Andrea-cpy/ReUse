@@ -44,7 +44,7 @@ public class PuntosEntregaResource {
     public Response findById(@PathParam("id") int id) throws BLException {
         PuntoEntrega punto = puntoEntregaBL.findById(id);
         if (punto == null) {
-            return Respuestas.noEncontrado("No existe el punto de entrega con id " + id);
+            return Respuestas.noEncontrado("El punto de entrega no existe o ya no esta disponible");
         }
         return Response.ok(PuntoEntregaMapper.toDTO(punto)).build();
     }
@@ -61,7 +61,7 @@ public class PuntosEntregaResource {
     @Path("/{id}")
     public Response update(@PathParam("id") int id, PuntoEntregaDTO dto) throws BLException {
         if (dto == null || id != dto.getIdPuntoEntrega()) {
-            return Respuestas.solicitudInvalida("El id y el payload no coinciden");
+            return Respuestas.solicitudInvalida("No se pudo guardar el cambio.");
         }
         puntoEntregaBL.update(PuntoEntregaMapper.toModelo(dto));
         return Response.ok(PuntoEntregaMapper.toDTO(puntoEntregaBL.findById(id))).build();

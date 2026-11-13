@@ -43,7 +43,7 @@ public class InsigniasResource {
     public Response findById(@PathParam("id") int id) throws BLException {
         Insignia insignia = insigniaBL.findById(id);
         if (insignia == null) {
-            return Respuestas.noEncontrado("No existe la insignia con id " + id);
+            return Respuestas.noEncontrado("La insignia no existe o ya no esta disponible");
         }
         return Response.ok(GamificacionMapper.toDTO(insignia)).build();
     }

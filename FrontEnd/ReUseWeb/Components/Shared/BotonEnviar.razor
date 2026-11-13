@@ -1,0 +1,92 @@
+@using System.ComponentModel.DataAnnotations
+@implements IDisposable
+
+@* Botón de envío para formularios con EditForm + DataAnnotationsValidator.
+   Se mantiene deshabilitado mientras falte algún dato obligatorio (o haya uno inválido) y,
+   debajo, dice qué falta. La validación de aquí es "silenciosa": no pinta de rojo los campos
+   que el usuario aún no tocó; eso lo hace cada campo cuando se modifica.
+   Uso: <BotonEnviar Texto="Guardar" Procesando="@Procesando" />  (dentro del EditForm) *@
+
+<button type="submit" class="btn @Clase" disabled="@(Procesando || Faltantes.Count > 0 || !CondicionExtra)">
+    @if (Procesando)
+    {
+        <span class="spinner-border spinner-border-sm me-1"></span>
+    }
+    else if (!string.IsNullOrEmpty(Icono))
+    {
+        <i class="bi @Icono me-1"></i>
+    }
+    @Texto
+</button>
+@if (MostrarFaltantes && !Procesando && (Faltantes.Count > 0 || !CondicionExtra))
+{
+    <div class="ru-faltantes">
+        <i class="bi bi-info-circle me-1"></i>Para continuar:
+        @string.Join(" · ", Faltantes.Concat(CondicionExtra ? [] : [MensajeCondicionExtra]).Select(SinPunto))
+    </div>
+}
+
+@code {
+    [CascadingParameter] private EditContext? Contexto { get; set; }
+
+    [Parameter, EditorRequired] public string Texto { get; set; } = "";
+    [Parameter] public bool Procesando { get; set; }
+    [Parameter] public string Clase { get; set; } = "btn-primary";
+    [Parameter] public string? Icono { get; set; }
+    [Parameter] public bool MostrarFaltantes { get; set; } = true;
+    /// <summary>Regla que no está en el modelo (por ejemplo, elegir un motivo en radios propios).</summary>
+    [Parameter] public bool CondicionExtra { get; set; } = true;
+    [Parameter] public string MensajeCondicionExtra { get; set; } = "completa los campos obligatorios";
+
+    private EditContext? suscrito;
+
+    /// <summary>Mensajes de las reglas que el modelo todavía no cumple.</summary>
+    private List<string> Faltantes
+    {
+        get
+        {
+            if (Contexto?.Model is null) return [];
+            List<ValidationResult> resultados = [];
+            Validator.TryValidateObject(Contexto.Model, new ValidationContext(Contexto.Model), resultados, validateAllProperties: true);
+            // En el orden en que se declaran los campos (primero los de la clase base), que es el del formulario.
+            List<string> orden = OrdenDeCampos(Contexto.Model.GetType());
+            return resultados
+                .OrderBy(r => r.MemberNames.Select(m => orden.IndexOf(m)).DefaultIfEmpty(int.MaxValue).Min())
+                .Select(r => r.ErrorMessage ?? "").Where(m => m.Length > 0).Distinct().ToList();
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (!ReferenceEquals(suscrito, Contexto))
+        {
+            if (suscrito is not null) suscrito.OnFieldChanged -= AlCambiarCampo;
+            suscrito = Contexto;
+            if (suscrito is not null) suscrito.OnFieldChanged += AlCambiarCampo;
+        }
+    }
+
+    private void AlCambiarCampo(object? sender, FieldChangedEventArgs e) => StateHasChanged();
+
+    private static List<string> OrdenDeCampos(Type tipo)
+    {
+        List<Type> jerarquia = [];
+        for (Type? t = tipo; t is not null && t != typeof(object); t = t.BaseType) jerarquia.Insert(0, t);
+        return jerarquia
+            .SelectMany(t => t.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance
+                                              | System.Reflection.BindingFlags.DeclaredOnly).OrderBy(p => p.MetadataToken))
+            .Select(p => p.Name).ToList();
+    }
+
+    // "Ingresa tus nombres." -> "ingresa tus nombres"
+    private static string SinPunto(string mensaje)
+    {
+        string m = mensaje.TrimEnd('.');
+        return m.Length == 0 ? m : char.ToLower(m[0]) + m[1..];
+    }
+
+    public void Dispose()
+    {
+        if (suscrito is not null) suscrito.OnFieldChanged -= AlCambiarCampo;
+    }
+}

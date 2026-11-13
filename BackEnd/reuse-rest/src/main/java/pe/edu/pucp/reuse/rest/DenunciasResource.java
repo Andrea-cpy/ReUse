@@ -56,7 +56,7 @@ public class DenunciasResource {
     public Response findById(@PathParam("id") int id) throws BLException {
         DenunciaDTO dto = buscar(id);
         if (dto == null) {
-            return Respuestas.noEncontrado("No existe la denuncia con id " + id);
+            return Respuestas.noEncontrado("La denuncia no existe o ya no esta disponible");
         }
         return Response.ok(dto).build();
     }
@@ -88,7 +88,7 @@ public class DenunciasResource {
             throws BLException {
         DenunciaDTO actual = buscar(id);
         if (actual == null) {
-            return Respuestas.noEncontrado("No existe la denuncia con id " + id);
+            return Respuestas.noEncontrado("La denuncia no existe o ya no esta disponible");
         }
         boolean suspendida = false;
         if (ModeracionMapper.TIPO_USUARIO.equals(actual.getTipo())) {
@@ -107,7 +107,7 @@ public class DenunciasResource {
             throws BLException {
         DenunciaDTO actual = buscar(id);
         if (actual == null) {
-            return Respuestas.noEncontrado("No existe la denuncia con id " + id);
+            return Respuestas.noEncontrado("La denuncia no existe o ya no esta disponible");
         }
         if (ModeracionMapper.TIPO_USUARIO.equals(actual.getTipo())) {
             reporteUsuarioBL.desestimar(id, idAdministrador);

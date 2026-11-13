@@ -96,7 +96,7 @@ public abstract class ReporteDAOImpl<T extends Reporte> extends RegistroDAOImpl<
             revisor.setIdUsuario(idRevisor);
             revisor.setCodigoPUCP(rs.getString("revisor_codigo"));
             revisor.setNombres(rs.getString("revisor_nombres"));
-            revisor.setApellidoPaterno(rs.getString("revisor_apellido"));
+            revisor.setApellidos(rs.getString("revisor_apellido"));
             reporte.setRevisor(revisor);
         }
         return reporte;

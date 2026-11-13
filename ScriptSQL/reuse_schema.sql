@@ -92,8 +92,7 @@ CREATE TABLE usuario (
     id_usuario           INT           NOT NULL AUTO_INCREMENT,
     codigo_pucp          CHAR(8)       NOT NULL,
     nombres              VARCHAR(100)  NOT NULL,
-    apellido_paterno     VARCHAR(60)   NOT NULL,
-    apellido_materno     VARCHAR(60)   NULL,
+    apellidos            VARCHAR(120)  NOT NULL,
     correo_institucional VARCHAR(150)  NOT NULL,
     contrasena           VARCHAR(255)  NOT NULL,
     id_carrera           INT           NULL,          -- NULL solo para administradores
@@ -667,16 +666,16 @@ INSERT INTO carrera (nombre, id_facultad) VALUES
 
 -- usuario: 7 registros. contrasena = hash BCrypt de la clave de prueba 'Demo1234'
 -- (no es una credencial real; la capa de negocio compara con BCrypt.checkpw).
-INSERT INTO usuario (codigo_pucp, nombres, apellido_paterno, apellido_materno, correo_institucional,
+INSERT INTO usuario (codigo_pucp, nombres, apellidos, correo_institucional,
                      contrasena, id_carrera, verificado, estado_cuenta, reputacion_vendedor, reputacion_comprador, contador_reportes,
                      foto_perfil, fecha_registro) VALUES
-    ('20260001', 'Ana', 'Torres', 'Vega', 'a20260001@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', 26, 1, 'ACTIVA', 5.00, 4.00, 0, NULL, '2026-08-01 09:00:00'),                -- 1
-    ('20260002', 'Bruno', 'Ramos', 'Soto', 'a20260002@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', 25, 1, 'ACTIVA', 0.00, 5.00, 0, NULL, '2026-08-01 10:00:00'),              -- 2
-    ('20260003', 'Carla', 'Lopez', 'Rios', 'a20260003@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', 40, 1, 'ACTIVA', 0.00, 0.00, 1, NULL, '2026-08-02 09:00:00'),              -- 3
-    ('20260004', 'Diego', 'Mendoza', 'Paz', 'a20260004@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', 1, 1, 'ACTIVA', 5.00, 0.00, 1, NULL, '2026-08-02 10:00:00'),              -- 4
-    ('20260005', 'Elena', 'Castro', NULL, 'a20260005@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', 55, 0, 'PENDIENTE_VERIFICACION', 0.00, 0.00, 0, NULL, '2026-09-12 08:00:00'), -- 5
-    ('20260006', 'Fabian', 'Leon', 'Cruz', 'a20260006@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', 13, 1, 'SUSPENDIDA', 0.00, 0.00, 0, NULL, '2026-08-03 09:00:00'),          -- 6
-    ('00000001', 'Admin', 'Prueba', NULL, 'admin.demo@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', NULL, 1, 'ACTIVA', 0.00, 0.00, 0, NULL, '2026-08-01 08:00:00');          -- 7
+    ('20260001', 'Ana', 'Torres Vega', 'a20260001@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', 26, 1, 'ACTIVA', 5.00, 4.00, 0, NULL, '2026-08-01 09:00:00'),                -- 1
+    ('20260002', 'Bruno', 'Ramos Soto', 'a20260002@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', 25, 1, 'ACTIVA', 0.00, 5.00, 0, NULL, '2026-08-01 10:00:00'),              -- 2
+    ('20260003', 'Carla', 'Lopez Rios', 'a20260003@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', 40, 1, 'ACTIVA', 0.00, 0.00, 1, NULL, '2026-08-02 09:00:00'),              -- 3
+    ('20260004', 'Diego', 'Mendoza Paz', 'a20260004@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', 1, 1, 'ACTIVA', 5.00, 0.00, 1, NULL, '2026-08-02 10:00:00'),              -- 4
+    ('20260005', 'Elena', 'Castro', 'a20260005@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', 55, 0, 'PENDIENTE_VERIFICACION', 0.00, 0.00, 0, NULL, '2026-09-12 08:00:00'), -- 5
+    ('20260006', 'Fabian', 'Leon Cruz', 'a20260006@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', 13, 1, 'SUSPENDIDA', 0.00, 0.00, 0, NULL, '2026-08-03 09:00:00'),          -- 6
+    ('00000001', 'Admin', 'Prueba', 'admin.demo@pucp.edu.pe', '$2a$10$ryitgtAtjeNtu5awExLZ8.CfQ9uHTfx7c6z/YygPtd8Y9mD6IrxYW', NULL, 1, 'ACTIVA', 0.00, 0.00, 0, NULL, '2026-08-01 08:00:00');          -- 7
 
 -- administrador: 1 registro
 INSERT INTO administrador (id_usuario) VALUES (7);
@@ -862,6 +861,11 @@ COMMIT;
 --   buscar_x_por_id -> result set con los alias que lee mapear() en Java
 --   listar_xs       -> solo registros activos
 -- Las fechas con DEFAULT CURRENT_TIMESTAMP no son parametros: las pone la BD.
+-- Cambios del Lab 12 (pedido del equipo: nombres y apellidos en un solo campo cada uno):
+--   usuario: apellido_paterno y apellido_materno se reemplazan por una sola columna
+--   apellidos VARCHAR(120). insertar_usuario y modificar_usuario reciben p_apellidos y
+--   todos los procedimientos que devuelven usuarios leen u.apellidos (los alias
+--   *_apellido de las referencias no cambian).
 -- MySQL guarda en cada procedimiento el sql_mode vigente al crearlo; se usa
 -- modo estricto para que un dato demasiado largo sea un error (y la capa de
 -- negocio haga rollback) en lugar de truncarse en silencio.
@@ -1024,8 +1028,7 @@ END$$
 CREATE PROCEDURE insertar_usuario(
     IN p_codigo_pucp CHAR(8),
     IN p_nombres VARCHAR(100),
-    IN p_apellido_paterno VARCHAR(60),
-    IN p_apellido_materno VARCHAR(60),
+    IN p_apellidos VARCHAR(120),
     IN p_correo_institucional VARCHAR(150),
     IN p_contrasena VARCHAR(255),
     IN p_id_carrera INT,
@@ -1036,10 +1039,10 @@ CREATE PROCEDURE insertar_usuario(
     IN p_usuario_creacion VARCHAR(50),
     OUT p_id INT)
 BEGIN
-    INSERT INTO usuario (codigo_pucp, nombres, apellido_paterno, apellido_materno, correo_institucional,
+    INSERT INTO usuario (codigo_pucp, nombres, apellidos, correo_institucional,
                          contrasena, id_carrera, verificado, estado_cuenta, foto_perfil, activo,
                          usuario_creacion)
-    VALUES (p_codigo_pucp, p_nombres, p_apellido_paterno, p_apellido_materno, p_correo_institucional,
+    VALUES (p_codigo_pucp, p_nombres, p_apellidos, p_correo_institucional,
             p_contrasena, p_id_carrera, p_verificado, p_estado_cuenta, p_foto_perfil, p_activo,
             p_usuario_creacion);
     SET p_id = LAST_INSERT_ID();
@@ -1050,16 +1053,15 @@ END$$
 CREATE PROCEDURE modificar_usuario(
     IN p_id INT,
     IN p_nombres VARCHAR(100),
-    IN p_apellido_paterno VARCHAR(60),
-    IN p_apellido_materno VARCHAR(60),
+    IN p_apellidos VARCHAR(120),
     IN p_id_carrera INT,
     IN p_foto_perfil VARCHAR(500),
     IN p_usuario_modificacion VARCHAR(50),
     OUT p_filas INT)
 BEGIN
     UPDATE usuario
-    SET nombres = p_nombres, apellido_paterno = p_apellido_paterno,
-        apellido_materno = p_apellido_materno, id_carrera = p_id_carrera,
+    SET nombres = p_nombres, apellidos = p_apellidos,
+        id_carrera = p_id_carrera,
         foto_perfil = p_foto_perfil, usuario_modificacion = p_usuario_modificacion
     WHERE id_usuario = p_id;
     SET p_filas = ROW_COUNT();
@@ -1104,7 +1106,7 @@ END$$
 
 CREATE PROCEDURE buscar_usuario_por_id(IN p_id INT)
 BEGIN
-    SELECT u.id_usuario, u.codigo_pucp, u.nombres, u.apellido_paterno, u.apellido_materno,
+    SELECT u.id_usuario, u.codigo_pucp, u.nombres, u.apellidos,
            u.correo_institucional, u.contrasena, u.id_carrera, u.verificado, u.estado_cuenta,
            u.reputacion_vendedor, u.reputacion_comprador, u.contador_reportes, u.foto_perfil, u.fecha_registro,
            c.nombre AS carrera_nombre, c.id_facultad, f.nombre AS facultad_nombre,
@@ -1117,7 +1119,7 @@ END$$
 
 CREATE PROCEDURE listar_usuarios()
 BEGIN
-    SELECT u.id_usuario, u.codigo_pucp, u.nombres, u.apellido_paterno, u.apellido_materno,
+    SELECT u.id_usuario, u.codigo_pucp, u.nombres, u.apellidos,
            u.correo_institucional, u.contrasena, u.id_carrera, u.verificado, u.estado_cuenta,
            u.reputacion_vendedor, u.reputacion_comprador, u.contador_reportes, u.foto_perfil, u.fecha_registro,
            c.nombre AS carrera_nombre, c.id_facultad, f.nombre AS facultad_nombre,
@@ -1126,12 +1128,12 @@ BEGIN
     LEFT JOIN carrera c ON c.id_carrera = u.id_carrera
     LEFT JOIN facultad f ON f.id_facultad = c.id_facultad
     WHERE u.activo = 1
-    ORDER BY u.apellido_paterno, u.nombres;
+    ORDER BY u.apellidos, u.nombres;
 END$$
 
 CREATE PROCEDURE buscar_usuario_por_correo(IN p_correo_institucional VARCHAR(150))
 BEGIN
-    SELECT u.id_usuario, u.codigo_pucp, u.nombres, u.apellido_paterno, u.apellido_materno,
+    SELECT u.id_usuario, u.codigo_pucp, u.nombres, u.apellidos,
            u.correo_institucional, u.contrasena, u.id_carrera, u.verificado, u.estado_cuenta,
            u.reputacion_vendedor, u.reputacion_comprador, u.contador_reportes, u.foto_perfil, u.fecha_registro,
            c.nombre AS carrera_nombre, c.id_facultad, f.nombre AS facultad_nombre,
@@ -1144,7 +1146,7 @@ END$$
 
 CREATE PROCEDURE buscar_usuario_por_codigo(IN p_codigo_pucp CHAR(8))
 BEGIN
-    SELECT u.id_usuario, u.codigo_pucp, u.nombres, u.apellido_paterno, u.apellido_materno,
+    SELECT u.id_usuario, u.codigo_pucp, u.nombres, u.apellidos,
            u.correo_institucional, u.contrasena, u.id_carrera, u.verificado, u.estado_cuenta,
            u.reputacion_vendedor, u.reputacion_comprador, u.contador_reportes, u.foto_perfil, u.fecha_registro,
            c.nombre AS carrera_nombre, c.id_facultad, f.nombre AS facultad_nombre,
@@ -1264,7 +1266,7 @@ END$$
 
 CREATE PROCEDURE buscar_administrador_por_id(IN p_id INT)
 BEGIN
-    SELECT u.id_usuario, u.codigo_pucp, u.nombres, u.apellido_paterno, u.apellido_materno,
+    SELECT u.id_usuario, u.codigo_pucp, u.nombres, u.apellidos,
            u.correo_institucional, u.contrasena, u.id_carrera, u.verificado, u.estado_cuenta,
            u.reputacion_vendedor, u.reputacion_comprador, u.contador_reportes, u.foto_perfil, u.fecha_registro,
            c.nombre AS carrera_nombre, c.id_facultad, f.nombre AS facultad_nombre,
@@ -1278,7 +1280,7 @@ END$$
 
 CREATE PROCEDURE listar_administradores()
 BEGIN
-    SELECT u.id_usuario, u.codigo_pucp, u.nombres, u.apellido_paterno, u.apellido_materno,
+    SELECT u.id_usuario, u.codigo_pucp, u.nombres, u.apellidos,
            u.correo_institucional, u.contrasena, u.id_carrera, u.verificado, u.estado_cuenta,
            u.reputacion_vendedor, u.reputacion_comprador, u.contador_reportes, u.foto_perfil, u.fecha_registro,
            c.nombre AS carrera_nombre, c.id_facultad, f.nombre AS facultad_nombre,
@@ -1288,7 +1290,7 @@ BEGIN
     LEFT JOIN facultad f ON f.id_facultad = c.id_facultad
     JOIN administrador a ON a.id_usuario = u.id_usuario
     WHERE a.activo = 1
-    ORDER BY u.apellido_paterno, u.nombres;
+    ORDER BY u.apellidos, u.nombres;
 END$$
 
 -- ---------------------------------------------------------------------
@@ -1506,7 +1508,7 @@ CREATE PROCEDURE buscar_anuncio_por_id(IN p_id INT)
 BEGIN
     SELECT a.id_anuncio, a.titulo, a.precio, a.descripcion, a.condicion, a.estado, a.fecha_publicacion,
            v.id_usuario AS vendedor_id, v.codigo_pucp AS vendedor_codigo,
-           v.nombres AS vendedor_nombres, v.apellido_paterno AS vendedor_apellido,
+           v.nombres AS vendedor_nombres, v.apellidos AS vendedor_apellido,
            a.id_material, m.titulo AS material_titulo,
            a.activo, a.fecha_creacion, a.fecha_modificacion, a.usuario_creacion, a.usuario_modificacion
     FROM anuncio a
@@ -1519,7 +1521,7 @@ CREATE PROCEDURE listar_anuncios()
 BEGIN
     SELECT a.id_anuncio, a.titulo, a.precio, a.descripcion, a.condicion, a.estado, a.fecha_publicacion,
            v.id_usuario AS vendedor_id, v.codigo_pucp AS vendedor_codigo,
-           v.nombres AS vendedor_nombres, v.apellido_paterno AS vendedor_apellido,
+           v.nombres AS vendedor_nombres, v.apellidos AS vendedor_apellido,
            a.id_material, m.titulo AS material_titulo,
            a.activo, a.fecha_creacion, a.fecha_modificacion, a.usuario_creacion, a.usuario_modificacion
     FROM anuncio a
@@ -1666,7 +1668,7 @@ CREATE PROCEDURE buscar_favorito_por_id(IN p_id INT)
 BEGIN
     SELECT fa.id_favorito, fa.fecha_guardado,
            u.id_usuario AS usuario_id, u.codigo_pucp AS usuario_codigo,
-           u.nombres AS usuario_nombres, u.apellido_paterno AS usuario_apellido,
+           u.nombres AS usuario_nombres, u.apellidos AS usuario_apellido,
            a.id_anuncio AS anuncio_id, a.titulo AS anuncio_titulo, a.precio AS anuncio_precio,
            a.estado AS anuncio_estado, a.id_vendedor AS anuncio_id_vendedor,
            fa.activo, fa.fecha_creacion, fa.fecha_modificacion, fa.usuario_creacion, fa.usuario_modificacion
@@ -1680,7 +1682,7 @@ CREATE PROCEDURE listar_favoritos()
 BEGIN
     SELECT fa.id_favorito, fa.fecha_guardado,
            u.id_usuario AS usuario_id, u.codigo_pucp AS usuario_codigo,
-           u.nombres AS usuario_nombres, u.apellido_paterno AS usuario_apellido,
+           u.nombres AS usuario_nombres, u.apellidos AS usuario_apellido,
            a.id_anuncio AS anuncio_id, a.titulo AS anuncio_titulo, a.precio AS anuncio_precio,
            a.estado AS anuncio_estado, a.id_vendedor AS anuncio_id_vendedor,
            fa.activo, fa.fecha_creacion, fa.fecha_modificacion, fa.usuario_creacion, fa.usuario_modificacion
@@ -1695,7 +1697,7 @@ CREATE PROCEDURE buscar_favorito_activo(IN p_id_usuario INT, IN p_id_anuncio INT
 BEGIN
     SELECT fa.id_favorito, fa.fecha_guardado,
            u.id_usuario AS usuario_id, u.codigo_pucp AS usuario_codigo,
-           u.nombres AS usuario_nombres, u.apellido_paterno AS usuario_apellido,
+           u.nombres AS usuario_nombres, u.apellidos AS usuario_apellido,
            a.id_anuncio AS anuncio_id, a.titulo AS anuncio_titulo, a.precio AS anuncio_precio,
            a.estado AS anuncio_estado, a.id_vendedor AS anuncio_id_vendedor,
            fa.activo, fa.fecha_creacion, fa.fecha_modificacion, fa.usuario_creacion, fa.usuario_modificacion
@@ -1709,7 +1711,7 @@ CREATE PROCEDURE listar_favoritos_por_usuario(IN p_id_usuario INT)
 BEGIN
     SELECT fa.id_favorito, fa.fecha_guardado,
            u.id_usuario AS usuario_id, u.codigo_pucp AS usuario_codigo,
-           u.nombres AS usuario_nombres, u.apellido_paterno AS usuario_apellido,
+           u.nombres AS usuario_nombres, u.apellidos AS usuario_apellido,
            a.id_anuncio AS anuncio_id, a.titulo AS anuncio_titulo, a.precio AS anuncio_precio,
            a.estado AS anuncio_estado, a.id_vendedor AS anuncio_id_vendedor,
            fa.activo, fa.fecha_creacion, fa.fecha_modificacion, fa.usuario_creacion, fa.usuario_modificacion
@@ -1764,7 +1766,7 @@ CREATE PROCEDURE buscar_oferta_por_id(IN p_id INT)
 BEGIN
     SELECT o.id_oferta, o.monto_propuesto, o.estado, o.fecha,
            u.id_usuario AS comprador_id, u.codigo_pucp AS comprador_codigo,
-           u.nombres AS comprador_nombres, u.apellido_paterno AS comprador_apellido,
+           u.nombres AS comprador_nombres, u.apellidos AS comprador_apellido,
            a.id_anuncio AS anuncio_id, a.titulo AS anuncio_titulo, a.precio AS anuncio_precio,
            a.estado AS anuncio_estado, a.id_vendedor AS anuncio_id_vendedor,
            o.activo, o.fecha_creacion, o.fecha_modificacion, o.usuario_creacion, o.usuario_modificacion
@@ -1778,7 +1780,7 @@ CREATE PROCEDURE listar_ofertas()
 BEGIN
     SELECT o.id_oferta, o.monto_propuesto, o.estado, o.fecha,
            u.id_usuario AS comprador_id, u.codigo_pucp AS comprador_codigo,
-           u.nombres AS comprador_nombres, u.apellido_paterno AS comprador_apellido,
+           u.nombres AS comprador_nombres, u.apellidos AS comprador_apellido,
            a.id_anuncio AS anuncio_id, a.titulo AS anuncio_titulo, a.precio AS anuncio_precio,
            a.estado AS anuncio_estado, a.id_vendedor AS anuncio_id_vendedor,
            o.activo, o.fecha_creacion, o.fecha_modificacion, o.usuario_creacion, o.usuario_modificacion
@@ -1811,7 +1813,7 @@ CREATE PROCEDURE listar_ofertas_por_anuncio(IN p_id_anuncio INT)
 BEGIN
     SELECT o.id_oferta, o.monto_propuesto, o.estado, o.fecha,
            u.id_usuario AS comprador_id, u.codigo_pucp AS comprador_codigo,
-           u.nombres AS comprador_nombres, u.apellido_paterno AS comprador_apellido,
+           u.nombres AS comprador_nombres, u.apellidos AS comprador_apellido,
            a.id_anuncio AS anuncio_id, a.titulo AS anuncio_titulo, a.precio AS anuncio_precio,
            a.estado AS anuncio_estado, a.id_vendedor AS anuncio_id_vendedor,
            o.activo, o.fecha_creacion, o.fecha_modificacion, o.usuario_creacion, o.usuario_modificacion
@@ -1878,7 +1880,7 @@ BEGIN
            a.id_anuncio AS anuncio_id, a.titulo AS anuncio_titulo, a.precio AS anuncio_precio,
            a.estado AS anuncio_estado, a.id_vendedor AS anuncio_id_vendedor,
            u.id_usuario AS comprador_id, u.codigo_pucp AS comprador_codigo,
-           u.nombres AS comprador_nombres, u.apellido_paterno AS comprador_apellido,
+           u.nombres AS comprador_nombres, u.apellidos AS comprador_apellido,
            t.id_oferta, o.monto_propuesto AS oferta_monto, o.estado AS oferta_estado,
            ce.id_cita, ce.fecha_hora AS cita_fecha_hora, ce.estado AS cita_estado,
            t.activo, t.fecha_creacion, t.fecha_modificacion, t.usuario_creacion, t.usuario_modificacion
@@ -1897,7 +1899,7 @@ BEGIN
            a.id_anuncio AS anuncio_id, a.titulo AS anuncio_titulo, a.precio AS anuncio_precio,
            a.estado AS anuncio_estado, a.id_vendedor AS anuncio_id_vendedor,
            u.id_usuario AS comprador_id, u.codigo_pucp AS comprador_codigo,
-           u.nombres AS comprador_nombres, u.apellido_paterno AS comprador_apellido,
+           u.nombres AS comprador_nombres, u.apellidos AS comprador_apellido,
            t.id_oferta, o.monto_propuesto AS oferta_monto, o.estado AS oferta_estado,
            ce.id_cita, ce.fecha_hora AS cita_fecha_hora, ce.estado AS cita_estado,
            t.activo, t.fecha_creacion, t.fecha_modificacion, t.usuario_creacion, t.usuario_modificacion
@@ -1945,7 +1947,7 @@ BEGIN
            a.id_anuncio AS anuncio_id, a.titulo AS anuncio_titulo, a.precio AS anuncio_precio,
            a.estado AS anuncio_estado, a.id_vendedor AS anuncio_id_vendedor,
            u.id_usuario AS comprador_id, u.codigo_pucp AS comprador_codigo,
-           u.nombres AS comprador_nombres, u.apellido_paterno AS comprador_apellido,
+           u.nombres AS comprador_nombres, u.apellidos AS comprador_apellido,
            t.id_oferta, o.monto_propuesto AS oferta_monto, o.estado AS oferta_estado,
            ce.id_cita, ce.fecha_hora AS cita_fecha_hora, ce.estado AS cita_estado,
            t.activo, t.fecha_creacion, t.fecha_modificacion, t.usuario_creacion, t.usuario_modificacion
@@ -2157,7 +2159,7 @@ BEGIN
            a.id_anuncio AS anuncio_id, a.titulo AS anuncio_titulo, a.precio AS anuncio_precio,
            a.estado AS anuncio_estado, a.id_vendedor AS anuncio_id_vendedor,
            u.id_usuario AS comprador_id, u.codigo_pucp AS comprador_codigo,
-           u.nombres AS comprador_nombres, u.apellido_paterno AS comprador_apellido,
+           u.nombres AS comprador_nombres, u.apellidos AS comprador_apellido,
            ch.activo, ch.fecha_creacion, ch.fecha_modificacion, ch.usuario_creacion, ch.usuario_modificacion
     FROM canal_chat ch
     JOIN anuncio a ON a.id_anuncio = ch.id_anuncio
@@ -2171,7 +2173,7 @@ BEGIN
            a.id_anuncio AS anuncio_id, a.titulo AS anuncio_titulo, a.precio AS anuncio_precio,
            a.estado AS anuncio_estado, a.id_vendedor AS anuncio_id_vendedor,
            u.id_usuario AS comprador_id, u.codigo_pucp AS comprador_codigo,
-           u.nombres AS comprador_nombres, u.apellido_paterno AS comprador_apellido,
+           u.nombres AS comprador_nombres, u.apellidos AS comprador_apellido,
            ch.activo, ch.fecha_creacion, ch.fecha_modificacion, ch.usuario_creacion, ch.usuario_modificacion
     FROM canal_chat ch
     JOIN anuncio a ON a.id_anuncio = ch.id_anuncio
@@ -2221,7 +2223,7 @@ BEGIN
            a.id_anuncio AS anuncio_id, a.titulo AS anuncio_titulo, a.precio AS anuncio_precio,
            a.estado AS anuncio_estado, a.id_vendedor AS anuncio_id_vendedor,
            u.id_usuario AS comprador_id, u.codigo_pucp AS comprador_codigo,
-           u.nombres AS comprador_nombres, u.apellido_paterno AS comprador_apellido,
+           u.nombres AS comprador_nombres, u.apellidos AS comprador_apellido,
            ch.activo, ch.fecha_creacion, ch.fecha_modificacion, ch.usuario_creacion, ch.usuario_modificacion
     FROM canal_chat ch
     JOIN anuncio a ON a.id_anuncio = ch.id_anuncio
@@ -2275,7 +2277,7 @@ BEGIN
     SELECT me.id_mensaje, me.contenido, me.fecha_hora, me.leido,
            me.id_chat, ch.estado AS chat_estado,
            u.id_usuario AS emisor_id, u.codigo_pucp AS emisor_codigo,
-           u.nombres AS emisor_nombres, u.apellido_paterno AS emisor_apellido,
+           u.nombres AS emisor_nombres, u.apellidos AS emisor_apellido,
            me.activo, me.fecha_creacion, me.fecha_modificacion, me.usuario_creacion, me.usuario_modificacion
     FROM mensaje me
     JOIN canal_chat ch ON ch.id_chat = me.id_chat
@@ -2288,7 +2290,7 @@ BEGIN
     SELECT me.id_mensaje, me.contenido, me.fecha_hora, me.leido,
            me.id_chat, ch.estado AS chat_estado,
            u.id_usuario AS emisor_id, u.codigo_pucp AS emisor_codigo,
-           u.nombres AS emisor_nombres, u.apellido_paterno AS emisor_apellido,
+           u.nombres AS emisor_nombres, u.apellidos AS emisor_apellido,
            me.activo, me.fecha_creacion, me.fecha_modificacion, me.usuario_creacion, me.usuario_modificacion
     FROM mensaje me
     JOIN canal_chat ch ON ch.id_chat = me.id_chat
@@ -2302,7 +2304,7 @@ BEGIN
     SELECT me.id_mensaje, me.contenido, me.fecha_hora, me.leido,
            me.id_chat, ch.estado AS chat_estado,
            u.id_usuario AS emisor_id, u.codigo_pucp AS emisor_codigo,
-           u.nombres AS emisor_nombres, u.apellido_paterno AS emisor_apellido,
+           u.nombres AS emisor_nombres, u.apellidos AS emisor_apellido,
            me.activo, me.fecha_creacion, me.fecha_modificacion, me.usuario_creacion, me.usuario_modificacion
     FROM mensaje me
     JOIN canal_chat ch ON ch.id_chat = me.id_chat
@@ -2355,7 +2357,7 @@ CREATE PROCEDURE buscar_notificacion_por_id(IN p_id INT)
 BEGIN
     SELECT n.id_notificacion, n.mensaje, n.fecha_hora, n.tipo, n.estado,
            u.id_usuario AS destinatario_id, u.codigo_pucp AS destinatario_codigo,
-           u.nombres AS destinatario_nombres, u.apellido_paterno AS destinatario_apellido,
+           u.nombres AS destinatario_nombres, u.apellidos AS destinatario_apellido,
            n.activo, n.fecha_creacion, n.fecha_modificacion, n.usuario_creacion, n.usuario_modificacion
     FROM notificacion n
     JOIN usuario u ON u.id_usuario = n.id_destinatario
@@ -2366,7 +2368,7 @@ CREATE PROCEDURE listar_notificaciones()
 BEGIN
     SELECT n.id_notificacion, n.mensaje, n.fecha_hora, n.tipo, n.estado,
            u.id_usuario AS destinatario_id, u.codigo_pucp AS destinatario_codigo,
-           u.nombres AS destinatario_nombres, u.apellido_paterno AS destinatario_apellido,
+           u.nombres AS destinatario_nombres, u.apellidos AS destinatario_apellido,
            n.activo, n.fecha_creacion, n.fecha_modificacion, n.usuario_creacion, n.usuario_modificacion
     FROM notificacion n
     JOIN usuario u ON u.id_usuario = n.id_destinatario
@@ -2378,7 +2380,7 @@ CREATE PROCEDURE listar_notificaciones_por_destinatario(IN p_id_destinatario INT
 BEGIN
     SELECT n.id_notificacion, n.mensaje, n.fecha_hora, n.tipo, n.estado,
            u.id_usuario AS destinatario_id, u.codigo_pucp AS destinatario_codigo,
-           u.nombres AS destinatario_nombres, u.apellido_paterno AS destinatario_apellido,
+           u.nombres AS destinatario_nombres, u.apellidos AS destinatario_apellido,
            n.activo, n.fecha_creacion, n.fecha_modificacion, n.usuario_creacion, n.usuario_modificacion
     FROM notificacion n
     JOIN usuario u ON u.id_usuario = n.id_destinatario
@@ -2426,7 +2428,7 @@ CREATE PROCEDURE buscar_respuesta_rapida_por_id(IN p_id INT)
 BEGIN
     SELECT rr.id_respuesta, rr.texto,
            u.id_usuario AS creador_id, u.codigo_pucp AS creador_codigo,
-           u.nombres AS creador_nombres, u.apellido_paterno AS creador_apellido,
+           u.nombres AS creador_nombres, u.apellidos AS creador_apellido,
            rr.activo, rr.fecha_creacion, rr.fecha_modificacion, rr.usuario_creacion, rr.usuario_modificacion
     FROM respuesta_rapida rr
     JOIN usuario u ON u.id_usuario = rr.id_creador
@@ -2437,7 +2439,7 @@ CREATE PROCEDURE listar_respuestas_rapidas()
 BEGIN
     SELECT rr.id_respuesta, rr.texto,
            u.id_usuario AS creador_id, u.codigo_pucp AS creador_codigo,
-           u.nombres AS creador_nombres, u.apellido_paterno AS creador_apellido,
+           u.nombres AS creador_nombres, u.apellidos AS creador_apellido,
            rr.activo, rr.fecha_creacion, rr.fecha_modificacion, rr.usuario_creacion, rr.usuario_modificacion
     FROM respuesta_rapida rr
     JOIN usuario u ON u.id_usuario = rr.id_creador
@@ -2449,7 +2451,7 @@ CREATE PROCEDURE listar_respuestas_rapidas_por_creador(IN p_id_creador INT)
 BEGIN
     SELECT rr.id_respuesta, rr.texto,
            u.id_usuario AS creador_id, u.codigo_pucp AS creador_codigo,
-           u.nombres AS creador_nombres, u.apellido_paterno AS creador_apellido,
+           u.nombres AS creador_nombres, u.apellidos AS creador_apellido,
            rr.activo, rr.fecha_creacion, rr.fecha_modificacion, rr.usuario_creacion, rr.usuario_modificacion
     FROM respuesta_rapida rr
     JOIN usuario u ON u.id_usuario = rr.id_creador
@@ -2499,9 +2501,9 @@ CREATE PROCEDURE buscar_bloqueo_por_id(IN p_id INT)
 BEGIN
     SELECT b.id_bloqueo, b.fecha, b.estado,
            ur.id_usuario AS bloqueador_id, ur.codigo_pucp AS bloqueador_codigo,
-           ur.nombres AS bloqueador_nombres, ur.apellido_paterno AS bloqueador_apellido,
+           ur.nombres AS bloqueador_nombres, ur.apellidos AS bloqueador_apellido,
            ud.id_usuario AS bloqueado_id, ud.codigo_pucp AS bloqueado_codigo,
-           ud.nombres AS bloqueado_nombres, ud.apellido_paterno AS bloqueado_apellido,
+           ud.nombres AS bloqueado_nombres, ud.apellidos AS bloqueado_apellido,
            b.activo, b.fecha_creacion, b.fecha_modificacion, b.usuario_creacion, b.usuario_modificacion
     FROM bloqueo b
     JOIN usuario ur ON ur.id_usuario = b.id_bloqueador
@@ -2513,9 +2515,9 @@ CREATE PROCEDURE listar_bloqueos()
 BEGIN
     SELECT b.id_bloqueo, b.fecha, b.estado,
            ur.id_usuario AS bloqueador_id, ur.codigo_pucp AS bloqueador_codigo,
-           ur.nombres AS bloqueador_nombres, ur.apellido_paterno AS bloqueador_apellido,
+           ur.nombres AS bloqueador_nombres, ur.apellidos AS bloqueador_apellido,
            ud.id_usuario AS bloqueado_id, ud.codigo_pucp AS bloqueado_codigo,
-           ud.nombres AS bloqueado_nombres, ud.apellido_paterno AS bloqueado_apellido,
+           ud.nombres AS bloqueado_nombres, ud.apellidos AS bloqueado_apellido,
            b.activo, b.fecha_creacion, b.fecha_modificacion, b.usuario_creacion, b.usuario_modificacion
     FROM bloqueo b
     JOIN usuario ur ON ur.id_usuario = b.id_bloqueador
@@ -2529,9 +2531,9 @@ CREATE PROCEDURE buscar_bloqueo_activo_entre(IN p_id_usuario_a INT, IN p_id_usua
 BEGIN
     SELECT b.id_bloqueo, b.fecha, b.estado,
            ur.id_usuario AS bloqueador_id, ur.codigo_pucp AS bloqueador_codigo,
-           ur.nombres AS bloqueador_nombres, ur.apellido_paterno AS bloqueador_apellido,
+           ur.nombres AS bloqueador_nombres, ur.apellidos AS bloqueador_apellido,
            ud.id_usuario AS bloqueado_id, ud.codigo_pucp AS bloqueado_codigo,
-           ud.nombres AS bloqueado_nombres, ud.apellido_paterno AS bloqueado_apellido,
+           ud.nombres AS bloqueado_nombres, ud.apellidos AS bloqueado_apellido,
            b.activo, b.fecha_creacion, b.fecha_modificacion, b.usuario_creacion, b.usuario_modificacion
     FROM bloqueo b
     JOIN usuario ur ON ur.id_usuario = b.id_bloqueador
@@ -2593,9 +2595,9 @@ BEGIN
     SELECT ca.id_calificacion, ca.puntaje, ca.comentario, ca.fecha, ca.tipo,
            ca.id_transaccion, t.estado AS transaccion_estado,
            cr.id_usuario AS calificador_id, cr.codigo_pucp AS calificador_codigo,
-           cr.nombres AS calificador_nombres, cr.apellido_paterno AS calificador_apellido,
+           cr.nombres AS calificador_nombres, cr.apellidos AS calificador_apellido,
            cd.id_usuario AS calificado_id, cd.codigo_pucp AS calificado_codigo,
-           cd.nombres AS calificado_nombres, cd.apellido_paterno AS calificado_apellido,
+           cd.nombres AS calificado_nombres, cd.apellidos AS calificado_apellido,
            ca.activo, ca.fecha_creacion, ca.fecha_modificacion, ca.usuario_creacion, ca.usuario_modificacion
     FROM calificacion ca
     JOIN transaccion t ON t.id_transaccion = ca.id_transaccion
@@ -2609,9 +2611,9 @@ BEGIN
     SELECT ca.id_calificacion, ca.puntaje, ca.comentario, ca.fecha, ca.tipo,
            ca.id_transaccion, t.estado AS transaccion_estado,
            cr.id_usuario AS calificador_id, cr.codigo_pucp AS calificador_codigo,
-           cr.nombres AS calificador_nombres, cr.apellido_paterno AS calificador_apellido,
+           cr.nombres AS calificador_nombres, cr.apellidos AS calificador_apellido,
            cd.id_usuario AS calificado_id, cd.codigo_pucp AS calificado_codigo,
-           cd.nombres AS calificado_nombres, cd.apellido_paterno AS calificado_apellido,
+           cd.nombres AS calificado_nombres, cd.apellidos AS calificado_apellido,
            ca.activo, ca.fecha_creacion, ca.fecha_modificacion, ca.usuario_creacion, ca.usuario_modificacion
     FROM calificacion ca
     JOIN transaccion t ON t.id_transaccion = ca.id_transaccion
@@ -2628,9 +2630,9 @@ BEGIN
     SELECT ca.id_calificacion, ca.puntaje, ca.comentario, ca.fecha, ca.tipo,
            ca.id_transaccion, t.estado AS transaccion_estado,
            cr.id_usuario AS calificador_id, cr.codigo_pucp AS calificador_codigo,
-           cr.nombres AS calificador_nombres, cr.apellido_paterno AS calificador_apellido,
+           cr.nombres AS calificador_nombres, cr.apellidos AS calificador_apellido,
            cd.id_usuario AS calificado_id, cd.codigo_pucp AS calificado_codigo,
-           cd.nombres AS calificado_nombres, cd.apellido_paterno AS calificado_apellido,
+           cd.nombres AS calificado_nombres, cd.apellidos AS calificado_apellido,
            ca.activo, ca.fecha_creacion, ca.fecha_modificacion, ca.usuario_creacion, ca.usuario_modificacion
     FROM calificacion ca
     JOIN transaccion t ON t.id_transaccion = ca.id_transaccion
@@ -2731,13 +2733,13 @@ CREATE PROCEDURE buscar_reporte_usuario_por_id(IN p_id INT)
 BEGIN
     SELECT r.id_reporte, r.descripcion, r.fecha_registro, r.estado_revision, r.fecha_revision,
            d.id_usuario AS denunciante_id, d.codigo_pucp AS denunciante_codigo,
-           d.nombres AS denunciante_nombres, d.apellido_paterno AS denunciante_apellido,
+           d.nombres AS denunciante_nombres, d.apellidos AS denunciante_apellido,
            rv.id_usuario AS revisor_id, rv.codigo_pucp AS revisor_codigo,
-           rv.nombres AS revisor_nombres, rv.apellido_paterno AS revisor_apellido,
+           rv.nombres AS revisor_nombres, rv.apellidos AS revisor_apellido,
            r.activo, r.fecha_creacion, r.fecha_modificacion, r.usuario_creacion, r.usuario_modificacion,
            ru.motivo, ru.id_transaccion,
            dn.id_usuario AS denunciado_id, dn.codigo_pucp AS denunciado_codigo,
-           dn.nombres AS denunciado_nombres, dn.apellido_paterno AS denunciado_apellido
+           dn.nombres AS denunciado_nombres, dn.apellidos AS denunciado_apellido
     FROM reporte r
     JOIN reporte_usuario ru ON ru.id_reporte = r.id_reporte
     JOIN usuario d ON d.id_usuario = r.id_denunciante
@@ -2750,13 +2752,13 @@ CREATE PROCEDURE listar_reportes_usuario()
 BEGIN
     SELECT r.id_reporte, r.descripcion, r.fecha_registro, r.estado_revision, r.fecha_revision,
            d.id_usuario AS denunciante_id, d.codigo_pucp AS denunciante_codigo,
-           d.nombres AS denunciante_nombres, d.apellido_paterno AS denunciante_apellido,
+           d.nombres AS denunciante_nombres, d.apellidos AS denunciante_apellido,
            rv.id_usuario AS revisor_id, rv.codigo_pucp AS revisor_codigo,
-           rv.nombres AS revisor_nombres, rv.apellido_paterno AS revisor_apellido,
+           rv.nombres AS revisor_nombres, rv.apellidos AS revisor_apellido,
            r.activo, r.fecha_creacion, r.fecha_modificacion, r.usuario_creacion, r.usuario_modificacion,
            ru.motivo, ru.id_transaccion,
            dn.id_usuario AS denunciado_id, dn.codigo_pucp AS denunciado_codigo,
-           dn.nombres AS denunciado_nombres, dn.apellido_paterno AS denunciado_apellido
+           dn.nombres AS denunciado_nombres, dn.apellidos AS denunciado_apellido
     FROM reporte r
     JOIN reporte_usuario ru ON ru.id_reporte = r.id_reporte
     JOIN usuario d ON d.id_usuario = r.id_denunciante
@@ -2815,9 +2817,9 @@ CREATE PROCEDURE buscar_reporte_anuncio_por_id(IN p_id INT)
 BEGIN
     SELECT r.id_reporte, r.descripcion, r.fecha_registro, r.estado_revision, r.fecha_revision,
            d.id_usuario AS denunciante_id, d.codigo_pucp AS denunciante_codigo,
-           d.nombres AS denunciante_nombres, d.apellido_paterno AS denunciante_apellido,
+           d.nombres AS denunciante_nombres, d.apellidos AS denunciante_apellido,
            rv.id_usuario AS revisor_id, rv.codigo_pucp AS revisor_codigo,
-           rv.nombres AS revisor_nombres, rv.apellido_paterno AS revisor_apellido,
+           rv.nombres AS revisor_nombres, rv.apellidos AS revisor_apellido,
            r.activo, r.fecha_creacion, r.fecha_modificacion, r.usuario_creacion, r.usuario_modificacion,
            ra.motivo,
            a.id_anuncio AS anuncio_id, a.titulo AS anuncio_titulo, a.precio AS anuncio_precio,
@@ -2834,9 +2836,9 @@ CREATE PROCEDURE listar_reportes_anuncio()
 BEGIN
     SELECT r.id_reporte, r.descripcion, r.fecha_registro, r.estado_revision, r.fecha_revision,
            d.id_usuario AS denunciante_id, d.codigo_pucp AS denunciante_codigo,
-           d.nombres AS denunciante_nombres, d.apellido_paterno AS denunciante_apellido,
+           d.nombres AS denunciante_nombres, d.apellidos AS denunciante_apellido,
            rv.id_usuario AS revisor_id, rv.codigo_pucp AS revisor_codigo,
-           rv.nombres AS revisor_nombres, rv.apellido_paterno AS revisor_apellido,
+           rv.nombres AS revisor_nombres, rv.apellidos AS revisor_apellido,
            r.activo, r.fecha_creacion, r.fecha_modificacion, r.usuario_creacion, r.usuario_modificacion,
            ra.motivo,
            a.id_anuncio AS anuncio_id, a.titulo AS anuncio_titulo, a.precio AS anuncio_precio,
@@ -3032,7 +3034,7 @@ CREATE PROCEDURE buscar_insignia_usuario_por_id(IN p_id INT)
 BEGIN
     SELECT iu.id_insignia_usuario, iu.fecha_obtencion,
            u.id_usuario AS usuario_id, u.codigo_pucp AS usuario_codigo,
-           u.nombres AS usuario_nombres, u.apellido_paterno AS usuario_apellido,
+           u.nombres AS usuario_nombres, u.apellidos AS usuario_apellido,
            iu.id_insignia, i.nombre AS insignia_nombre, i.tipo AS insignia_tipo,
            iu.activo, iu.fecha_creacion, iu.fecha_modificacion, iu.usuario_creacion, iu.usuario_modificacion
     FROM insignia_usuario iu
@@ -3045,7 +3047,7 @@ CREATE PROCEDURE listar_insignias_usuario()
 BEGIN
     SELECT iu.id_insignia_usuario, iu.fecha_obtencion,
            u.id_usuario AS usuario_id, u.codigo_pucp AS usuario_codigo,
-           u.nombres AS usuario_nombres, u.apellido_paterno AS usuario_apellido,
+           u.nombres AS usuario_nombres, u.apellidos AS usuario_apellido,
            iu.id_insignia, i.nombre AS insignia_nombre, i.tipo AS insignia_tipo,
            iu.activo, iu.fecha_creacion, iu.fecha_modificacion, iu.usuario_creacion, iu.usuario_modificacion
     FROM insignia_usuario iu
@@ -3060,7 +3062,7 @@ CREATE PROCEDURE buscar_insignia_usuario_por_usuario_e_insignia(IN p_id_usuario 
 BEGIN
     SELECT iu.id_insignia_usuario, iu.fecha_obtencion,
            u.id_usuario AS usuario_id, u.codigo_pucp AS usuario_codigo,
-           u.nombres AS usuario_nombres, u.apellido_paterno AS usuario_apellido,
+           u.nombres AS usuario_nombres, u.apellidos AS usuario_apellido,
            iu.id_insignia, i.nombre AS insignia_nombre, i.tipo AS insignia_tipo,
            iu.activo, iu.fecha_creacion, iu.fecha_modificacion, iu.usuario_creacion, iu.usuario_modificacion
     FROM insignia_usuario iu
@@ -3073,7 +3075,7 @@ CREATE PROCEDURE listar_insignias_por_usuario(IN p_id_usuario INT)
 BEGIN
     SELECT iu.id_insignia_usuario, iu.fecha_obtencion,
            u.id_usuario AS usuario_id, u.codigo_pucp AS usuario_codigo,
-           u.nombres AS usuario_nombres, u.apellido_paterno AS usuario_apellido,
+           u.nombres AS usuario_nombres, u.apellidos AS usuario_apellido,
            iu.id_insignia, i.nombre AS insignia_nombre, i.tipo AS insignia_tipo,
            iu.activo, iu.fecha_creacion, iu.fecha_modificacion, iu.usuario_creacion, iu.usuario_modificacion
     FROM insignia_usuario iu

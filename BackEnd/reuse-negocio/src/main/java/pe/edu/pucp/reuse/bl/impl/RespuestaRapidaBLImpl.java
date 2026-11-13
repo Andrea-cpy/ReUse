@@ -92,7 +92,7 @@ public class RespuestaRapidaBLImpl extends BaseBLImpl implements RespuestaRapida
     private RespuestaRapida buscarRespuesta(int idRespuesta) throws BLException {
         RespuestaRapida respuesta = findById(idRespuesta);
         if (respuesta == null || !respuesta.isActivo()) {
-            throw new BLException("No existe la respuesta rapida con id " + idRespuesta);
+            throw new BLException("La respuesta rapida no existe o ya no esta disponible");
         }
         return respuesta;
     }

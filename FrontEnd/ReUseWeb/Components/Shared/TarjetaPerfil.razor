@@ -67,5 +67,5 @@
     [Parameter] public int? Compras { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
-    private string NombreCompleto => $"{Usuario.Nombres} {Usuario.ApellidoPaterno} {Usuario.ApellidoMaterno}".Trim();
+    private string NombreCompleto => $"{Usuario.Nombres} {Usuario.Apellidos}".Trim();
 }

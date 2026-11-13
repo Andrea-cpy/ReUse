@@ -92,7 +92,7 @@ public class FavoritoBLImpl extends BaseBLImpl implements FavoritoBL {
 
     private void validarExiste(int idFavorito) throws BLException {
         if (findById(idFavorito) == null) {
-            throw new BLException("No existe un favorito con id " + idFavorito);
+            throw new BLException("El favorito no existe o ya no esta disponible");
         }
     }
 }

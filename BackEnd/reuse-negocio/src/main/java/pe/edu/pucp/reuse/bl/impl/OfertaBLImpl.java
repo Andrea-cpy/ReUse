@@ -128,7 +128,7 @@ public class OfertaBLImpl extends BaseBLImpl implements OfertaBL {
             if (TransactionsManager.activa()) {
                 TransactionsManager.rollback();
             }
-            throw new BLException("No se pudo aceptar la oferta; se hizo rollback", e);
+            throw new BLException("No se pudo aceptar la oferta. Intentalo de nuevo.", e);
         }
     }
 
@@ -245,7 +245,7 @@ public class OfertaBLImpl extends BaseBLImpl implements OfertaBL {
     private Oferta buscarOferta(int idOferta) throws BLException {
         Oferta oferta = findById(idOferta);
         if (oferta == null || !oferta.isActivo()) {
-            throw new BLException("No existe la oferta con id " + idOferta);
+            throw new BLException("La oferta no existe o ya no esta disponible");
         }
         return oferta;
     }

@@ -9,6 +9,7 @@ Marketplace de materiales académicos entre estudiantes PUCP. Equipo **Erasmolov
 | `reuse-model` | Dominio | Entidades y enums (`UsuarioPUCP`, `Anuncio`, `Oferta`, `Transaccion`, …) |
 | `reuse-dbmanager` | Conexión | `DBManager` (singleton, lee `db.properties`) |
 | `reuse-accesodatos` | Datos | DAOs que llaman a los procedimientos almacenados |
+| `reuse-integraciones` | Integraciones | Comunicación con sistemas externos: validación del token de Google y envío de correos (Jakarta Mail) |
 | `reuse-negocio` | Negocio | BL con todas las reglas (`BLException`, BCrypt, transacciones) |
 | `reuse-main` | Pruebas | `Principal`: pruebas de consola de la BL |
 | **`reuse-rest`** (nuevo) | **Servicios web** | API RESTful con Jakarta REST (war) que consume el frontend Blazor |
@@ -65,7 +66,7 @@ Las fechas viajan como texto ISO (`2026-11-12T12:30`) y los enums como su nombre
 
 | Requerimiento | Método y ruta | Regla principal en la BL |
 |---|---|---|
-| RF-01 Recuperar contraseña | `POST /auth/recuperar` `{correo}` · `POST /auth/restablecer` `{correo, codigo, contrasenaNueva}` | Código de 6 dígitos (hash BCrypt), 15 min, 5 intentos, un solo uso. Sin servidor de correo, la respuesta trae `codigoDemo` (`AuthResource.ENTREGAR_CODIGO_EN_RESPUESTA`) |
+| RF-01 Recuperar contraseña | `POST /auth/recuperar` `{correo}` · `POST /auth/restablecer` `{correo, codigo, contrasenaNueva}` | Código de 6 dígitos (hash BCrypt), 15 min, 5 intentos, un solo uso. Misma respuesta exista o no la cuenta. El código se envía al correo PUCP (`reuse-integraciones/.../correo.properties`, ver `correo.properties.example`); sin correo configurado, solo queda en el `server.log` de GlassFish (nunca en la respuesta) |
 | RF-04 Denuncias | `GET /denuncias?tipo=&estado=&denunciante=`, `GET /denuncias/{id}`, `POST /denuncias/usuarios`, `POST /denuncias/anuncios`, `PUT /denuncias/{id}/sancionar?administrador=` · `/desestimar?administrador=` | Solo un administrador activo resuelve; solo reportes PENDIENTE; se notifica al denunciante |
 | RF-04 Reportes PDF (JasperReports) | `GET /reportes/incidentes?estado=&tipo=`, `GET /reportes/transacciones?estado=`, `GET /reportes/usuarios` (+ `&administrador=ID`) | `application/pdf` con `Content-Disposition: attachment`. Ver `src/main/resources/reports/LEEME.md` |
 | RF-10 Bloqueos | `GET /bloqueos?usuario=`, `GET /bloqueos/entre?usuarioA=&usuarioB=`, `POST /bloqueos`, `PUT /bloqueos/{id}/desbloquear` | Cierra los chats con `bloquear_chats_entre` en la misma transacción; oculta los anuncios en ambos sentidos y bloquea chats y ofertas |

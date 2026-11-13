@@ -45,7 +45,7 @@ abstract class BaseBLImpl {
             throw new BLException("No se pudo verificar el " + rol, e);
         }
         if (usuario == null || !usuario.isActivo()) {
-            throw new BLException("No existe el " + rol + " con id " + idUsuario);
+            throw new BLException("El " + rol + " no existe o ya no esta disponible");
         }
         return usuario;
     }
@@ -82,7 +82,7 @@ abstract class BaseBLImpl {
             throw new BLException("No se pudo verificar el anuncio", e);
         }
         if (anuncio == null || !anuncio.isActivo()) {
-            throw new BLException("No existe el anuncio con id " + idAnuncio);
+            throw new BLException("El anuncio no existe o ya no esta disponible");
         }
         return anuncio;
     }
@@ -102,7 +102,7 @@ abstract class BaseBLImpl {
             throw new BLException("No se pudo verificar la transaccion", e);
         }
         if (transaccion == null || !transaccion.isActivo()) {
-            throw new BLException("No existe la transaccion con id " + idTransaccion);
+            throw new BLException("La transaccion no existe o ya no esta disponible");
         }
         return transaccion;
     }

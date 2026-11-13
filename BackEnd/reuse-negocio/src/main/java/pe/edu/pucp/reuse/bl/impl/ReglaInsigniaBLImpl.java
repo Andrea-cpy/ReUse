@@ -101,7 +101,7 @@ public class ReglaInsigniaBLImpl extends BaseBLImpl implements ReglaInsigniaBL {
         try {
             Insignia insignia = insigniaDAO.findById(regla.getInsignia().getIdInsignia());
             if (insignia == null || !insignia.isActivo()) {
-                throw new BLException("No existe la insignia " + regla.getInsignia().getIdInsignia());
+                throw new BLException("La insignia no existe o ya no esta disponible");
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar la insignia", e);
@@ -110,7 +110,7 @@ public class ReglaInsigniaBLImpl extends BaseBLImpl implements ReglaInsigniaBL {
 
     private void validarExiste(int idRegla) throws BLException {
         if (findById(idRegla) == null) {
-            throw new BLException("No existe una regla con id " + idRegla);
+            throw new BLException("La regla no existe o ya no esta disponible");
         }
     }
 }

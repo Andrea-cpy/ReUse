@@ -80,7 +80,7 @@ public class FacultadBLImpl extends BaseBLImpl implements FacultadBL {
 
     private void validarExiste(int idFacultad) throws BLException {
         if (findById(idFacultad) == null) {
-            throw new BLException("No existe una facultad con id " + idFacultad);
+            throw new BLException("La facultad no existe o ya no esta disponible");
         }
     }
 

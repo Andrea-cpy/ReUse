@@ -59,7 +59,7 @@ public class UsuariosResource {
     public Response findById(@PathParam("id") int id) throws BLException {
         UsuarioPUCP usuario = usuarioBL.findById(id);
         if (usuario == null) {
-            return Respuestas.noEncontrado("No existe el usuario con id " + id);
+            return Respuestas.noEncontrado("El usuario no existe o ya no esta disponible");
         }
         return Response.ok(UsuarioMapper.toDTO(usuario)).build();
     }
@@ -78,7 +78,7 @@ public class UsuariosResource {
     @Path("/{id}")
     public Response update(@PathParam("id") int id, UsuarioDTO usuarioDTO) throws BLException {
         if (usuarioDTO == null || id != usuarioDTO.getIdUsuario()) {
-            return Respuestas.solicitudInvalida("El id y el payload no coinciden");
+            return Respuestas.solicitudInvalida("No se pudo guardar el cambio.");
         }
         usuarioBL.update(UsuarioMapper.toModelo(usuarioDTO));
         return Response.ok(UsuarioMapper.toDTO(usuarioBL.findById(id))).build();
@@ -121,7 +121,7 @@ public class UsuariosResource {
     public Response reputacion(@PathParam("id") int id) throws BLException {
         UsuarioPUCP usuario = usuarioBL.findById(id);
         if (usuario == null) {
-            return Respuestas.noEncontrado("No existe el usuario con id " + id);
+            return Respuestas.noEncontrado("El usuario no existe o ya no esta disponible");
         }
         // Las sanciones se cuentan en paralelo con las metricas (cada consulta abre su conexion a la BD).
         CompletableFuture<Integer> sanciones = CompletableFuture.supplyAsync(() -> {

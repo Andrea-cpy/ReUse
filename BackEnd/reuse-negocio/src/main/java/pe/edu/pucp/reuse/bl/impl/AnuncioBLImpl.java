@@ -68,7 +68,7 @@ public class AnuncioBLImpl extends BaseBLImpl implements AnuncioBL {
         }
         try {
             if (anuncioDAO.cambiarEstado(idAnuncio, actual, nuevo) == 0) {
-                throw new BLException("El anuncio " + idAnuncio + " cambio de estado mientras se moderaba; vuelva a intentarlo");
+                throw new BLException("El anuncio cambio de estado mientras se moderaba; vuelve a intentarlo");
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo moderar el anuncio", e);
@@ -129,7 +129,7 @@ public class AnuncioBLImpl extends BaseBLImpl implements AnuncioBL {
             if (TransactionsManager.activa()) {
                 TransactionsManager.rollback();
             }
-            throw new BLException("No se pudo registrar el anuncio con sus imagenes; se hizo rollback", e);
+            throw new BLException("No se pudo registrar el anuncio con sus imagenes. Intentalo de nuevo.", e);
         }
     }
 
@@ -285,7 +285,7 @@ public class AnuncioBLImpl extends BaseBLImpl implements AnuncioBL {
             throws BLException {
         Anuncio anuncio = findById(idAnuncio);
         if (anuncio == null || !anuncio.isActivo()) {
-            throw new BLException("No existe el anuncio con id " + idAnuncio);
+            throw new BLException("El anuncio no existe o ya no esta disponible");
         }
         if (anuncio.getVendedor().getIdUsuario() != idVendedor) {
             throw new BLException("Solo el vendedor puede cambiar el estado de su anuncio");
@@ -344,7 +344,7 @@ public class AnuncioBLImpl extends BaseBLImpl implements AnuncioBL {
         try {
             MaterialAcademico material = materialDAO.findById(anuncio.getMaterialAcademico().getIdMaterial());
             if (material == null || !material.isActivo()) {
-                throw new BLException("No existe el material academico " + anuncio.getMaterialAcademico().getIdMaterial());
+                throw new BLException("El material academico no existe o ya no esta disponible");
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar el material academico", e);

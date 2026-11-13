@@ -128,7 +128,7 @@ public class MaterialAcademicoBLImpl extends BaseBLImpl implements MaterialAcade
                 }
                 Carrera existente = carreraDAO.findById(carrera.getIdCarrera());
                 if (existente == null || !existente.isActivo()) {
-                    throw new BLException("No existe la carrera " + carrera.getIdCarrera());
+                    throw new BLException("La carrera no existe o ya no esta disponible");
                 }
             }
         } catch (SQLException e) {
@@ -138,7 +138,7 @@ public class MaterialAcademicoBLImpl extends BaseBLImpl implements MaterialAcade
 
     private void validarExiste(int idMaterial) throws BLException {
         if (findById(idMaterial) == null) {
-            throw new BLException("No existe un material academico con id " + idMaterial);
+            throw new BLException("El material academico no existe o ya no esta disponible");
         }
     }
 }

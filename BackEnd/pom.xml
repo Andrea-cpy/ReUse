@@ -14,6 +14,7 @@
         <module>reuse-main</module>
         <module>reuse-dbmanager</module>
         <module>reuse-accesodatos</module>
+        <module>reuse-integraciones</module>
         <module>reuse-negocio</module>
         <module>reuse-rest</module>
     </modules>

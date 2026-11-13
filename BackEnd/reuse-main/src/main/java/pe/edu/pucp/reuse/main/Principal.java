@@ -200,7 +200,7 @@ public class Principal {
                 + " -> facultad " + vendedor.getFacultad().getNombre());
 
         // update solo cambia el perfil: el estado de cuenta que traiga el objeto se ignora.
-        vendedor.setApellidoMaterno("Prueba");
+        vendedor.setApellidos(vendedor.getApellidos() + " Prueba");
         vendedor.setFotoPerfil("https://example.org/reuse/perfil-" + RUN + ".jpg");
         vendedor.setEstadoCuenta(EstadoCuenta.SUSPENDIDA);
         usuarioBL.update(vendedor);
@@ -546,9 +546,9 @@ public class Principal {
         }
     }
 
-    private static UsuarioPUCP nuevoUsuario(String nombres, String apellido, Carrera carrera, String correo) {
+    private static UsuarioPUCP nuevoUsuario(String nombres, String apellidos, Carrera carrera, String correo) {
         String codigo = Long.toString(++secuenciaCodigo);
-        return new UsuarioPUCP(codigo, nombres, apellido, null,
+        return new UsuarioPUCP(codigo, nombres, apellidos,
                 correo != null ? correo : "a" + codigo + "@pucp.edu.pe", CLAVE_PRUEBA, carrera);
     }
 

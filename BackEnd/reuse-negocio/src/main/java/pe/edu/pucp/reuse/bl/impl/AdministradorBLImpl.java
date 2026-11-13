@@ -112,7 +112,7 @@ public class AdministradorBLImpl extends BaseBLImpl implements AdministradorBL {
 
     private void validarExiste(int idUsuario) throws BLException {
         if (findById(idUsuario) == null) {
-            throw new BLException("No existe un administrador con id " + idUsuario);
+            throw new BLException("El administrador no existe o ya no esta disponible");
         }
     }
 }
