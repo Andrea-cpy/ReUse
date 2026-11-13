@@ -1,0 +1,72 @@
+@page "/admin/materiales/nuevo"
+@page "/admin/materiales/{Id:int}/editar"
+@inject NavigationManager Nav
+
+<PageTitle>@(Id.HasValue ? "Editar" : "Nuevo") material · Admin ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="@(Id.HasValue ? "Editar material académico" : "Nuevo material académico")"
+                  Volver="admin/materiales" TextoVolver="Volver a materiales" />
+
+<EditForm Model="modelo" OnSubmit="@(() => Nav.NavigateTo("admin/materiales"))" FormName="material">
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="ru-card ru-card-body">
+                <div class="mb-3">
+                    <label class="form-label" for="titulo">Título</label>
+                    <InputText id="titulo" class="form-control" @bind-Value="modelo.Titulo" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="categoria">Categoría</label>
+                    <InputSelect id="categoria" class="form-select" @bind-Value="modelo.Categoria">
+                        <option value="">Selecciona…</option>
+                        @foreach (var c in DatosDemo.Categorias.Where(c => c.Activa))
+                        {
+                            <option value="@c.Nombre">@c.Nombre</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="d-flex justify-content-end gap-2 mt-4">
+                    <NavLink class="btn btn-light" href="admin/materiales">Cancelar</NavLink>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="ru-card ru-card-body">
+                <h2 class="h3 mb-1">Carreras relacionadas</h2>
+                <p class="small-muted">Deja todo sin marcar si el material sirve para cualquier carrera.</p>
+                @foreach (var f in DatosDemo.Facultades)
+                {
+                    <div class="small fw-semibold mt-3 mb-1">@f.Nombre</div>
+                    foreach (var c in f.Carreras)
+                    {
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="car-@f.Id-@c.GetHashCode()"
+                                   checked="@modelo.Carreras.Contains(c)" />
+                            <label class="form-check-label" for="car-@f.Id-@c.GetHashCode()">@c</label>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</EditForm>
+
+@code {
+    [Parameter] public int? Id { get; set; }
+
+    private MaterialModelo modelo = new();
+
+    protected override void OnParametersSet()
+    {
+        var m = Id.HasValue ? DatosDemo.Materiales.FirstOrDefault(x => x.Id == Id) : null;
+        modelo = m is null ? new MaterialModelo() : new MaterialModelo { Titulo = m.Titulo, Categoria = m.Categoria, Carreras = m.Carreras.ToList() };
+    }
+
+    private class MaterialModelo
+    {
+        public string Titulo { get; set; } = "";
+        public string Categoria { get; set; } = "";
+        public List<string> Carreras { get; set; } = new();
+    }
+}

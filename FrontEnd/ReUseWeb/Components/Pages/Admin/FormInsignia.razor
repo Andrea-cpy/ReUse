@@ -1,0 +1,171 @@
+@page "/admin/insignias/nueva"
+@page "/admin/insignias/{Id:int}/editar"
+@inherits PaginaBase
+@inject IInsigniaService InsigniaService
+@inject NavigationManager Nav
+
+@* RF-18: insignia con sus reglas (maestro-detalle) → POST /insignias, PUT /insignias/{id}.
+   Al editar, la cabecera y el juego completo de reglas se reemplazan en una sola transacción. *@
+
+<PageTitle>@(Id.HasValue ? "Editar" : "Nueva") insignia · Admin ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="@(Id.HasValue ? "Editar insignia" : "Nueva insignia")" Volver="admin/insignias" TextoVolver="Volver a insignias" />
+
+<Alertas Error="@Error" />
+
+@if (cargando)
+{
+    <Cargando />
+}
+else
+{
+    <EditForm Model="modelo" OnValidSubmit="Guardar" FormName="insignia" Context="ctx">
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <div class="ru-card ru-card-body">
+                    <h2 class="h3 mb-1">Datos de la insignia</h2>
+                    <p class="ru-nota-requeridos mb-3">Campos obligatorios</p>
+                    <div class="mb-3">
+                        <label class="form-label requerido" for="nombre">Nombre</label>
+                        <InputTexto id="nombre" maxlength="120" @bind-Value="modelo.Nombre"
+                                    class="@($"form-control {(ctx.IsModified(() => modelo.Nombre) && string.IsNullOrWhiteSpace(modelo.Nombre) ? "is-invalid" : "")}")" />
+                        @if (ctx.IsModified(() => modelo.Nombre) && string.IsNullOrWhiteSpace(modelo.Nombre))
+                        {
+                            <span class="ru-error-campo">Escribe el nombre de la insignia.</span>
+                        }
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label requerido" for="descripcion">Descripción</label>
+                        <AreaTexto id="descripcion" rows="2" maxlength="400" @bind-Value="modelo.Descripcion"
+                                   class="@($"form-control {(ctx.IsModified(() => modelo.Descripcion) && string.IsNullOrWhiteSpace(modelo.Descripcion) ? "is-invalid" : "")}")" />
+                        @if (ctx.IsModified(() => modelo.Descripcion) && string.IsNullOrWhiteSpace(modelo.Descripcion))
+                        {
+                            <span class="ru-error-campo">Escribe la descripción.</span>
+                        }
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-sm-6">
+                            <label class="form-label" for="tipo">Tipo</label>
+                            <InputSelect id="tipo" class="form-select" @bind-Value="modelo.Tipo">
+                                <option value="VENDEDOR">Vendedor</option>
+                                <option value="COMPRADOR">Comprador</option>
+                                <option value="GENERAL">General</option>
+                            </InputSelect>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label" for="icono">Ícono (opcional)</label>
+                            <InputText id="icono" class="form-control" placeholder="bi-trophy o https://…/insignia.png" @bind-Value="modelo.Icono" />
+                        </div>
+                    </div>
+                    <div class="form-check form-switch">
+                        <InputCheckbox id="activa" class="form-check-input" role="switch" @bind-Value="modelo.Activo" />
+                        <label class="form-check-label" for="activa">Activa (solo las activas se otorgan)</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="ru-card ru-card-body mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <h2 class="h3 mb-0">Reglas de obtención</h2>
+                        <button type="button" class="btn btn-outline-primary btn-sm" @onclick="@(() => modelo.Reglas.Add(new ReglaInsigniaDTO()))">
+                            <i class="bi bi-plus-lg"></i> Agregar regla
+                        </button>
+                    </div>
+                    <p class="small-muted">El usuario obtiene la insignia cuando cumple <strong>todas</strong> las reglas (patrón Specification).</p>
+                    @foreach (ReglaInsigniaDTO r in modelo.Reglas)
+                    {
+                        <div class="row g-2 align-items-center mb-2">
+                            <div class="col-6">
+                                <select class="form-select form-select-sm" @bind="r.TipoMetrica">
+                                    @foreach (string m in metricas)
+                                    {
+                                        <option value="@m">@Formato.Texto(m)</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-3">
+                                <select class="form-select form-select-sm" @bind="r.Operador">
+                                    <option value="MAYOR_O_IGUAL">≥</option>
+                                    <option value="MAYOR">&gt;</option>
+                                    <option value="IGUAL">=</option>
+                                    <option value="MENOR_O_IGUAL">≤</option>
+                                    <option value="MENOR">&lt;</option>
+                                </select>
+                            </div>
+                            <div class="col-2">
+                                <input class="form-control form-control-sm" type="number" step="0.1" min="0" @bind="r.ValorObjetivo" />
+                            </div>
+                            <div class="col-1 text-end">
+                                <button type="button" class="btn btn-sm btn-light text-danger" title="Quitar regla" @onclick="() => modelo.Reglas.Remove(r)"><i class="bi bi-x-lg"></i></button>
+                            </div>
+                        </div>
+                    }
+                    @if (!modelo.Reglas.Any())
+                    {
+                        <span class="ru-error-campo">Agrega al menos una regla.</span>
+                    }
+                </div>
+
+                <div class="ru-card ru-card-body d-flex align-items-center gap-3 mb-3">
+                    <span class="ru-avatar lg" style="background:#fdf3dc;color:#a87612">
+                        <i class="bi @(modelo.Icono is not null && modelo.Icono.StartsWith("bi-") ? modelo.Icono : "bi-award")"></i>
+                    </span>
+                    <div>
+                        <div class="fw-semibold">@(string.IsNullOrWhiteSpace(modelo.Nombre) ? "Nombre" : modelo.Nombre)</div>
+                        <div class="small-muted">@string.Join(" · ", modelo.Reglas.Select(r => $"{Formato.Texto(r.TipoMetrica)} {Insignias.Simbolo(r.Operador)} {r.ValorObjetivo:0.##}"))</div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <NavLink class="btn btn-light" href="admin/insignias">Cancelar</NavLink>
+                    <div class="text-end">
+                        <BotonEnviar Texto="Guardar" Procesando="@Procesando" CondicionExtra="@(FaltantesInsignia.Count == 0)"
+                                     MensajeCondicionExtra="@string.Join(" · ", FaltantesInsignia)" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </EditForm>
+}
+
+@code {
+    /// <summary>Lo que falta para poder guardar (las mismas reglas que valida InsigniaBL).</summary>
+    private List<string> FaltantesInsignia =>
+    [
+        .. string.IsNullOrWhiteSpace(modelo.Nombre) ? new[] { "escribe el nombre" } : [],
+        .. string.IsNullOrWhiteSpace(modelo.Descripcion) ? new[] { "escribe la descripción" } : [],
+        .. modelo.Reglas.Count == 0 ? new[] { "agrega al menos una regla" } : [],
+    ];
+
+    [Parameter] public int? Id { get; set; }
+
+    private InsigniaDTO modelo = new() { Reglas = [new ReglaInsigniaDTO { ValorObjetivo = 1 }] };
+    private bool cargando = true;
+
+    // Valores de TipoMetricaInsignia
+    private readonly string[] metricas = { "VENTAS_COMPLETADAS", "COMPRAS_COMPLETADAS", "TRANSACCIONES_COMPLETADAS",
+        "CALIFICACION_PROMEDIO", "REPORTES_SANCIONADOS", "INASISTENCIAS_SANCIONADAS" };
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Id.HasValue)
+        {
+            await Ejecutar(async () =>
+            {
+                modelo = await InsigniaService.Obtener(Id.Value) ?? throw new ServicioException("No existe la insignia.");
+            });
+        }
+        cargando = false;
+    }
+
+    private async Task Guardar()
+    {
+        bool ok = await Ejecutar(async () =>
+        {
+            if (Id.HasValue) await InsigniaService.Actualizar(modelo);
+            else await InsigniaService.Crear(modelo);
+        });
+        if (ok) Nav.NavigateTo("admin/insignias");
+    }
+}

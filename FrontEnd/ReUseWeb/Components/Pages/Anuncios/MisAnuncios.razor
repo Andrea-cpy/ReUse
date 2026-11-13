@@ -1,0 +1,149 @@
+@page "/mis-anuncios"
+@inherits PaginaBase
+@inject IAnuncioService AnuncioService
+
+@* RF-02: anuncios del vendedor (GET /anuncios?vendedor=ID), archivar/republicar (PUT) y eliminar (DELETE) *@
+
+<PageTitle>Mis anuncios · ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="Mis anuncios" Subtitulo="Gestiona los materiales que publicaste.">
+    <Acciones>
+        <NavLink class="btn btn-primary" href="mis-anuncios/nuevo"><i class="bi bi-plus-lg me-1"></i> Publicar anuncio</NavLink>
+    </Acciones>
+</EncabezadoPagina>
+
+<Alertas Error="@Error" Exito="@Exito" />
+
+<ul class="nav nav-tabs mb-0">
+    @foreach (string estado in pestanas)
+    {
+        <li class="nav-item">
+            <button class="nav-link @(filtro == estado ? "active" : "")" @onclick="() => filtro = estado">
+                @(estado == "" ? "Todos" : Formato.Texto(estado))
+                <span class="badge text-bg-light ms-1">@Contar(estado)</span>
+            </button>
+        </li>
+    }
+</ul>
+
+<div class="ru-card border-top-0 rounded-top-0">
+    @if (cargando)
+    {
+        <Cargando />
+    }
+    else if (Visibles.Any())
+    {
+        <div class="table-responsive">
+            <table class="table ru-table">
+                <thead>
+                    <tr>
+                        <th>Anuncio</th>
+                        <th>Precio</th>
+                        <th>Estado</th>
+                        <th>Publicado</th>
+                        <th class="text-end">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (AnuncioDTO a in Visibles)
+                    {
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center gap-3">
+                                    <ImagenMaterial Categoria="@a.NombreCategoria" Url="@a.Imagenes.FirstOrDefault()" Tamano="mini" />
+                                    <div>
+                                        <NavLink class="fw-semibold text-body text-decoration-none" href="@($"anuncios/{a.IdAnuncio}")">@a.Titulo</NavLink>
+                                        <div class="small-muted">@(a.NombreCategoria ?? a.TituloMaterial) · @Formato.Texto(a.Condicion)</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="fw-semibold">@Formato.Soles(a.Precio)</td>
+                            <td><BadgeEstado Estado="@a.Estado" /></td>
+                            <td class="small-muted">@Formato.Fecha(a.FechaPublicacion)</td>
+                            <td class="text-end text-nowrap">
+                                <NavLink class="btn btn-light btn-sm" href="@($"mis-anuncios/{a.IdAnuncio}/ofertas")" title="Ofertas recibidas"><i class="bi bi-cash-coin"></i></NavLink>
+                                @if (a.Estado is "DISPONIBLE" or "ARCHIVADO")
+                                {
+                                    <NavLink class="btn btn-light btn-sm" href="@($"mis-anuncios/{a.IdAnuncio}/editar")" title="Editar"><i class="bi bi-pencil"></i></NavLink>
+                                }
+                                @if (a.Estado == "DISPONIBLE")
+                                {
+                                    <button class="btn btn-light btn-sm" title="Archivar" disabled="@Procesando" @onclick="() => Archivar(a)"><i class="bi bi-archive"></i></button>
+                                }
+                                @if (a.Estado == "ARCHIVADO")
+                                {
+                                    <button class="btn btn-light btn-sm" title="Volver a publicar" disabled="@Procesando" @onclick="() => Republicar(a)"><i class="bi bi-arrow-counterclockwise"></i></button>
+                                }
+                                <button class="btn btn-light btn-sm text-danger" title="Eliminar" @onclick="() => { aEliminar = a; mostrarEliminar = true; }"><i class="bi bi-trash"></i></button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <EstadoVacio Icono="bi-megaphone" Titulo="No tienes anuncios en este estado"
+                     Mensaje="Publica un material que ya no uses y ayuda a otro estudiante.">
+            <NavLink class="btn btn-primary" href="mis-anuncios/nuevo">Publicar anuncio</NavLink>
+        </EstadoVacio>
+    }
+</div>
+
+<ModalConfirmacion @bind-Visible="mostrarEliminar"
+                   Titulo="Eliminar anuncio" TextoConfirmar="Eliminar" ClaseBoton="btn-danger" OnConfirmar="Eliminar">
+    <p class="mb-2">¿Seguro que deseas eliminar «<strong>@(aEliminar?.Titulo)</strong>»?</p>
+    <p class="small-muted mb-0">Solo se pueden eliminar anuncios que no tengan transacciones asociadas.</p>
+</ModalConfirmacion>
+
+@code {
+    private readonly string[] pestanas = { "", "DISPONIBLE", "RESERVADO", "VENDIDO", "OBSERVADO", "ARCHIVADO" };
+    private string filtro = "";
+    private List<AnuncioDTO> anuncios = [];
+    private AnuncioDTO? aEliminar;
+    private bool mostrarEliminar;
+    private bool cargando = true;
+    private int idUsuario;
+
+    private IEnumerable<AnuncioDTO> Visibles =>
+        anuncios.Where(a => filtro == "" || a.Estado == filtro).OrderByDescending(a => a.FechaPublicacion);
+
+    private int Contar(string estado) => anuncios.Count(a => estado == "" || a.Estado == estado);
+
+    protected override async Task OnInitializedAsync()
+    {
+        idUsuario = await IdUsuarioAsync();
+        await Cargar();
+    }
+
+    private async Task Cargar()
+    {
+        cargando = true;
+        string? exito = Exito;
+        await Ejecutar(async () => anuncios = await AnuncioService.ListarPorVendedor(idUsuario));
+        Exito ??= exito;
+        cargando = false;
+    }
+
+    private async Task Archivar(AnuncioDTO a)
+    {
+        if (await Ejecutar(() => AnuncioService.Archivar(a.IdAnuncio, idUsuario), $"«{a.Titulo}» quedó archivado: ya no aparece en el catálogo."))
+            await Cargar();
+    }
+
+    private async Task Republicar(AnuncioDTO a)
+    {
+        if (await Ejecutar(() => AnuncioService.Republicar(a.IdAnuncio, idUsuario), $"«{a.Titulo}» volvió a estar disponible."))
+            await Cargar();
+    }
+
+    private async Task Eliminar()
+    {
+        if (aEliminar is null) return;
+        AnuncioDTO anuncio = aEliminar;
+        aEliminar = null;
+        if (await Ejecutar(() => AnuncioService.Eliminar(anuncio.IdAnuncio), $"Se eliminó «{anuncio.Titulo}»."))
+            await Cargar();
+    }
+}

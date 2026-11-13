@@ -1,0 +1,170 @@
+@page "/admin"
+@inherits PaginaBase
+@inject IUsuarioService UsuarioService
+@inject IAnuncioService AnuncioService
+@inject ICategoriaService CategoriaService
+@inject IPuntoEntregaService PuntoEntregaService
+@inject IDenunciaService DenunciaService
+
+@* Resumen con datos reales del backend (observación del Lab 9): GET /usuarios, /anuncios, /categorias, /puntos-entrega *@
+
+<PageTitle>Resumen · Admin ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="Resumen" Subtitulo="Actividad general de la plataforma, calculada con los datos de la base.">
+    <Acciones>
+        @* RF-04: reportes PDF generados con JasperReports en el backend Java *@
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-outline-primary btn-sm" href="descargas/reportes/incidentes" target="_blank" download><i class="bi bi-file-earmark-pdf me-1"></i> Incidentes</a>
+            <a class="btn btn-outline-primary btn-sm" href="descargas/reportes/transacciones" target="_blank" download><i class="bi bi-file-earmark-pdf me-1"></i> Transacciones</a>
+            <a class="btn btn-outline-primary btn-sm" href="descargas/reportes/usuarios" target="_blank" download><i class="bi bi-file-earmark-pdf me-1"></i> Usuarios</a>
+        </div>
+    </Acciones>
+</EncabezadoPagina>
+
+<Alertas Error="@Error" />
+
+@if (cargando)
+{
+    <Cargando />
+}
+else
+{
+    <div class="row g-3 mb-4">
+        @foreach ((string icono, string tono, int valor, string etiqueta, string enlace) in Indicadores)
+        {
+            <div class="col-6 col-xl-3">
+                <NavLink class="ru-card ru-stat d-flex align-items-center gap-3 text-decoration-none text-body" href="@enlace">
+                    <span class="icono @tono"><i class="bi @icono"></i></span>
+                    <span>
+                        <span class="valor d-block">@valor</span>
+                        <span class="etiqueta">@etiqueta</span>
+                    </span>
+                </NavLink>
+            </div>
+        }
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="ru-card">
+                <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+                    <h2 class="h3 mb-0">Cuentas por verificar</h2>
+                    <NavLink class="btn btn-light btn-sm" href="admin/usuarios?estado=PENDIENTE_VERIFICACION">Ver todas</NavLink>
+                </div>
+                @if (Pendientes.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table ru-table">
+                            <thead>
+                                <tr><th>Estudiante</th><th>Código</th><th>Carrera</th><th>Registro</th><th></th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (UsuarioDTO u in Pendientes.Take(8))
+                                {
+                                    <tr>
+                                        <td class="fw-semibold">@u.Nombres @u.Apellidos</td>
+                                        <td>@u.CodigoPUCP</td>
+                                        <td class="small">@u.NombreCarrera</td>
+                                        <td class="small-muted">@Formato.Fecha(u.FechaRegistro)</td>
+                                        <td class="text-end"><NavLink class="btn btn-primary btn-sm" href="@($"admin/usuarios/{u.IdUsuario}")">Revisar</NavLink></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <EstadoVacio Icono="bi-patch-check" Titulo="No hay cuentas pendientes" />
+                }
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="ru-card ru-card-body mb-4">
+                <h2 class="h3 mb-3">Cuentas por estado</h2>
+                @foreach ((string estado, int total) in PorEstado)
+                {
+                    int pct = usuarios.Count == 0 ? 0 : total * 100 / usuarios.Count;
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between small"><span>@Formato.Texto(estado)</span><span class="small-muted">@total</span></div>
+                        <div class="progress" style="height:6px">
+                            <div class="progress-bar" style="width:@(pct)%;background:var(--ru-verde)"></div>
+                        </div>
+                    </div>
+                }
+            </div>
+            <div class="ru-card ru-card-body">
+                <h2 class="h3 mb-3">Anuncios disponibles por categoría</h2>
+                @if (PorCategoria.Any())
+                {
+                    int maximo = PorCategoria.Max(c => c.Total);
+                    foreach ((string nombre, int total) in PorCategoria)
+                    {
+                        int pct = maximo == 0 ? 0 : total * 100 / maximo;
+                        <div class="mb-2">
+                            <div class="d-flex justify-content-between small"><span>@nombre</span><span class="small-muted">@total</span></div>
+                            <div class="progress" style="height:6px">
+                                <div class="progress-bar" style="width:@(pct)%;background:var(--ru-verde)"></div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="small-muted">Aún no hay anuncios disponibles.</div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<UsuarioDTO> usuarios = [];
+    private List<AnuncioDTO> disponibles = [];
+    private int categoriasActivas;
+    private int puntosActivos;
+    private int denunciasPendientes;
+    private int anunciosObservados;
+    private bool cargando = true;
+
+    private IEnumerable<UsuarioDTO> Pendientes =>
+        usuarios.Where(u => u.EstadoCuenta == "PENDIENTE_VERIFICACION").OrderBy(u => u.FechaRegistro);
+
+    private IEnumerable<(string Estado, int Total)> PorEstado =>
+        new[] { "ACTIVA", "PENDIENTE_VERIFICACION", "SUSPENDIDA" }
+            .Select(e => (e, usuarios.Count(u => u.EstadoCuenta == e)));
+
+    private List<(string Nombre, int Total)> PorCategoria =>
+        disponibles.GroupBy(a => a.NombreCategoria ?? "Sin categoría")
+            .Select(g => (g.Key, g.Count()))
+            .OrderByDescending(x => x.Item2)
+            .ToList();
+
+    private IEnumerable<(string, string, int, string, string)> Indicadores =>
+    [
+        ("bi-people", "tono-1", usuarios.Count(u => u.EstadoCuenta == "ACTIVA"), "Usuarios activos", "admin/usuarios?estado=ACTIVA"),
+        ("bi-shop", "tono-2", disponibles.Select(a => a.IdVendedor).Distinct().Count(), "Vendedores con anuncios disponibles", "admin/usuarios"),
+        ("bi-megaphone", "tono-3", disponibles.Count, "Anuncios disponibles", ""),
+        ("bi-hourglass-split", "tono-4", Pendientes.Count(), "Cuentas por verificar", "admin/usuarios?estado=PENDIENTE_VERIFICACION"),
+        ("bi-slash-circle", "tono-5", usuarios.Count(u => u.EstadoCuenta == "SUSPENDIDA"), "Cuentas suspendidas", "admin/usuarios?estado=SUSPENDIDA"),
+        ("bi-tags", "tono-6", categoriasActivas, "Categorías activas", "admin/categorias"),
+        ("bi-flag", "tono-5", denunciasPendientes, "Reportes por revisar", "admin/reportes"),
+        ("bi-eye-slash", "tono-4", anunciosObservados, "Anuncios observados", "admin/anuncios"),
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Ejecutar(async () =>
+        {
+            usuarios = await UsuarioService.Listar();
+            // Sin filtros, GET /anuncios devuelve solo los DISPONIBLE (AnuncioBL.buscar)
+            disponibles = await AnuncioService.Buscar(new FiltroAnuncios());
+            categoriasActivas = (await CategoriaService.Listar()).Count(c => c.Activo);
+            puntosActivos = (await PuntoEntregaService.Listar()).Count(p => p.Activo);
+            denunciasPendientes = (await DenunciaService.Listar(estado: "PENDIENTE")).Count;
+            anunciosObservados = (await AnuncioService.ListarTodos()).Count(a => a.Estado == "OBSERVADO");
+        });
+        cargando = false;
+    }
+}

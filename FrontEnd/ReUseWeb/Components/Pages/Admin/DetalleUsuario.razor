@@ -1,0 +1,144 @@
+@page "/admin/usuarios/{Id:int}"
+@inherits PaginaBase
+@inject IUsuarioService UsuarioService
+@inject IAnuncioService AnuncioService
+@inject IInsigniaService InsigniaService
+
+@* RF-01 (administrador): verificar, suspender y reactivar → PUT /usuarios/{id}/verificar | suspender | reactivar.
+   RF-13: suspensión manual o automática al acumular 4 sanciones en 90 días. *@
+
+<PageTitle>Gestionar usuario · Admin ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="Gestionar usuario" Volver="admin/usuarios" TextoVolver="Volver a usuarios" />
+
+<Alertas Error="@Error" Exito="@Exito" />
+
+@if (u is null)
+{
+    if (cargando)
+    {
+        <Cargando />
+    }
+}
+else
+{
+    <TarjetaPerfil Usuario="u">
+        <div class="d-flex flex-wrap gap-2 mt-3 pt-3 border-top">
+            <span class="me-auto small-muted align-self-center">
+                Estado de la cuenta: <BadgeEstado Estado="@u.EstadoCuenta" /> · Reportes recibidos: <strong>@u.ContadorReportes</strong>
+            </span>
+            @if (u.EstadoCuenta == "PENDIENTE_VERIFICACION")
+            {
+                <button class="btn btn-primary btn-sm" disabled="@Procesando" @onclick="@(() => Pedir("verificar"))"><i class="bi bi-patch-check me-1"></i> Verificar cuenta</button>
+            }
+            @if (u.EstadoCuenta == "SUSPENDIDA")
+            {
+                <button class="btn btn-outline-primary btn-sm" disabled="@Procesando" @onclick="@(() => Pedir("reactivar"))"><i class="bi bi-arrow-counterclockwise me-1"></i> Reactivar cuenta</button>
+            }
+            else
+            {
+                <button class="btn btn-outline-danger btn-sm" disabled="@Procesando" @onclick="@(() => Pedir("suspender"))"><i class="bi bi-slash-circle me-1"></i> Suspender cuenta</button>
+            }
+        </div>
+    </TarjetaPerfil>
+
+    @* RF-13: sanciones en la ventana de 90 días (GET /usuarios/{id}/reputacion). Con 4, la suspensión es automática. *@
+    @if (reputacion is not null)
+    {
+        int sanciones = reputacion.SancionesRecientes;
+        <div class="ru-card ru-card-body mt-4">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h2 class="h3 mb-0"><i class="bi bi-hammer me-1"></i> Sanciones de los últimos 90 días</h2>
+                <span class="fw-bold @(sanciones >= 4 ? "text-danger" : sanciones >= 2 ? "text-warning" : "")">@sanciones / 4</span>
+            </div>
+            <div class="progress" style="height:8px">
+                <div class="progress-bar @(sanciones >= 4 ? "bg-danger" : sanciones >= 2 ? "bg-warning" : "bg-success")" style="width:@(Math.Min(sanciones, 4) * 25)%"></div>
+            </div>
+            <div class="small-muted mt-2">
+                @(sanciones >= 4 ? "Alcanzó el límite: la cuenta se suspende automáticamente al sancionar un reporte." :
+                  $"Le faltan {4 - sanciones} sanción(es) para la suspensión automática (RF-13). Nivel de reputación: {Formato.Texto(reputacion.Nivel)}.")
+            </div>
+        </div>
+    }
+
+    <div class="ru-card mt-4">
+        <div class="p-3 border-bottom"><h2 class="h3 mb-0">Anuncios publicados</h2></div>
+        @if (anuncios.Any())
+        {
+            foreach (AnuncioDTO a in anuncios)
+            {
+                <div class="d-flex align-items-center gap-3 p-3 border-bottom">
+                    <ImagenMaterial Categoria="@a.NombreCategoria" Url="@a.Imagenes.FirstOrDefault()" Tamano="mini" />
+                    <div class="flex-grow-1">
+                        <div class="fw-semibold small">@a.Titulo</div>
+                        <div class="small-muted">@Formato.Soles(a.Precio) · @Formato.Fecha(a.FechaPublicacion)</div>
+                    </div>
+                    <BadgeEstado Estado="@a.Estado" />
+                </div>
+            }
+        }
+        else
+        {
+            <EstadoVacio Icono="bi-megaphone" Titulo="Sin anuncios" />
+        }
+    </div>
+}
+
+<ModalConfirmacion @bind-Visible="mostrarConfirmacion" Titulo="@Titulo" TextoConfirmar="Confirmar"
+                   ClaseBoton="@(accion == "suspender" ? "btn-danger" : "btn-primary")"
+                   Mensaje="@Mensaje" OnConfirmar="Confirmar" />
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private UsuarioDTO? u;
+    private List<AnuncioDTO> anuncios = [];
+    private ReputacionDTO? reputacion;
+    private string accion = "";
+    private bool mostrarConfirmacion;
+    private bool cargando = true;
+
+    private string Nombre => u is null ? "" : $"{u.Nombres} {u.Apellidos}";
+
+    private string Titulo => accion switch
+    {
+        "verificar" => "Verificar cuenta",
+        "suspender" => "Suspender cuenta",
+        _ => "Reactivar cuenta"
+    };
+
+    private string Mensaje => accion switch
+    {
+        "verificar" => $"La cuenta de {Nombre} pasará a ACTIVA y podrá iniciar sesión.",
+        "suspender" => $"{Nombre} no podrá iniciar sesión mientras su cuenta esté suspendida.",
+        _ => $"La cuenta de {Nombre} volverá a estar ACTIVA."
+    };
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await Ejecutar(async () =>
+        {
+            u = await UsuarioService.Obtener(Id);
+            anuncios = await AnuncioService.ListarPorVendedor(Id);
+            reputacion = await InsigniaService.Reputacion(Id);
+        });
+        cargando = false;
+    }
+
+    private void Pedir(string nuevaAccion)
+    {
+        accion = nuevaAccion;
+        mostrarConfirmacion = true;
+    }
+
+    private async Task Confirmar()
+    {
+        Func<Task<UsuarioDTO>> llamada = accion switch
+        {
+            "verificar" => () => UsuarioService.Verificar(Id),
+            "suspender" => () => UsuarioService.Suspender(Id),
+            _ => () => UsuarioService.Reactivar(Id)
+        };
+        await Ejecutar(async () => u = await llamada(), $"Listo: la cuenta quedó {Formato.Texto(accion == "suspender" ? "SUSPENDIDA" : "ACTIVA").ToLower()}.");
+    }
+}

@@ -1,0 +1,122 @@
+@page "/reportes/anuncio/{Id:int}"
+@inherits PaginaBase
+@inject IAnuncioService AnuncioService
+@inject IDenunciaService DenunciaService
+@inject NavigationManager Nav
+
+@* RF-04 / RF-14: denunciar un anuncio → POST /denuncias/anuncios. Si estaba DISPONIBLE pasa a OBSERVADO
+   (sale del catálogo) hasta que un administrador lo revise. *@
+
+<PageTitle>Reportar anuncio · ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="Reportar anuncio" Subtitulo="Ayúdanos a mantener ReUse como un espacio seguro."
+                  Volver="@($"anuncios/{Id}")" TextoVolver="Volver al anuncio" />
+
+<Alertas Error="@Error" />
+
+@if (anuncio is null)
+{
+    if (cargando)
+    {
+        <Cargando />
+    }
+}
+else
+{
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <EditForm Model="modelo" OnValidSubmit="Enviar" FormName="reporteAnuncio">
+                <DataAnnotationsValidator />
+                <div class="ru-card ru-card-body">
+                    <h2 class="h3 mb-1 requerido">¿Cuál es el problema?</h2>
+                    <p class="ru-nota-requeridos mb-3">Campos obligatorios</p>
+                    <InputRadioGroup @bind-Value="modelo.Motivo">
+                        <div class="d-flex flex-column gap-2 mb-4">
+                            @foreach (var (valor, texto, ayuda) in motivos)
+                            {
+                                <label class="border rounded-3 p-3 d-flex gap-3 cursor-pointer @(modelo.Motivo == valor ? "border-primary bg-primary-subtle" : "")">
+                                    <InputRadio class="form-check-input mt-1" Value="valor" />
+                                    <span><span class="fw-semibold d-block">@texto</span><span class="small-muted">@ayuda</span></span>
+                                </label>
+                            }
+                        </div>
+                    </InputRadioGroup>
+                    <label class="form-label fw-semibold requerido" for="descripcion">Describe lo ocurrido</label>
+                    <AreaTexto id="descripcion" class="form-control" rows="4" maxlength="1000" @bind-Value="modelo.Descripcion"
+                               placeholder="Brinda detalles que ayuden al equipo de moderación." />
+                    <ValidationMessage For="() => modelo.Descripcion" />
+                    <div class="mb-4"></div>
+                    <div class="d-flex justify-content-end gap-2">
+                        <NavLink class="btn btn-light" href="@($"anuncios/{Id}")">Cancelar</NavLink>
+                        <div class="text-end"><BotonEnviar Texto="Enviar reporte" Icono="bi-flag" Clase="btn-danger" Procesando="@Procesando" /></div>
+                    </div>
+                </div>
+            </EditForm>
+        </div>
+        <div class="col-lg-4">
+            <div class="ru-card ru-card-body d-flex gap-3">
+                <ImagenMaterial Categoria="@anuncio.NombreCategoria" Url="@anuncio.Imagenes.FirstOrDefault()" Tamano="mini" />
+                <div>
+                    <div class="fw-semibold">@anuncio.Titulo</div>
+                    <div class="small-muted">Publicado por @anuncio.NombreVendedor</div>
+                </div>
+            </div>
+            <div class="alert alert-light border small mt-3">
+                <i class="bi bi-eye-slash me-1"></i> Mientras se revisa, el anuncio queda OBSERVADO y no aparece en el catálogo.
+            </div>
+        </div>
+    </div>
+}
+
+<ModalConfirmacion @bind-Visible="enviado" Titulo="Reporte enviado" TextoConfirmar="Ver mis reportes"
+                   Mensaje="Gracias. El anuncio quedó en observación; un administrador lo revisará y te notificaremos el resultado."
+                   OnConfirmar="@(() => Nav.NavigateTo("mis-reportes"))" />
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private AnuncioDTO? anuncio;
+    private readonly ReporteModelo modelo = new();
+    private bool enviado;
+    private bool cargando = true;
+
+    // Valores de MotivoReporteAnuncio
+    private readonly (string, string, string)[] motivos =
+    {
+        ("CONTENIDO_PROHIBIDO", "Contenido prohibido", "El material no está permitido en la plataforma."),
+        ("INFORMACION_FALSA", "Información falsa", "La descripción, fotos o condición no corresponden al material."),
+        ("SPAM", "Spam", "Publicación repetida o con fines ajenos a ReUse."),
+        ("OTRO", "Otro", "Otro motivo no listado."),
+    };
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await Ejecutar(async () =>
+        {
+            anuncio = await AnuncioService.Obtener(Id);
+            if (anuncio is null) throw new ServicioException("No existe el anuncio.");
+        });
+        cargando = false;
+    }
+
+    private async Task Enviar()
+    {
+        int idUsuario = await IdUsuarioAsync();
+        enviado = await Ejecutar(() => DenunciaService.DenunciarAnuncio(new DenunciaDTO
+        {
+            IdDenunciante = idUsuario,
+            IdAnuncio = Id,
+            Motivo = modelo.Motivo,
+            Descripcion = modelo.Descripcion
+        }));
+    }
+
+    private class ReporteModelo
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Elige cuál es el problema.")]
+        public string Motivo { get; set; } = "";
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Describe lo ocurrido.")]
+        public string Descripcion { get; set; } = "";
+    }
+}

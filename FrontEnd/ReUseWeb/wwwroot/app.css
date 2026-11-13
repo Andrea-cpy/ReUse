@@ -1,0 +1,499 @@
+/* =========================================================
+   ReUse — estilos globales (sobre Bootstrap 5)
+   ========================================================= */
+
+:root {
+    --ru-verde: #1d6b52;
+    --ru-verde-oscuro: #134a39;
+    --ru-verde-claro: #e7f3ee;
+    --ru-ambar: #f2c14e;
+    --ru-tinta: #1f2a2e;
+    --ru-gris: #6b7a80;
+    --ru-fondo: #f5f7f6;
+    --ru-borde: #e1e7e4;
+    --ru-sidebar: 248px;
+
+    --bs-primary: #1d6b52;
+    --bs-primary-rgb: 29, 107, 82;
+    --bs-link-color: #1d6b52;
+    --bs-link-color-rgb: 29, 107, 82;
+    --bs-link-hover-color: #134a39;
+    --bs-body-color: #1f2a2e;
+    --bs-body-font-family: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+body {
+    background: var(--ru-fondo);
+}
+
+h1, .h1 { font-size: 1.6rem; font-weight: 700; }
+h2, .h2 { font-size: 1.25rem; font-weight: 650; }
+h3, .h3 { font-size: 1.05rem; font-weight: 650; }
+
+/* ---------- Botones con la paleta ReUse ---------- */
+.btn-primary {
+    --bs-btn-bg: var(--ru-verde);
+    --bs-btn-border-color: var(--ru-verde);
+    --bs-btn-hover-bg: var(--ru-verde-oscuro);
+    --bs-btn-hover-border-color: var(--ru-verde-oscuro);
+    --bs-btn-active-bg: var(--ru-verde-oscuro);
+    --bs-btn-active-border-color: var(--ru-verde-oscuro);
+    --bs-btn-disabled-bg: var(--ru-verde);
+    --bs-btn-disabled-border-color: var(--ru-verde);
+}
+
+.btn-outline-primary {
+    --bs-btn-color: var(--ru-verde);
+    --bs-btn-border-color: var(--ru-verde);
+    --bs-btn-hover-bg: var(--ru-verde);
+    --bs-btn-hover-border-color: var(--ru-verde);
+    --bs-btn-active-bg: var(--ru-verde-oscuro);
+    --bs-btn-active-border-color: var(--ru-verde-oscuro);
+}
+
+.text-primary { color: var(--ru-verde) !important; }
+.bg-primary-subtle { background-color: var(--ru-verde-claro) !important; }
+.form-control:focus, .form-select:focus {
+    border-color: #7fb8a4;
+    box-shadow: 0 0 0 .2rem rgba(29, 107, 82, .18);
+}
+.form-check-input:checked { background-color: var(--ru-verde); border-color: var(--ru-verde); }
+.nav-pills .nav-link.active { background-color: var(--ru-verde); }
+.nav-tabs .nav-link { color: var(--ru-gris); }
+.nav-tabs .nav-link.active { color: var(--ru-tinta); font-weight: 600; }
+.page-link { color: var(--ru-verde); }
+.active > .page-link { background-color: var(--ru-verde); border-color: var(--ru-verde); }
+
+/* ---------- Estructura general (layout con barra lateral) ---------- */
+.ru-app {
+    display: flex;
+    min-height: 100vh;
+}
+
+.ru-sidebar {
+    width: var(--ru-sidebar);
+    flex-shrink: 0;
+    background: #fff;
+    border-right: 1px solid var(--ru-borde);
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+}
+
+.ru-sidebar.admin {
+    background: var(--ru-tinta);
+    border-right: none;
+}
+
+.ru-brand {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    padding: 1.1rem 1.25rem;
+    font-weight: 800;
+    font-size: 1.25rem;
+    color: var(--ru-verde);
+    text-decoration: none;
+}
+
+.ru-brand:hover { color: var(--ru-verde-oscuro); }
+.ru-brand .logo {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--ru-verde); color: #fff;
+    display: grid; place-items: center; font-size: 1rem;
+}
+.ru-sidebar.admin .ru-brand { color: #fff; }
+.ru-sidebar.admin .ru-brand small { color: var(--ru-ambar); font-weight: 600; font-size: .7rem; letter-spacing: .08em; }
+
+.ru-nav-section {
+    font-size: .7rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--ru-gris);
+    padding: 1rem 1.25rem .35rem;
+    font-weight: 600;
+}
+.ru-sidebar.admin .ru-nav-section { color: #9fb1b6; }
+
+.ru-nav-link {
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    margin: 1px .65rem;
+    padding: .5rem .75rem;
+    border-radius: .5rem;
+    color: #3b4a4f;
+    text-decoration: none;
+    font-size: .93rem;
+}
+.ru-nav-link i { font-size: 1.05rem; width: 1.2rem; text-align: center; }
+.ru-nav-link:hover { background: var(--ru-fondo); color: var(--ru-tinta); }
+.ru-nav-link.active { background: var(--ru-verde-claro); color: var(--ru-verde); font-weight: 600; }
+.ru-nav-link .badge { margin-left: auto; }
+
+.ru-sidebar.admin .ru-nav-link { color: #c9d4d7; }
+.ru-sidebar.admin .ru-nav-link:hover { background: rgba(255,255,255,.07); color: #fff; }
+.ru-sidebar.admin .ru-nav-link.active { background: rgba(242,193,78,.16); color: var(--ru-ambar); }
+
+.ru-sidebar-footer {
+    margin-top: auto;
+    padding: .75rem 0 1rem;
+    border-top: 1px solid var(--ru-borde);
+}
+.ru-sidebar.admin .ru-sidebar-footer { border-top-color: rgba(255,255,255,.1); }
+
+.ru-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.ru-topbar {
+    background: #fff;
+    border-bottom: 1px solid var(--ru-borde);
+    padding: .65rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+.ru-topbar .buscador { max-width: 460px; flex: 1; }
+
+.ru-icon-btn {
+    position: relative;
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    color: #3b4a4f;
+    text-decoration: none;
+    font-size: 1.15rem;
+}
+.ru-icon-btn:hover { background: var(--ru-fondo); color: var(--ru-tinta); }
+.ru-icon-btn .punto {
+    position: absolute; top: 5px; right: 5px;
+    min-width: 17px; height: 17px; padding: 0 4px;
+    border-radius: 9px; background: #d64545; color: #fff;
+    font-size: .65rem; font-weight: 700;
+    display: grid; place-items: center;
+}
+
+.ru-content {
+    padding: 1.5rem;
+    max-width: 1280px;
+    width: 100%;
+}
+
+.ru-menu-toggle { display: none; }
+
+@media (max-width: 991.98px) {
+    .ru-sidebar {
+        position: fixed;
+        left: 0; top: 0;
+        z-index: 1040;
+        transform: translateX(-100%);
+        transition: transform .2s ease;
+        box-shadow: 0 0 30px rgba(0,0,0,.15);
+    }
+    .ru-sidebar.abierto { transform: translateX(0); }
+    .ru-menu-toggle { display: grid; }
+    .ru-overlay {
+        position: fixed; inset: 0; background: rgba(0,0,0,.3); z-index: 1030;
+    }
+    .ru-content { padding: 1rem; }
+}
+
+/* ---------- Avatar ---------- */
+.ru-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--ru-verde-claro); color: var(--ru-verde);
+    display: inline-grid; place-items: center;
+    font-weight: 700; font-size: .85rem; flex-shrink: 0;
+}
+.ru-avatar.lg { width: 72px; height: 72px; font-size: 1.5rem; }
+.ru-avatar.sm { width: 28px; height: 28px; font-size: .72rem; }
+
+/* ---------- Tarjetas ---------- */
+.ru-card {
+    background: #fff;
+    border: 1px solid var(--ru-borde);
+    border-radius: .75rem;
+}
+.ru-card-body { padding: 1.25rem; }
+
+.ru-stat {
+    padding: 1.1rem 1.25rem;
+}
+.ru-stat .valor { font-size: 1.7rem; font-weight: 750; line-height: 1.1; }
+.ru-stat .etiqueta { color: var(--ru-gris); font-size: .85rem; }
+.ru-stat .icono {
+    width: 42px; height: 42px; border-radius: 10px;
+    display: grid; place-items: center; font-size: 1.25rem;
+}
+
+/* Tarjeta de anuncio del catálogo */
+.ru-anuncio {
+    background: #fff;
+    border: 1px solid var(--ru-borde);
+    border-radius: .75rem;
+    overflow: hidden;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    transition: box-shadow .15s ease, transform .15s ease;
+}
+.ru-anuncio:hover { box-shadow: 0 6px 20px rgba(31,42,46,.08); transform: translateY(-2px); }
+.ru-anuncio a.cubre { color: inherit; text-decoration: none; }
+
+.ru-img {
+    aspect-ratio: 4 / 3;
+    display: grid;
+    place-items: center;
+    font-size: 2.6rem;
+    position: relative;
+}
+.ru-img.grande { aspect-ratio: 16 / 10; font-size: 5rem; border-radius: .75rem; }
+.ru-img.mini { width: 56px; height: 56px; aspect-ratio: auto; font-size: 1.4rem; border-radius: .5rem; flex-shrink: 0; }
+.ru-img .fav {
+    position: absolute; top: .5rem; right: .5rem;
+    width: 34px; height: 34px; border-radius: 50%;
+    background: rgba(255,255,255,.92); border: none;
+    display: grid; place-items: center; font-size: 1rem; color: #d64545;
+}
+
+.tono-1 { background: #e7f3ee; color: #1d6b52; }
+.tono-2 { background: #fdf3dc; color: #a87612; }
+.tono-3 { background: #e6eefb; color: #2e5aa8; }
+.tono-4 { background: #f6e8f1; color: #8f3a6e; }
+.tono-5 { background: #ecebf8; color: #4b45a0; }
+.tono-6 { background: #eef1f2; color: #4c5b60; }
+
+.ru-precio { font-weight: 750; font-size: 1.1rem; color: var(--ru-tinta); }
+.ru-meta { color: var(--ru-gris); font-size: .82rem; }
+
+/* ---------- Encabezado de página ---------- */
+.ru-page-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: .75rem;
+    margin-bottom: 1.25rem;
+}
+.ru-page-header p { color: var(--ru-gris); margin: .2rem 0 0; }
+.ru-volver { font-size: .88rem; text-decoration: none; display: inline-flex; align-items: center; gap: .3rem; margin-bottom: .35rem; }
+
+/* ---------- Tablas ---------- */
+.ru-table { margin: 0; }
+.ru-table thead th {
+    font-size: .76rem; text-transform: uppercase; letter-spacing: .05em;
+    color: var(--ru-gris); font-weight: 600; background: #fafcfb;
+    border-bottom-width: 1px;
+}
+.ru-table td, .ru-table th { padding: .8rem 1rem; vertical-align: middle; }
+
+/* ---------- Línea de tiempo (transacción) ---------- */
+.ru-pasos { display: flex; gap: 0; }
+.ru-paso { flex: 1; text-align: center; position: relative; font-size: .82rem; color: var(--ru-gris); }
+.ru-paso .circulo {
+    width: 34px; height: 34px; border-radius: 50%;
+    margin: 0 auto .4rem;
+    display: grid; place-items: center;
+    background: #fff; border: 2px solid var(--ru-borde); color: var(--ru-gris);
+    position: relative; z-index: 1;
+}
+.ru-paso::before {
+    content: ""; position: absolute; top: 17px; left: -50%; width: 100%; height: 2px;
+    background: var(--ru-borde);
+}
+.ru-paso:first-child::before { display: none; }
+.ru-paso.hecho .circulo { background: var(--ru-verde); border-color: var(--ru-verde); color: #fff; }
+.ru-paso.hecho::before, .ru-paso.actual::before { background: var(--ru-verde); }
+.ru-paso.actual .circulo { border-color: var(--ru-verde); color: var(--ru-verde); }
+.ru-paso.hecho, .ru-paso.actual { color: var(--ru-tinta); font-weight: 600; }
+
+/* ---------- Chat ---------- */
+.ru-chat {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    height: calc(100vh - 170px);
+    min-height: 480px;
+}
+.ru-chat-lista { border-right: 1px solid var(--ru-borde); overflow-y: auto; }
+.ru-chat-item {
+    display: flex; gap: .75rem; padding: .85rem 1rem;
+    text-decoration: none; color: inherit;
+    border-bottom: 1px solid #f0f3f2;
+}
+.ru-chat-item:hover { background: var(--ru-fondo); }
+.ru-chat-item.active { background: var(--ru-verde-claro); }
+.ru-chat-panel { display: flex; flex-direction: column; min-width: 0; }
+.ru-chat-mensajes { flex: 1; overflow-y: auto; padding: 1.25rem; background: #fafcfb; display: flex; flex-direction: column; gap: .5rem; }
+.ru-burbuja { max-width: 70%; padding: .55rem .85rem; border-radius: 1rem; font-size: .93rem; }
+.ru-burbuja .hora { display: block; font-size: .7rem; opacity: .7; margin-top: .15rem; text-align: right; }
+.ru-burbuja.recibido { background: #fff; border: 1px solid var(--ru-borde); align-self: flex-start; border-bottom-left-radius: .25rem; }
+.ru-burbuja.enviado { background: var(--ru-verde); color: #fff; align-self: flex-end; border-bottom-right-radius: .25rem; }
+
+@media (max-width: 767.98px) {
+    .ru-chat { grid-template-columns: 1fr; height: auto; }
+    .ru-chat-lista { display: none; }
+    .ru-chat-mensajes { min-height: 50vh; }
+}
+
+/* ---------- Insignias ---------- */
+.ru-insignia {
+    text-align: center; padding: 1rem .5rem;
+    border: 1px solid var(--ru-borde); border-radius: .75rem; background: #fff; height: 100%;
+}
+.ru-insignia .medalla {
+    width: 56px; height: 56px; border-radius: 50%; margin: 0 auto .5rem;
+    display: grid; place-items: center; font-size: 1.5rem;
+    background: #fdf3dc; color: #a87612;
+}
+.ru-insignia.bloqueada { opacity: .45; }
+.ru-insignia.bloqueada .medalla { background: #eef1f2; color: #8a979b; }
+
+/* ---------- Estrellas ---------- */
+.ru-estrellas { color: #e0a82e; letter-spacing: 1px; }
+.ru-estrellas.input i { cursor: pointer; font-size: 1.8rem; }
+
+/* ---------- Pantallas de acceso ---------- */
+.ru-auth {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+}
+.ru-auth-panel {
+    background: linear-gradient(160deg, var(--ru-verde) 0%, var(--ru-verde-oscuro) 100%);
+    color: #fff;
+    padding: 3rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+.ru-auth-panel .lema { font-size: 2.1rem; font-weight: 750; line-height: 1.2; max-width: 440px; }
+.ru-auth-panel .punto-lista li { margin-bottom: .6rem; opacity: .92; }
+.ru-auth-form {
+    display: flex; align-items: center; justify-content: center;
+    padding: 2rem; background: #fff;
+}
+.ru-auth-form .contenido { width: 100%; max-width: 400px; }
+
+@media (max-width: 991.98px) {
+    .ru-auth { grid-template-columns: 1fr; }
+    .ru-auth-panel { display: none; }
+}
+
+/* ---------- Utilidades ---------- */
+.ru-subir-foto {
+    border: 2px dashed #c6d3ce; border-radius: .75rem; background: #fafcfb;
+    padding: 1.75rem; text-align: center; color: var(--ru-gris);
+}
+.ru-vacio { text-align: center; padding: 3rem 1rem; color: var(--ru-gris); }
+.ru-vacio i { font-size: 2.5rem; display: block; margin-bottom: .5rem; }
+.ru-chip {
+    display: inline-flex; align-items: center; gap: .35rem;
+    border: 1px solid var(--ru-borde); background: #fff; border-radius: 999px;
+    padding: .3rem .8rem; font-size: .85rem; color: #3b4a4f;
+}
+.ru-chip:hover { border-color: var(--ru-verde); color: var(--ru-verde); }
+.cursor-pointer { cursor: pointer; }
+.fw-semibold { font-weight: 600; }
+.small-muted { font-size: .85rem; color: var(--ru-gris); }
+
+/* ---------- Modal propio (sin JavaScript de Bootstrap) ---------- */
+.ru-modal-fondo {
+    position: fixed; inset: 0; background: rgba(20, 30, 33, .45);
+    z-index: 1050; display: grid; place-items: center; padding: 1rem;
+}
+.ru-modal {
+    background: #fff; border-radius: .9rem; width: 100%; max-width: 460px;
+    box-shadow: 0 20px 50px rgba(0,0,0,.2);
+}
+.ru-modal-header { padding: 1.1rem 1.25rem .5rem; display: flex; justify-content: space-between; align-items: center; }
+.ru-modal-body { padding: .25rem 1.25rem 1rem; color: #44545a; }
+.ru-modal-footer { padding: .75rem 1.25rem 1.1rem; display: flex; justify-content: flex-end; gap: .5rem; }
+
+/* ---------- Errores de Blazor ---------- */
+#blazor-error-ui {
+    color-scheme: light only;
+    background: lightyellow;
+    bottom: 0;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    box-sizing: border-box;
+    display: none;
+    left: 0;
+    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 1000;
+}
+#blazor-error-ui .dismiss { cursor: pointer; position: absolute; right: 0.75rem; top: 0.5rem; }
+.min-w-0 { min-width: 0; }
+
+/* ---------- Ingreso con Google (colores y forma de la guía de marca de Google) ---------- */
+.ru-btn-google {
+    display: flex; align-items: center; justify-content: center; gap: .65rem;
+    min-height: 44px; padding: .5rem 1rem;
+    background: #fff; color: #1f1f1f;
+    border: 1px solid #747775; border-radius: .5rem;
+    font-weight: 500; font-size: .95rem;
+    transition: background-color .15s, box-shadow .15s;
+}
+.ru-btn-google:hover { background: #f8faf9; box-shadow: 0 1px 3px rgba(60, 64, 67, .25); }
+.ru-btn-google:focus-visible { outline: 3px solid rgba(29, 107, 82, .35); outline-offset: 2px; }
+.ru-btn-google:active { background: #eef1f0; }
+.ru-nota-google { font-size: .8rem; color: var(--ru-gris); margin: .55rem 0 0; display: flex; gap: .4rem; }
+.ru-nota-google .bi { color: var(--ru-verde); margin-top: .1rem; }
+
+.ru-separador {
+    display: flex; align-items: center; gap: .75rem;
+    margin: 1.4rem 0; color: var(--ru-gris); font-size: .8rem;
+}
+.ru-separador::before, .ru-separador::after { content: ""; flex: 1; border-top: 1px solid var(--ru-borde); }
+
+.ru-google-destacado {
+    background: var(--ru-verde-claro); border: 1px solid var(--ru-borde);
+    border-radius: .75rem; padding: 1rem;
+}
+.ru-cuenta-google {
+    display: flex; align-items: center; gap: .75rem;
+    border: 1px solid var(--ru-borde); border-radius: .75rem; padding: .7rem .9rem;
+}
+
+/* ---------- Formularios: obligatorios y validación ---------- */
+/* Etiqueta de un campo obligatorio: <label class="form-label requerido"> → "Nombres *" */
+.requerido::after { content: " *"; color: #c62828; font-weight: 700; }
+.ru-nota-requeridos { font-size: .8rem; color: var(--ru-gris); }
+.ru-nota-requeridos::before { content: "* "; color: #c62828; font-weight: 700; }
+
+/* Campo inválido: el que marca Blazor tras modificarlo (modified invalid) y el .is-invalid de Bootstrap */
+.form-control.modified.invalid, .form-select.modified.invalid,
+.form-control.is-invalid, .form-select.is-invalid {
+    border-color: #c62828;
+    background-color: #fff6f6;
+    box-shadow: 0 0 0 .2rem rgba(198, 40, 40, .15);
+}
+.form-check-input.modified.invalid, .form-check-input.is-invalid { border-color: #c62828; box-shadow: 0 0 0 .2rem rgba(198, 40, 40, .15); }
+.form-control.modified.valid, .form-select.modified.valid { border-color: var(--ru-borde); }
+
+/* Mensaje bajo el campo: visible, en rojo y con ícono */
+.validation-message, .ru-error-campo {
+    display: block; margin-top: .3rem;
+    color: #c62828; font-size: .85rem; font-weight: 600;
+}
+.validation-message::before, .ru-error-campo::before {
+    font-family: "bootstrap-icons"; content: "\F332"; margin-right: .3rem; font-weight: 400;
+}
+/* Grupo de opciones (radios, estrellas, tarjetas) sin completar */
+.ru-grupo-invalido { border-radius: .75rem; outline: 2px solid rgba(198, 40, 40, .55); outline-offset: 4px; }
+
+/* Botón deshabilitado: se nota que aún no se puede enviar */
+.btn:disabled, .btn.disabled { opacity: .5; cursor: not-allowed; }
+.ru-faltantes { margin-top: .4rem; font-size: .8rem; color: var(--ru-gris); }

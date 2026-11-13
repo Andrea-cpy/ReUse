@@ -1,0 +1,143 @@
+@page "/admin/reportes"
+@inherits PaginaBase
+@inject IDenunciaService DenunciaService
+
+@* RF-04: bandeja de denuncias de usuarios (fraude, inasistencia...) y de anuncios → GET /denuncias.
+   Los PDF (JasperReports) se descargan desde /descargas/reportes/{nombre}, que llama a GET /reportes/{nombre}. *@
+
+<PageTitle>Reportes · Admin ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="Reportes e incidentes" Subtitulo="Denuncias de la comunidad sobre usuarios y anuncios. Resuélvelas o desestímalas.">
+    <Acciones>
+        <a class="btn btn-primary" href="@UrlPdf" target="_blank" download>
+            <i class="bi bi-file-earmark-pdf me-1"></i> Descargar PDF
+        </a>
+    </Acciones>
+</EncabezadoPagina>
+
+<Alertas Error="@Error" />
+
+<div class="row g-3 mb-3">
+    @foreach ((string valor, string etiqueta, string icono, string tono) in resumen)
+    {
+        <div class="col-6 col-md-3">
+            <button class="ru-card ru-stat w-100 text-start border d-flex align-items-center gap-3 @(estado == valor ? "border-primary" : "")"
+                    @onclick="() => estado = estado == valor ? string.Empty : valor">
+                <span class="icono @tono"><i class="bi @icono"></i></span>
+                <span>
+                    <span class="valor d-block">@(valor == "" ? denuncias.Count : denuncias.Count(d => d.EstadoRevision == valor))</span>
+                    <span class="etiqueta">@etiqueta</span>
+                </span>
+            </button>
+        </div>
+    }
+</div>
+
+<BarraBusqueda @bind-Texto="texto" Placeholder="Usuario, anuncio, denunciante o descripción" Resultados="@Visibles.Count()"
+               OnLimpiar="() => { tipo = string.Empty; estado = string.Empty; }">
+    <div class="col-md-3">
+        <label class="form-label small" for="tipo">Tipo</label>
+        <select id="tipo" class="form-select" @bind="tipo">
+            <option value="">Todos</option>
+            <option value="USUARIO">Usuario</option>
+            <option value="ANUNCIO">Anuncio</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label small" for="estado">Estado de revisión</label>
+        <select id="estado" class="form-select" @bind="estado">
+            <option value="">Todos</option>
+            <option value="PENDIENTE">Pendiente</option>
+            <option value="SANCIONADO">Sancionado</option>
+            <option value="DESESTIMADO">Desestimado</option>
+        </select>
+    </div>
+</BarraBusqueda>
+
+<div class="ru-card">
+    @if (cargando)
+    {
+        <Cargando />
+    }
+    else if (Visibles.Any())
+    {
+        <div class="table-responsive">
+            <table class="table ru-table">
+                <thead>
+                    <tr><th>#</th><th>Tipo</th><th>Reportado</th><th>Motivo</th><th>Denunciante</th><th>Fecha</th><th>Estado</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (DenunciaDTO d in Visibles)
+                    {
+                        bool pendiente = d.EstadoRevision == "PENDIENTE";
+                        <tr>
+                            <td class="small-muted">@d.IdReporte</td>
+                            <td class="text-nowrap"><i class="bi @(d.Tipo == "ANUNCIO" ? "bi-megaphone" : "bi-person")"></i> @Formato.Texto(d.Tipo)</td>
+                            <td class="fw-semibold">@Reportado(d)</td>
+                            <td>@Formato.Texto(d.Motivo)</td>
+                            <td>@d.NombreDenunciante</td>
+                            <td class="small-muted text-nowrap">@Formato.Fecha(d.FechaRegistro)</td>
+                            <td><BadgeEstado Estado="@d.EstadoRevision" /></td>
+                            <td class="text-end">
+                                <NavLink class="@(pendiente ? "btn btn-sm btn-primary" : "btn btn-sm btn-light")" href="@($"admin/reportes/{d.IdReporte}")">
+                                    @(pendiente ? "Revisar" : "Ver")
+                                </NavLink>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <EstadoVacio Icono="bi-shield-check" Titulo="Sin denuncias" Mensaje="No hay denuncias con estos filtros." />
+    }
+</div>
+
+<div class="ru-card ru-card-body mt-4">
+    <h2 class="h3 mb-1"><i class="bi bi-file-earmark-pdf me-1"></i> Otros reportes PDF</h2>
+    <p class="small-muted mb-3">Reportes en PDF listos para descargar.</p>
+    <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-outline-primary" href="descargas/reportes/transacciones" target="_blank" download>
+            <i class="bi bi-arrow-left-right me-1"></i> Transacciones y montos vendidos
+        </a>
+        <a class="btn btn-outline-primary" href="descargas/reportes/usuarios" target="_blank" download>
+            <i class="bi bi-people me-1"></i> Reputación y sanciones de usuarios
+        </a>
+    </div>
+</div>
+
+@code {
+    private readonly (string Valor, string Etiqueta, string Icono, string Tono)[] resumen =
+    {
+        ("", "Total", "bi-flag", "tono-1"),
+        ("PENDIENTE", "Pendientes", "bi-hourglass-split", "tono-4"),
+        ("SANCIONADO", "Sancionadas", "bi-hammer", "tono-5"),
+        ("DESESTIMADO", "Desestimadas", "bi-x-circle", "tono-6"),
+    };
+
+    private List<DenunciaDTO> denuncias = [];
+    private string texto = "";
+    private string tipo = "";
+    private string estado = "";
+    private bool cargando = true;
+
+    private IEnumerable<DenunciaDTO> Visibles => denuncias
+        .Where(d => tipo == "" || d.Tipo == tipo)
+        .Where(d => estado == "" || d.EstadoRevision == estado)
+        .Where(d => string.IsNullOrWhiteSpace(texto) ||
+                    $"{Reportado(d)} {d.NombreDenunciante} {d.Descripcion} {d.Motivo}".Contains(texto.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>El PDF respeta los filtros de tipo y estado que se ven en pantalla.</summary>
+    private string UrlPdf => $"descargas/reportes/incidentes?tipo={tipo}&estado={estado}";
+
+    private static string Reportado(DenunciaDTO d) =>
+        d.Tipo == "ANUNCIO" ? d.TituloAnuncio ?? $"Anuncio #{d.IdAnuncio}" : d.NombreDenunciado ?? $"Usuario #{d.IdDenunciado}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Ejecutar(async () => denuncias = await DenunciaService.Listar());
+        cargando = false;
+    }
+}

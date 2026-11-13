@@ -1,0 +1,21 @@
+# Envio de correos (codigo de recuperacion de contrasena).
+# Copiar este archivo como correo.properties en esta misma carpeta y completar los datos.
+# correo.properties esta en .gitignore: no subir la clave al repositorio.
+#
+# Sin usuario y clave el backend no envia correos: el codigo de recuperacion se escribe
+# en el log del servidor (server.log de GlassFish), como modo desarrollo.
+#
+# Con Gmail:
+#   1. La cuenta debe tener activada la verificacion en dos pasos.
+#   2. Crear una contrasena de aplicacion en https://myaccount.google.com/apppasswords
+#      y usarla en smtp.clave (16 caracteres, sin espacios). La contrasena normal de la
+#      cuenta no funciona.
+#   3. El remitente sera la misma cuenta de smtp.usuario.
+#
+# Las variables de entorno REUSE_SMTP_USUARIO y REUSE_SMTP_CLAVE tienen prioridad sobre
+# smtp.usuario y smtp.clave.
+smtp.host=smtp.gmail.com
+smtp.puerto=587
+smtp.usuario=<cuenta>@gmail.com
+smtp.clave=<contrasena de aplicacion>
+remitente.nombre=ReUse PUCP

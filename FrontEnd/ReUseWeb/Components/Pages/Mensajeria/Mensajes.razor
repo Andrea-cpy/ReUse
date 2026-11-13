@@ -1,0 +1,110 @@
+@page "/mensajes"
+@inherits PaginaBase
+@inject IChatService ChatService
+
+@* RF-09: solicitudes de contacto (aceptar / rechazar) y lista de conversaciones → GET /chats?usuario=ID *@
+
+<PageTitle>Mensajes · ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="Mensajes" Subtitulo="Conversaciones con compradores y vendedores." />
+
+<Alertas Error="@Error" Exito="@Exito" />
+
+@if (cargando)
+{
+    <Cargando />
+}
+else
+{
+    @* ---------- Solicitudes que me hicieron (soy el vendedor) ---------- *@
+    if (Recibidas.Any())
+    {
+        <h2 class="h3 mb-2">Solicitudes de contacto</h2>
+        <div class="d-flex flex-column gap-2 mb-4">
+            @foreach (CanalChatDTO c in Recibidas)
+            {
+                <div class="ru-card ru-card-body d-flex flex-wrap align-items-center gap-3">
+                    <span class="ru-avatar">@Formato.Iniciales(c.NombreComprador)</span>
+                    <div class="flex-grow-1">
+                        <div><strong>@c.NombreComprador</strong> quiere hablar contigo sobre <strong>@c.TituloAnuncio</strong></div>
+                        <div class="small-muted">Solicitado el @Formato.FechaHora(c.FechaSolicitud)</div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-danger btn-sm" disabled="@Procesando" @onclick="() => Rechazar(c)">Rechazar</button>
+                        <button class="btn btn-primary btn-sm" disabled="@Procesando" @onclick="() => Aceptar(c)">Aceptar</button>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <h2 class="h3 mb-2">Conversaciones</h2>
+    <div class="ru-card">
+        @if (Conversaciones.Any())
+        {
+            foreach (CanalChatDTO c in Conversaciones)
+            {
+                bool soyVendedor = c.IdVendedor == idUsuario;
+                string contraparte = (soyVendedor ? c.NombreComprador : c.NombreVendedor) ?? "Usuario";
+                <NavLink class="ru-chat-item" href="@($"mensajes/{c.IdChat}")">
+                    <span class="ru-avatar">@Formato.Iniciales(contraparte)</span>
+                    <div class="flex-grow-1 min-w-0">
+                        <div class="d-flex justify-content-between">
+                            <span class="fw-semibold">@contraparte</span>
+                            <span class="small-muted">@Formato.Fecha(c.FechaSolicitud)</span>
+                        </div>
+                        <div class="small text-truncate"><i class="bi @(soyVendedor ? "bi-shop" : "bi-bag") text-secondary"></i> @c.TituloAnuncio</div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="small-muted">@(c.Estado == "PENDIENTE" ? "Esperando que el vendedor acepte" : soyVendedor ? "Eres el vendedor" : "Eres el comprador")</span>
+                            <BadgeEstado Estado="@c.Estado" />
+                        </div>
+                    </div>
+                </NavLink>
+            }
+        }
+        else
+        {
+            <EstadoVacio Icono="bi-chat-dots" Titulo="Aún no tienes conversaciones" Mensaje="Desde un anuncio, usa «Contactar al vendedor» para iniciar un chat." />
+        }
+    </div>
+}
+
+@code {
+    private List<CanalChatDTO> chats = [];
+    private bool cargando = true;
+    private int idUsuario;
+
+    /// <summary>Solicitudes PENDIENTE sobre mis anuncios: las acepto o rechazo yo.</summary>
+    private IEnumerable<CanalChatDTO> Recibidas => chats.Where(c => c.Estado == "PENDIENTE" && c.IdVendedor == idUsuario);
+
+    private IEnumerable<CanalChatDTO> Conversaciones => chats
+        .Where(c => !(c.Estado == "PENDIENTE" && c.IdVendedor == idUsuario))
+        .OrderBy(c => c.Estado == "ACTIVO" ? 0 : c.Estado == "PENDIENTE" ? 1 : 2)
+        .ThenByDescending(c => c.FechaSolicitud);
+
+    protected override async Task OnInitializedAsync()
+    {
+        idUsuario = await IdUsuarioAsync();
+        await Cargar();
+    }
+
+    private async Task Cargar()
+    {
+        string? exito = Exito;
+        await Ejecutar(async () => chats = await ChatService.ListarPorUsuario(idUsuario));
+        Exito ??= exito;
+        cargando = false;
+    }
+
+    private async Task Aceptar(CanalChatDTO chat)
+    {
+        if (await Ejecutar(() => ChatService.Aceptar(chat.IdChat), $"Aceptaste la solicitud de {chat.NombreComprador}. Ya pueden conversar."))
+            await Cargar();
+    }
+
+    private async Task Rechazar(CanalChatDTO chat)
+    {
+        if (await Ejecutar(() => ChatService.Rechazar(chat.IdChat), "Solicitud rechazada."))
+            await Cargar();
+    }
+}

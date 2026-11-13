@@ -1,0 +1,69 @@
+@page "/bloqueados"
+@inherits PaginaBase
+@inject IBloqueoService BloqueoService
+
+@* RF-10: usuarios que bloqueé → GET /bloqueos?usuario=ID · desbloquear → PUT /bloqueos/{id}/desbloquear.
+   Mientras el bloqueo esté activo ninguno ve los anuncios del otro ni puede contactarlo u ofertarle. *@
+
+<PageTitle>Usuarios bloqueados · ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="Usuarios bloqueados" Subtitulo="Los usuarios bloqueados no pueden contactarte ni enviarte ofertas, y no ven tus anuncios (ni tú los suyos)." />
+
+<Alertas Error="@Error" Exito="@Exito" />
+
+<div class="ru-card">
+    @if (cargando)
+    {
+        <Cargando />
+    }
+    else if (bloqueos.Any())
+    {
+        foreach (BloqueoDTO b in bloqueos)
+        {
+            <div class="d-flex flex-wrap align-items-center gap-3 p-3 border-bottom">
+                <span class="ru-avatar">@Formato.Iniciales(b.NombreBloqueado)</span>
+                <div class="flex-grow-1">
+                    <NavLink class="fw-semibold text-body" href="@($"usuarios/{b.IdBloqueado}")">@b.NombreBloqueado</NavLink>
+                    <div class="small-muted">Código @b.CodigoBloqueado · Bloqueado el @Formato.Fecha(b.Fecha)</div>
+                </div>
+                <button class="btn btn-outline-primary btn-sm" disabled="@Procesando" @onclick="() => aDesbloquear = b">Desbloquear</button>
+            </div>
+        }
+    }
+    else
+    {
+        <EstadoVacio Icono="bi-slash-circle" Titulo="No has bloqueado a nadie"
+                     Mensaje="Puedes bloquear a un usuario desde su perfil público." />
+    }
+</div>
+
+<ModalConfirmacion Visible="aDesbloquear is not null" VisibleChanged="@(v => { if (!v) aDesbloquear = null; })"
+                   Titulo="Desbloquear usuario" TextoConfirmar="Desbloquear"
+                   Mensaje="@($"{aDesbloquear?.NombreBloqueado} podrá volver a ver tus anuncios y contactarte. Los chats que se cerraron no se reabren.")"
+                   OnConfirmar="Desbloquear" />
+
+@code {
+    private List<BloqueoDTO> bloqueos = [];
+    private BloqueoDTO? aDesbloquear;
+    private bool cargando = true;
+
+    protected override async Task OnInitializedAsync() => await Cargar();
+
+    private async Task Cargar()
+    {
+        int idUsuario = await IdUsuarioAsync();
+        string? exito = Exito;
+        await Ejecutar(async () => bloqueos = await BloqueoService.Listar(idUsuario));
+        Exito ??= exito;
+        cargando = false;
+    }
+
+    private async Task Desbloquear()
+    {
+        if (aDesbloquear is null) return;
+        BloqueoDTO bloqueo = aDesbloquear;
+        aDesbloquear = null;
+        if (await Ejecutar(() => BloqueoService.Desbloquear(bloqueo.IdBloqueo), $"Desbloqueaste a {bloqueo.NombreBloqueado}."))
+            await Cargar();
+    }
+}

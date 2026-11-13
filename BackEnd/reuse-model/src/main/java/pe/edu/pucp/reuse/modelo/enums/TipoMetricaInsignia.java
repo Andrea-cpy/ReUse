@@ -1,0 +1,10 @@
+package pe.edu.pucp.reuse.modelo.enums;
+
+public enum TipoMetricaInsignia {
+    VENTAS_COMPLETADAS,
+    COMPRAS_COMPLETADAS,
+    TRANSACCIONES_COMPLETADAS,
+    CALIFICACION_PROMEDIO,
+    REPORTES_SANCIONADOS,
+    INASISTENCIAS_SANCIONADAS
+}

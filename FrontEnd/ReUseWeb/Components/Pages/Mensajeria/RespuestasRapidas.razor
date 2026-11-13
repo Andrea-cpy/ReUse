@@ -1,0 +1,120 @@
+@page "/respuestas-rapidas"
+@inherits PaginaBase
+@inject IRespuestaRapidaService RespuestaRapidaService
+
+@* RF-16: CRUD de respuestas rápidas → GET /respuestas-rapidas?creador=ID, POST, PUT /{id}, DELETE /{id} *@
+
+<PageTitle>Respuestas rápidas · ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="Respuestas rápidas" Subtitulo="Mensajes predefinidos que puedes enviar con un clic desde el chat."
+                  Volver="mensajes" TextoVolver="Volver a mensajes" />
+
+<Alertas Error="@Error" Exito="@Exito" />
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="ru-card">
+            @if (cargando)
+            {
+                <Cargando />
+            }
+            else if (respuestas.Count == 0)
+            {
+                <EstadoVacio Icono="bi-lightning-charge" Titulo="Aún no tienes respuestas rápidas" Mensaje="Crea la primera con el formulario." />
+            }
+            else
+            {
+                foreach (RespuestaRapidaDTO r in respuestas)
+                {
+                    <div class="d-flex align-items-center gap-3 p-3 border-bottom">
+                        <i class="bi bi-lightning-charge text-warning fs-5"></i>
+                        @if (editando == r.IdRespuesta)
+                        {
+                            <input class="form-control form-control-sm" maxlength="200" @bind="textoEdicion" />
+                            <button class="btn btn-primary btn-sm" disabled="@Procesando" @onclick="() => GuardarEdicion(r)">Guardar</button>
+                            <button class="btn btn-light btn-sm" @onclick="() => editando = 0">Cancelar</button>
+                        }
+                        else
+                        {
+                            <span class="flex-grow-1">@r.Texto</span>
+                            <button class="btn btn-light btn-sm" title="Editar" @onclick="() => { editando = r.IdRespuesta; textoEdicion = r.Texto ?? string.Empty; }"><i class="bi bi-pencil"></i></button>
+                            <button class="btn btn-light btn-sm text-danger" title="Eliminar" @onclick="() => { aEliminar = r; mostrarEliminar = true; }"><i class="bi bi-trash"></i></button>
+                        }
+                    </div>
+                }
+            }
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="ru-card ru-card-body">
+            <h2 class="h3 mb-3">Nueva respuesta rápida</h2>
+            <label class="form-label requerido" for="nuevaRespuesta">Texto de la respuesta</label>
+            <textarea id="nuevaRespuesta" class="form-control mb-2" rows="3" maxlength="200" placeholder="Ej. ¿Te parece si nos vemos en el Tinkuy?"
+                      @bind="textoNuevo" @bind:event="oninput"></textarea>
+            <div class="form-text mb-3">@textoNuevo.Length / 200 caracteres.</div>
+            <button class="btn btn-primary w-100" disabled="@(Procesando || string.IsNullOrWhiteSpace(textoNuevo))" @onclick="Agregar">
+                <i class="bi bi-plus-lg me-1"></i> Agregar
+            </button>
+            @if (string.IsNullOrWhiteSpace(textoNuevo))
+            {
+                <div class="ru-faltantes"><i class="bi bi-info-circle me-1"></i>Para continuar: escribe el texto de la respuesta</div>
+            }
+        </div>
+    </div>
+</div>
+
+<ModalConfirmacion @bind-Visible="mostrarEliminar" Titulo="Eliminar respuesta" TextoConfirmar="Eliminar" ClaseBoton="btn-danger"
+                   Mensaje="@($"¿Eliminar «{aEliminar?.Texto}»?")" OnConfirmar="Eliminar" />
+
+@code {
+    private List<RespuestaRapidaDTO> respuestas = [];
+    private RespuestaRapidaDTO? aEliminar;
+    private bool mostrarEliminar;
+    private int editando;
+    private string textoEdicion = "";
+    private string textoNuevo = "";
+    private bool cargando = true;
+    private int idUsuario;
+
+    protected override async Task OnInitializedAsync()
+    {
+        idUsuario = await IdUsuarioAsync();
+        await Cargar();
+    }
+
+    private async Task Cargar()
+    {
+        string? exito = Exito;
+        await Ejecutar(async () => respuestas = await RespuestaRapidaService.ListarPorCreador(idUsuario));
+        Exito ??= exito;
+        cargando = false;
+    }
+
+    private async Task Agregar()
+    {
+        string texto = textoNuevo.Trim();
+        if (await Ejecutar(() => RespuestaRapidaService.Registrar(idUsuario, texto), "Respuesta rápida agregada."))
+        {
+            textoNuevo = "";
+            await Cargar();
+        }
+    }
+
+    private async Task GuardarEdicion(RespuestaRapidaDTO r)
+    {
+        RespuestaRapidaDTO dto = new() { IdRespuesta = r.IdRespuesta, IdCreador = idUsuario, Texto = textoEdicion.Trim() };
+        if (await Ejecutar(() => RespuestaRapidaService.Actualizar(dto), "Respuesta actualizada."))
+        {
+            editando = 0;
+            await Cargar();
+        }
+    }
+
+    private async Task Eliminar()
+    {
+        if (aEliminar is null) return;
+        int id = aEliminar.IdRespuesta;
+        if (await Ejecutar(() => RespuestaRapidaService.Eliminar(id), "Respuesta eliminada."))
+            await Cargar();
+    }
+}

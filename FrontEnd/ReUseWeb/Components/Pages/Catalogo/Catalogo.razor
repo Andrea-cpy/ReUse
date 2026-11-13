@@ -1,0 +1,202 @@
+@page "/"
+@page "/catalogo"
+@inherits PaginaBase
+@inject IAnuncioService AnuncioService
+@inject ICategoriaService CategoriaService
+@inject IFavoritoService FavoritoService
+
+@* RF-02: búsqueda con filtros → GET /anuncios?texto=&categoria=&condicion=&precioMin=&precioMax=&excluirUsuario=
+   RF-07: el corazón de cada tarjeta agrega o quita el anuncio de favoritos. *@
+
+<PageTitle>Catálogo · ReUse</PageTitle>
+
+<div class="ru-card mb-4 overflow-hidden">
+    <div class="ru-card-body d-flex flex-wrap align-items-center justify-content-between gap-3"
+         style="background:linear-gradient(110deg,#e7f3ee 0%,#fff 70%)">
+        <div>
+            <h1 class="mb-1">Hola, @primerNombre 👋</h1>
+            <p class="mb-0 small-muted">Encuentra materiales de otros estudiantes PUCP o publica los que ya no usas.</p>
+        </div>
+        <NavLink class="btn btn-primary" href="mis-anuncios/nuevo"><i class="bi bi-plus-lg me-1"></i> Publicar anuncio</NavLink>
+    </div>
+</div>
+
+<div class="d-flex flex-wrap gap-2 mb-3">
+    <button class="ru-chip @(filtro.IdCategoria == 0 ? "border-primary text-primary" : "")" @onclick="() => ElegirCategoria(0)">Todo</button>
+    @foreach (CategoriaMaterialDTO c in categorias)
+    {
+        <button class="ru-chip @(filtro.IdCategoria == c.IdCategoria ? "border-primary text-primary" : "")" @onclick="() => ElegirCategoria(c.IdCategoria)">
+            @c.Nombre
+        </button>
+    }
+</div>
+
+<div class="row g-4">
+    @* ---------- Filtros (los aplica AnuncioBL.buscar en Java) ---------- *@
+    <div class="col-lg-3">
+        <div class="ru-card ru-card-body">
+            <h2 class="h3 mb-3"><i class="bi bi-funnel me-1"></i> Filtros</h2>
+
+            <label class="form-label small fw-semibold" for="buscar">Palabra clave</label>
+            <input id="buscar" class="form-control mb-3" placeholder="Ej. Cálculo, Casio…" @bind="filtro.Texto" @onkeydown="BuscarConEnter" />
+
+            <label class="form-label small fw-semibold" for="condicion">Condición</label>
+            <select id="condicion" class="form-select mb-3" @bind="filtro.Condicion">
+                <option value="">Todas</option>
+                @foreach (string cond in Formato.Condiciones)
+                {
+                    <option value="@cond">@Formato.Texto(cond)</option>
+                }
+            </select>
+
+            <div class="small fw-semibold mb-2">Precio (S/)</div>
+            <div class="d-flex gap-2 mb-3">
+                <input class="form-control" type="number" placeholder="Mín." min="0" step="0.5" @bind="filtro.PrecioMinimo" />
+                <input class="form-control" type="number" placeholder="Máx." min="0" step="0.5" @bind="filtro.PrecioMaximo" />
+            </div>
+
+            <button class="btn btn-primary w-100 mb-2" @onclick="Buscar" disabled="@Procesando">Aplicar filtros</button>
+            <button class="btn btn-link w-100 btn-sm" @onclick="Limpiar">Limpiar</button>
+        </div>
+    </div>
+
+    @* ---------- Resultados ---------- *@
+    <div class="col-lg-9">
+        <Alertas Error="@Error" />
+
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <span class="small-muted">
+                @Ordenados.Count() anuncios disponibles
+                @if (!string.IsNullOrWhiteSpace(filtro.Texto))
+                {
+                    <span> para «<strong>@filtro.Texto</strong>»</span>
+                }
+            </span>
+            <div class="d-flex align-items-center gap-2">
+                <label class="small-muted text-nowrap" for="orden">Ordenar por</label>
+                <select id="orden" class="form-select form-select-sm" @bind="orden">
+                    <option value="recientes">Más recientes</option>
+                    <option value="menor">Menor precio</option>
+                    <option value="mayor">Mayor precio</option>
+                </select>
+            </div>
+        </div>
+
+        @if (cargando)
+        {
+            <Cargando Texto="Buscando anuncios…" />
+        }
+        else if (Ordenados.Any())
+        {
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-xl-3 g-3">
+                @foreach (AnuncioDTO a in Ordenados)
+                {
+                    <div class="col">
+                        <AnuncioCard Anuncio="a" Favorito="@favoritos.ContainsKey(a.IdAnuncio)" OnFavorito="AlternarFavorito" />
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="ru-card">
+                <EstadoVacio Icono="bi-search" Titulo="Sin resultados" Mensaje="Prueba con otra categoría, condición o rango de precios." />
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    // Permite llegar desde el buscador superior: /catalogo?q=texto
+    [SupplyParameterFromQuery(Name = "q")]
+    public string? Q { get; set; }
+
+    private readonly FiltroAnuncios filtro = new();
+    private List<AnuncioDTO> anuncios = [];
+    private List<CategoriaMaterialDTO> categorias = [];
+    /// <summary>idAnuncio → idFavorito, para saber qué corazones pintar y qué favorito borrar.</summary>
+    private Dictionary<int, int> favoritos = new();
+    private string orden = "recientes";
+    private string primerNombre = "";
+    private bool cargando = true;
+    private int idUsuario;
+
+    protected override async Task OnInitializedAsync()
+    {
+        idUsuario = await IdUsuarioAsync();
+        primerNombre = (await NombreUsuarioAsync()).Split(' ')[0];
+        filtro.IdUsuarioExcluido = idUsuario;
+        await Ejecutar(async () =>
+        {
+            categorias = (await CategoriaService.Listar()).Where(c => c.Activo).ToList();
+            await CargarFavoritos();
+        });
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Cada vez que cambia ?q= (buscador superior) se vuelve a consultar
+        filtro.Texto = Q;
+        if (idUsuario == 0) idUsuario = await IdUsuarioAsync();
+        filtro.IdUsuarioExcluido = idUsuario;
+        await Buscar();
+    }
+
+    private IEnumerable<AnuncioDTO> Ordenados => orden switch
+    {
+        "menor" => anuncios.OrderBy(a => a.Precio),
+        "mayor" => anuncios.OrderByDescending(a => a.Precio),
+        _ => anuncios.OrderByDescending(a => a.FechaPublicacion)
+    };
+
+    private async Task Buscar()
+    {
+        cargando = true;
+        await Ejecutar(async () => anuncios = await AnuncioService.Buscar(filtro));
+        cargando = false;
+    }
+
+    private async Task ElegirCategoria(int idCategoria)
+    {
+        filtro.IdCategoria = idCategoria;
+        await Buscar();
+    }
+
+    private async Task Limpiar()
+    {
+        filtro.Texto = null;
+        filtro.IdCategoria = 0;
+        filtro.Condicion = null;
+        filtro.PrecioMinimo = null;
+        filtro.PrecioMaximo = null;
+        await Buscar();
+    }
+
+    private async Task BuscarConEnter(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await Buscar();
+    }
+
+    private async Task CargarFavoritos()
+    {
+        List<FavoritoDTO> lista = await FavoritoService.ListarPorUsuario(idUsuario);
+        favoritos = lista.GroupBy(f => f.IdAnuncio).ToDictionary(g => g.Key, g => g.First().IdFavorito);
+    }
+
+    private async Task AlternarFavorito(AnuncioDTO anuncio)
+    {
+        await Ejecutar(async () =>
+        {
+            if (favoritos.TryGetValue(anuncio.IdAnuncio, out int idFavorito))
+            {
+                await FavoritoService.Quitar(idFavorito);
+                favoritos.Remove(anuncio.IdAnuncio);
+            }
+            else
+            {
+                FavoritoDTO nuevo = await FavoritoService.Agregar(idUsuario, anuncio.IdAnuncio);
+                favoritos[anuncio.IdAnuncio] = nuevo.IdFavorito;
+            }
+        });
+    }
+}

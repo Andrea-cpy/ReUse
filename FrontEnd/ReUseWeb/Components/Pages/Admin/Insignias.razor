@@ -1,0 +1,130 @@
+@page "/admin/insignias"
+@inherits PaginaBase
+@inject IInsigniaService InsigniaService
+
+@* RF-18 (administrador): catálogo de insignias → GET /insignias. Cada insignia es una especificación
+   (patrón Specification): se otorga cuando el usuario cumple TODAS sus reglas. *@
+
+<PageTitle>Insignias · Admin ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="Insignias y reglas" Subtitulo="Reconocimientos que se otorgan automáticamente al completar transacciones y calificar.">
+    <Acciones>
+        <NavLink class="btn btn-primary" href="admin/insignias/nueva"><i class="bi bi-plus-lg me-1"></i> Nueva insignia</NavLink>
+    </Acciones>
+</EncabezadoPagina>
+
+<Alertas Error="@Error" Exito="@Exito" />
+
+<BarraBusqueda @bind-Texto="texto" Placeholder="Nombre o descripción" Resultados="@Visibles.Count()" OnLimpiar="() => tipo = string.Empty">
+    <div class="col-md-3">
+        <label class="form-label small" for="tipo">Tipo</label>
+        <select id="tipo" class="form-select" @bind="tipo">
+            <option value="">Todos</option>
+            <option value="VENDEDOR">Vendedor</option>
+            <option value="COMPRADOR">Comprador</option>
+            <option value="GENERAL">General</option>
+        </select>
+    </div>
+</BarraBusqueda>
+
+<div class="ru-card">
+    @if (cargando)
+    {
+        <Cargando />
+    }
+    else if (Visibles.Any())
+    {
+        <div class="table-responsive">
+            <table class="table ru-table">
+                <thead>
+                    <tr><th>Insignia</th><th>Tipo</th><th>Reglas de obtención (todas deben cumplirse)</th><th>Estado</th><th class="text-end">Acciones</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (InsigniaDTO i in Visibles)
+                    {
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center gap-3">
+                                    <span class="ru-avatar" style="background:#fdf3dc;color:#a87612"><i class="bi @Icono(i)"></i></span>
+                                    <div>
+                                        <div class="fw-semibold">@i.Nombre</div>
+                                        <div class="small-muted">@i.Descripcion</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>@Formato.Texto(i.Tipo)</td>
+                            <td>
+                                @foreach (ReglaInsigniaDTO regla in i.Reglas)
+                                {
+                                    <code class="d-block small">@regla.TipoMetrica @Simbolo(regla.Operador) @regla.ValorObjetivo.ToString("0.##")</code>
+                                }
+                            </td>
+                            <td><BadgeEstado Estado="@(i.Activo ? "ACTIVA" : "INACTIVA")" /></td>
+                            <td class="text-end text-nowrap">
+                                <NavLink class="btn btn-light btn-sm" href="@($"admin/insignias/{i.IdInsignia}/editar")" title="Editar"><i class="bi bi-pencil"></i></NavLink>
+                                <button class="btn btn-light btn-sm text-danger" title="Eliminar" @onclick="() => aEliminar = i"><i class="bi bi-trash"></i></button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <EstadoVacio Icono="bi-award" Titulo="Sin insignias" Mensaje="Crea la primera con el botón «Nueva insignia»." />
+    }
+</div>
+
+<ModalConfirmacion Visible="aEliminar is not null" VisibleChanged="@(v => { if (!v) aEliminar = null; })"
+                   Titulo="Eliminar insignia" TextoConfirmar="Eliminar" ClaseBoton="btn-danger"
+                   Mensaje="@($"¿Eliminar «{aEliminar?.Nombre}»? Si ya se otorgó a algún usuario, desactívala en lugar de eliminarla.")"
+                   OnConfirmar="Eliminar" />
+
+@code {
+    private List<InsigniaDTO> insignias = [];
+    private InsigniaDTO? aEliminar;
+    private string texto = "";
+    private string tipo = "";
+    private bool cargando = true;
+
+    private IEnumerable<InsigniaDTO> Visibles => insignias
+        .Where(i => tipo == "" || i.Tipo == tipo)
+        .Where(i => string.IsNullOrWhiteSpace(texto) || $"{i.Nombre} {i.Descripcion}".Contains(texto.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync() => await Cargar();
+
+    private async Task Cargar()
+    {
+        string? exito = Exito;
+        await Ejecutar(async () => insignias = await InsigniaService.Listar());
+        Exito ??= exito;
+        cargando = false;
+    }
+
+    private async Task Eliminar()
+    {
+        if (aEliminar is null) return;
+        InsigniaDTO insignia = aEliminar;
+        aEliminar = null;
+        if (await Ejecutar(() => InsigniaService.Eliminar(insignia.IdInsignia), $"Se eliminó la insignia «{insignia.Nombre}»."))
+            await Cargar();
+    }
+
+    public static string Simbolo(string? operador) => operador switch
+    {
+        "MAYOR_O_IGUAL" => "≥",
+        "MAYOR" => ">",
+        "MENOR_O_IGUAL" => "≤",
+        "MENOR" => "<",
+        _ => "="
+    };
+
+    private static string Icono(InsigniaDTO i) =>
+        i.Icono is not null && i.Icono.StartsWith("bi-") ? i.Icono : i.Tipo switch
+        {
+            "VENDEDOR" => "bi-shop",
+            "COMPRADOR" => "bi-bag-check",
+            _ => "bi-award"
+        };
+}

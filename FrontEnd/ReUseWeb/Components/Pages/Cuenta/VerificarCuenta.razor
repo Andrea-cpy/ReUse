@@ -1,0 +1,21 @@
+@page "/verificar-cuenta"
+
+@* Tras el registro la cuenta queda en estado PENDIENTE_VERIFICACION (usuario.verificado = 0).
+   Un administrador la activa con UsuarioBL.verificarCuenta desde /admin/usuarios/{id}. *@
+
+<PageTitle>Registro enviado · ReUse</PageTitle>
+
+<div class="text-center">
+    <span class="ru-avatar lg mb-3"><i class="bi bi-hourglass-split"></i></span>
+    <h1 class="mb-2">¡Registro enviado!</h1>
+    <p class="small-muted mb-3">
+        Tu cuenta quedó en estado <BadgeEstado Estado="PENDIENTE_VERIFICACION" />.<br />
+        Un administrador validará tu código PUCP y tu correo institucional.
+        Te avisaremos cuando tu cuenta esté <strong>activa</strong>.
+    </p>
+    <div class="alert alert-light border small text-start mb-4">
+        <i class="bi bi-info-circle me-1"></i>
+        Mientras tu cuenta no esté verificada no podrás iniciar sesión. Cuando un administrador la active, ingresa con tu correo y la contraseña que acabas de crear.
+    </div>
+    <NavLink class="btn btn-primary w-100 py-2" href="login?registrado=true">Volver a iniciar sesión</NavLink>
+</div>

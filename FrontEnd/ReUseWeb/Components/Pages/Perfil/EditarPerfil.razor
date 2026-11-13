@@ -1,0 +1,189 @@
+@page "/perfil/editar"
+@inherits PaginaBase
+@inject IUsuarioService UsuarioService
+@inject IAcademicoService AcademicoService
+
+@* RF-01: actualizar perfil (PUT /usuarios/{id}) y cambiar contraseña (PUT /usuarios/{id}/contrasena).
+   El código PUCP y el correo no se editan: el backend los ignora en el update. *@
+
+<PageTitle>Editar perfil · ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="Editar perfil" Volver="perfil" TextoVolver="Volver a mi perfil" />
+
+<Alertas Error="@Error" Exito="@Exito" />
+
+@if (usuario is null)
+{
+    <Cargando />
+}
+else
+{
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <EditForm Model="perfil" OnValidSubmit="GuardarPerfil" FormName="perfil" class="ru-card ru-card-body mb-4">
+                <DataAnnotationsValidator />
+                <h2 class="h3 mb-1">Datos personales</h2>
+                <p class="ru-nota-requeridos mb-3">Campos obligatorios</p>
+                <div class="d-flex align-items-center gap-3 mb-4">
+                    <span class="ru-avatar lg">@(Formato.Iniciales(usuario.Nombres + " " + usuario.Apellidos))</span>
+                </div>
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label requerido" for="nombres">Nombres</label>
+                        <InputTexto id="nombres" class="form-control" @bind-Value="perfil.Nombres" />
+                        <ValidationMessage For="() => perfil.Nombres" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label requerido" for="apellidos">Apellidos</label>
+                        <InputTexto id="apellidos" class="form-control" maxlength="120" @bind-Value="perfil.Apellidos" />
+                        <ValidationMessage For="() => perfil.Apellidos" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="codigo">Código PUCP</label>
+                        <input id="codigo" class="form-control" value="@usuario.CodigoPUCP" disabled />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="correo">Correo institucional</label>
+                        <input id="correo" class="form-control" value="@usuario.CorreoInstitucional" disabled />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label requerido" for="facultad">Facultad</label>
+                        <select id="facultad" class="form-select" value="@idFacultad" @onchange="CambiarFacultad">
+                            @foreach (FacultadDTO f in facultades)
+                            {
+                                <option value="@f.IdFacultad">@f.Nombre</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label requerido" for="carrera">Carrera</label>
+                        <InputSelect id="carrera" class="form-select" @bind-Value="perfil.IdCarrera">
+                            <option value="0">Selecciona…</option>
+                            @foreach (CarreraDTO c in carreras)
+                            {
+                                <option value="@c.IdCarrera">@c.Nombre</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="() => perfil.IdCarrera" />
+                    </div>
+                </div>
+                <div class="text-end mt-4">
+                    <BotonEnviar Texto="Guardar datos" Procesando="@Procesando" />
+                </div>
+            </EditForm>
+
+            <EditForm Model="cambio" OnValidSubmit="CambiarContrasena" FormName="contrasena" class="ru-card ru-card-body">
+                <DataAnnotationsValidator />
+                <h2 class="h3 mb-1">Cambiar contraseña</h2>
+                <p class="ru-nota-requeridos mb-3">Campos obligatorios</p>
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label requerido" for="actual">Contraseña actual</label>
+                        <InputTexto id="actual" type="password" class="form-control" autocomplete="current-password" @bind-Value="cambio.Actual" />
+                        <ValidationMessage For="() => cambio.Actual" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label requerido" for="nueva">Nueva contraseña</label>
+                        <InputTexto id="nueva" type="password" class="form-control" autocomplete="new-password" @bind-Value="cambio.Nueva" />
+                        <ValidationMessage For="() => cambio.Nueva" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label requerido" for="confirmar">Confirmar nueva contraseña</label>
+                        <InputTexto id="confirmar" type="password" class="form-control" autocomplete="new-password" @bind-Value="cambio.Confirmacion" />
+                        <ValidationMessage For="() => cambio.Confirmacion" />
+                    </div>
+                </div>
+                <div class="text-end mt-4">
+                    <BotonEnviar Texto="Cambiar contraseña" Procesando="@Procesando" Clase="btn-outline-primary" />
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    private UsuarioDTO? usuario;
+    private List<FacultadDTO> facultades = [];
+    private List<CarreraDTO> carreras = [];
+    private int idFacultad;
+    private PerfilModelo perfil = new();
+    private CambioModelo cambio = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        int id = await IdUsuarioAsync();
+        await Ejecutar(async () =>
+        {
+            usuario = await UsuarioService.Obtener(id);
+            facultades = await AcademicoService.ListarFacultades();
+            idFacultad = usuario?.IdFacultad ?? 0;
+            if (usuario is not null)
+            {
+                perfil = new PerfilModelo
+                {
+                    Nombres = usuario.Nombres ?? "",
+                    Apellidos = usuario.Apellidos ?? "",
+                    IdCarrera = usuario.IdCarrera
+                };
+            }
+            if (idFacultad > 0)
+            {
+                carreras = await AcademicoService.ListarCarreras(idFacultad);
+            }
+        });
+    }
+
+    private async Task CambiarFacultad(ChangeEventArgs e)
+    {
+        if (usuario is null) return;
+        idFacultad = int.TryParse(e.Value?.ToString(), out int id) ? id : 0;
+        perfil.IdCarrera = 0;
+        await Ejecutar(async () => carreras = await AcademicoService.ListarCarreras(idFacultad));
+    }
+
+    private async Task GuardarPerfil()
+    {
+        if (usuario is null) return;
+        UsuarioDTO datos = usuario;
+        datos.Nombres = perfil.Nombres.Trim();
+        datos.Apellidos = perfil.Apellidos.Trim();
+        datos.IdCarrera = perfil.IdCarrera;
+        await Ejecutar(async () => usuario = await UsuarioService.ActualizarPerfil(datos), "Tus datos se guardaron.");
+    }
+
+    private async Task CambiarContrasena()
+    {
+        int id = await IdUsuarioAsync();
+        // UsuarioBL verifica la contraseña actual contra el hash BCrypt y la longitud mínima de la nueva
+        if (await Ejecutar(() => UsuarioService.CambiarContrasena(id, cambio.Actual, cambio.Nueva), "Tu contraseña se actualizó."))
+        {
+            cambio = new CambioModelo();
+        }
+    }
+
+    private class PerfilModelo
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Ingresa tus nombres.")]
+        public string Nombres { get; set; } = "";
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Ingresa tus apellidos.")]
+        public string Apellidos { get; set; } = "";
+
+        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "Elige tu carrera.")]
+        public int IdCarrera { get; set; }
+    }
+
+    private class CambioModelo
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Ingresa tu contraseña actual.")]
+        public string Actual { get; set; } = "";
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Ingresa la nueva contraseña.")]
+        [System.ComponentModel.DataAnnotations.MinLength(8, ErrorMessage = "La nueva contraseña debe tener al menos 8 caracteres.")]
+        public string Nueva { get; set; } = "";
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Confirma la nueva contraseña.")]
+        [System.ComponentModel.DataAnnotations.Compare(nameof(Nueva), ErrorMessage = "La confirmación no coincide con la nueva contraseña.")]
+        public string Confirmacion { get; set; } = "";
+    }
+}

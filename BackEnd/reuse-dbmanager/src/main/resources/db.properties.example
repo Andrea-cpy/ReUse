@@ -1,0 +1,11 @@
+servidor=<host>
+puerto=3306
+esquema=reuse_db
+usuario=<user>
+password=<contraseña>
+
+# Opcional: pool de conexiones (HikariCP). Si se omiten se usan estos valores.
+#pool.maximo=10
+#pool.minimoInactivas=3
+#pool.tiempoInactivaMs=600000
+#pool.tiempoEsperaMs=30000

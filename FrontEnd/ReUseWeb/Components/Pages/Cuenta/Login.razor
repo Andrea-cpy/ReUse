@@ -1,0 +1,97 @@
+@page "/login"
+
+@* El formulario se envía con POST a /cuenta/login (SeguridadExtensions). Ese endpoint llama a
+   POST /auth/login del backend Java, que valida el hash BCrypt y el estado de la cuenta,
+   y crea la cookie de sesión con el rol ESTUDIANTE o ADMINISTRADOR. *@
+
+<PageTitle>Iniciar sesión · ReUse</PageTitle>
+
+<h1 class="mb-1">Iniciar sesión</h1>
+<p class="small-muted mb-4">Ingresa con tu cuenta PUCP. Si eres administrador, usa tu misma cuenta: el sistema reconoce tu rol.</p>
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger d-flex gap-2"><i class="bi bi-exclamation-triangle-fill mt-1"></i><div>@Error</div></div>
+}
+@if (Registrado)
+{
+    <div class="alert alert-success d-flex gap-2"><i class="bi bi-check-circle-fill mt-1"></i>
+        <div>Cuenta creada. Podrás ingresar cuando un administrador la verifique.</div></div>
+}
+
+@* Google va primero: es el camino más corto y verifica la cuenta al instante. *@
+<BotonGoogle Texto="Continuar con Google" />
+<p class="ru-nota-google">
+    <i class="bi bi-patch-check-fill"></i>
+    <span>Usa tu cuenta <strong>@@pucp.edu.pe</strong>. Si aún no tienes cuenta, la creas en un paso y queda verificada al instante.</span>
+</p>
+
+<div class="ru-separador"><span>o con tu correo y contraseña</span></div>
+
+<form method="post" action="cuenta/login">
+    <AntiforgeryToken />
+    <p class="ru-nota-requeridos mb-2">Campos obligatorios</p>
+    <div class="mb-3">
+        <label class="form-label requerido" for="correo">Correo institucional</label>
+        <div class="input-group has-validation">
+            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+            <input id="correo" name="correo" type="email" class="form-control @(CorreoInvalido ? "is-invalid" : "")"
+                   placeholder="@("a20221234@pucp.edu.pe")" required autocomplete="username"
+                   @bind="correo" @bind:event="oninput" @onblur="() => correoTocado = true" />
+        </div>
+        @if (CorreoInvalido)
+        {
+            <span class="ru-error-campo">@(string.IsNullOrWhiteSpace(correo) ? "Ingresa tu correo institucional." : "Usa tu correo @pucp.edu.pe.")</span>
+        }
+    </div>
+    <div class="mb-4">
+        <label class="form-label requerido" for="contrasena">Contraseña</label>
+        <div class="input-group has-validation">
+            <span class="input-group-text"><i class="bi bi-lock"></i></span>
+            <input id="contrasena" name="contrasena" type="@(verContrasena ? "text" : "password")"
+                   class="form-control @(ContrasenaInvalida ? "is-invalid" : "")" required autocomplete="current-password"
+                   @bind="contrasena" @bind:event="oninput" @onblur="() => contrasenaTocada = true" />
+            <button type="button" class="btn btn-outline-secondary" title="Mostrar u ocultar" @onclick="() => verContrasena = !verContrasena">
+                <i class="bi @(verContrasena ? "bi-eye-slash" : "bi-eye")"></i>
+            </button>
+        </div>
+        @if (ContrasenaInvalida)
+        {
+            <span class="ru-error-campo">Ingresa tu contraseña.</span>
+        }
+    </div>
+    <button type="submit" class="btn btn-primary w-100 py-2" disabled="@(!Completo)">Ingresar</button>
+    @if (!Completo)
+    {
+        <div class="ru-faltantes"><i class="bi bi-info-circle me-1"></i>Para continuar: ingresa tu correo @@pucp.edu.pe y tu contraseña</div>
+    }
+</form>
+
+<p class="text-end small mt-2 mb-0">
+    <NavLink href="recuperar-contrasena">¿Olvidaste tu contraseña?</NavLink>
+</p>
+
+<p class="text-center small mt-4 mb-0">
+    ¿Aún no tienes cuenta? <NavLink href="registro">Regístrate con tu código PUCP</NavLink>
+</p>
+
+@code {
+    /// <summary>Mensaje de la regla de negocio que rechazó el login (lo envía el endpoint /cuenta/login).</summary>
+    [SupplyParameterFromQuery]
+    public string? Error { get; set; }
+
+    [SupplyParameterFromQuery]
+    public bool Registrado { get; set; }
+
+    private bool verContrasena;
+    private string correo = "";
+    private string contrasena = "";
+    private bool correoTocado;
+    private bool contrasenaTocada;
+
+    private bool CorreoValido => System.Text.RegularExpressions.Regex.IsMatch(correo.Trim(), @"^[^@\s]+@pucp\.edu\.pe$",
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+    private bool CorreoInvalido => correoTocado && !CorreoValido;
+    private bool ContrasenaInvalida => contrasenaTocada && string.IsNullOrEmpty(contrasena);
+    private bool Completo => CorreoValido && !string.IsNullOrEmpty(contrasena);
+}

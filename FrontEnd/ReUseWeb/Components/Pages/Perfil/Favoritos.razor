@@ -1,0 +1,85 @@
+@page "/favoritos"
+@inherits PaginaBase
+@inject IFavoritoService FavoritoService
+
+@* RF-07: anuncios guardados → GET /favoritos?usuario=ID y DELETE /favoritos/{id} *@
+
+<PageTitle>Favoritos · ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="Favoritos" Subtitulo="Anuncios que guardaste para revisar luego." />
+
+<Alertas Error="@Error" Exito="@Exito" />
+
+@if (cargando)
+{
+    <Cargando />
+}
+else if (favoritos.Any())
+{
+    <div class="ru-card">
+        <div class="table-responsive">
+            <table class="table ru-table">
+                <thead>
+                    <tr>
+                        <th>Anuncio</th>
+                        <th>Precio</th>
+                        <th>Estado</th>
+                        <th>Guardado el</th>
+                        <th class="text-end"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (FavoritoDTO f in favoritos.OrderByDescending(f => f.FechaGuardado))
+                    {
+                        <tr>
+                            <td><NavLink class="fw-semibold text-body text-decoration-none" href="@($"anuncios/{f.IdAnuncio}")">@f.TituloAnuncio</NavLink></td>
+                            <td class="fw-semibold">@Formato.Soles(f.PrecioAnuncio)</td>
+                            <td><BadgeEstado Estado="@f.EstadoAnuncio" /></td>
+                            <td class="small-muted">@Formato.Fecha(f.FechaGuardado)</td>
+                            <td class="text-end text-nowrap">
+                                <NavLink class="btn btn-light btn-sm" href="@($"anuncios/{f.IdAnuncio}")" title="Ver"><i class="bi bi-eye"></i></NavLink>
+                                <button class="btn btn-light btn-sm text-danger" title="Quitar de favoritos" disabled="@Procesando" @onclick="() => Quitar(f)">
+                                    <i class="bi bi-heartbreak"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+else
+{
+    <div class="ru-card">
+        <EstadoVacio Icono="bi-heart" Titulo="Aún no tienes favoritos" Mensaje="Toca el corazón en un anuncio para guardarlo aquí.">
+            <NavLink class="btn btn-primary" href="">Explorar catálogo</NavLink>
+        </EstadoVacio>
+    </div>
+}
+
+@code {
+    private List<FavoritoDTO> favoritos = [];
+    private bool cargando = true;
+    private int idUsuario;
+
+    protected override async Task OnInitializedAsync()
+    {
+        idUsuario = await IdUsuarioAsync();
+        await Cargar();
+    }
+
+    private async Task Cargar()
+    {
+        string? exito = Exito;
+        await Ejecutar(async () => favoritos = await FavoritoService.ListarPorUsuario(idUsuario));
+        Exito ??= exito;
+        cargando = false;
+    }
+
+    private async Task Quitar(FavoritoDTO f)
+    {
+        if (await Ejecutar(() => FavoritoService.Quitar(f.IdFavorito), $"Se quitó «{f.TituloAnuncio}» de tus favoritos."))
+            await Cargar();
+    }
+}

@@ -1,0 +1,22 @@
+@* Muestra el valor de un enum del dominio (EstadoAnuncio, EstadoOferta, EstadoTransaccion, etc.) como badge *@
+
+<span class="badge rounded-pill @Clase">@Formato.Texto(Estado)</span>
+
+@code {
+    [Parameter, EditorRequired] public string? Estado { get; set; }
+
+    private string Clase => Estado switch
+    {
+        "DISPONIBLE" or "ACEPTADA" or "COMPLETADA" or "ACTIVA" or "ACTIVO" or "REALIZADA" or "NUEVO"
+            => "text-bg-success",
+        "RESERVADO" or "PENDIENTE" or "PENDIENTE_VERIFICACION" or "CONTRAOFERTADA" or "PROPUESTA" or "REACONDICIONADO"
+            => "text-bg-warning",
+        "OBSERVADO" or "RECHAZADA" or "RECHAZADO" or "SUSPENDIDA" or "SANCIONADO" or "BLOQUEADO"
+            => "text-bg-danger",
+        "EN_NEGOCIACION" or "USADO"
+            => "text-bg-info",
+        "CITA_CONFIRMADA" or "CONFIRMADA"
+            => "text-bg-primary",
+        _ => "text-bg-secondary"
+    };
+}

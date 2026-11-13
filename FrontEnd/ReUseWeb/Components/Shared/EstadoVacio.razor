@@ -1,0 +1,15 @@
+@* Mensaje cuando una lista no tiene elementos *@
+
+<div class="ru-vacio">
+    <i class="bi @Icono"></i>
+    <div class="fw-semibold text-body mb-1">@Titulo</div>
+    <div class="mb-3">@Mensaje</div>
+    @ChildContent
+</div>
+
+@code {
+    [Parameter] public string Icono { get; set; } = "bi-inbox";
+    [Parameter] public string Titulo { get; set; } = "Nada por aquí";
+    [Parameter] public string Mensaje { get; set; } = "";
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

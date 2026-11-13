@@ -1,0 +1,79 @@
+@page "/admin/categorias/nueva"
+@page "/admin/categorias/{Id:int}/editar"
+@inherits PaginaBase
+@inject ICategoriaService CategoriaService
+@inject NavigationManager Nav
+
+@* RF-06: registrar (POST /categorias) y modificar (PUT /categorias/{id}) *@
+
+<PageTitle>@(Id.HasValue ? "Editar" : "Nueva") categoría · Admin ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="@(Id.HasValue ? "Editar categoría" : "Nueva categoría")" Volver="admin/categorias" TextoVolver="Volver a categorías" />
+
+<Alertas Error="@Error" />
+
+<div class="row">
+    <div class="col-lg-7">
+        <EditForm Model="modelo" OnValidSubmit="Guardar" FormName="categoria">
+            <DataAnnotationsValidator />
+            <div class="ru-card ru-card-body">
+                <p class="ru-nota-requeridos mb-2">Campos obligatorios</p>
+                <div class="mb-3">
+                    <label class="form-label requerido" for="nombre">Nombre</label>
+                    <InputTexto id="nombre" class="form-control" maxlength="80" @bind-Value="modelo.Nombre" />
+                    <ValidationMessage For="() => modelo.Nombre" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="descripcion">Descripción</label>
+                    <AreaTexto id="descripcion" class="form-control" rows="3" maxlength="300" @bind-Value="modelo.Descripcion" />
+                </div>
+                <div class="d-flex justify-content-end gap-2 mt-4">
+                    <NavLink class="btn btn-light align-self-start" href="admin/categorias">Cancelar</NavLink>
+                    <div class="text-end"><BotonEnviar Texto="Guardar" Procesando="@Procesando" /></div>
+                </div>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int? Id { get; set; }
+
+    private CategoriaModelo modelo = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        modelo = new CategoriaModelo();
+        if (Id.HasValue)
+        {
+            await Ejecutar(async () =>
+            {
+                CategoriaMaterialDTO c = await CategoriaService.Obtener(Id.Value) ?? throw new ServicioException("No existe la categoría.");
+                modelo = new CategoriaModelo { Nombre = c.Nombre ?? "", Descripcion = c.Descripcion ?? "", Activo = c.Activo };
+            });
+        }
+    }
+
+    private async Task Guardar()
+    {
+        CategoriaMaterialDTO dto = new()
+        {
+            IdCategoria = Id ?? 0,
+            Nombre = modelo.Nombre.Trim(),
+            Descripcion = modelo.Descripcion.Trim(),
+            Activo = modelo.Activo
+        };
+        bool ok = Id.HasValue
+            ? await Ejecutar(() => CategoriaService.Actualizar(dto))
+            : await Ejecutar(() => CategoriaService.Registrar(dto));
+        if (ok) Nav.NavigateTo("admin/categorias");
+    }
+
+    private class CategoriaModelo
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "El nombre es obligatorio.")]
+        public string Nombre { get; set; } = "";
+        public string Descripcion { get; set; } = "";
+        public bool Activo { get; set; } = true;
+    }
+}

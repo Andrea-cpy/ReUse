@@ -1,0 +1,277 @@
+@page "/mis-anuncios/nuevo"
+@page "/mis-anuncios/{Id:int}/editar"
+@inherits PaginaBase
+@inject IAnuncioService AnuncioService
+@inject ICategoriaService CategoriaService
+@inject IAcademicoService AcademicoService
+@inject NavigationManager Nav
+
+@* RF-02: un mismo formulario registra (POST /anuncios) y modifica (PUT /anuncios/{id}) *@
+
+<PageTitle>@(EsEdicion ? "Editar anuncio" : "Publicar anuncio") · ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="@(EsEdicion ? "Editar anuncio" : "Publicar anuncio")"
+                  Subtitulo="@(EsEdicion ? "Actualiza la información de tu publicación." : "Completa los datos del material que quieres vender.")"
+                  Volver="mis-anuncios" TextoVolver="Volver a mis anuncios" />
+
+<Alertas Error="@Error" />
+
+@if (cargando)
+{
+    <Cargando />
+}
+else
+{
+    <EditForm Model="modelo" OnValidSubmit="Guardar" FormName="anuncio">
+        <DataAnnotationsValidator />
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="ru-card ru-card-body mb-4">
+                    <h2 class="h3 mb-1">1. ¿Qué vendes?</h2>
+                    <p class="ru-nota-requeridos mb-3">Campos obligatorios</p>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label requerido" for="categoria">Categoría</label>
+                            <select id="categoria" class="form-select" value="@idCategoria" @onchange="CambiarCategoria">
+                                <option value="0">Todas</option>
+                                @foreach (CategoriaMaterialDTO c in categorias)
+                                {
+                                    <option value="@c.IdCategoria">@c.Nombre</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label requerido" for="material">Material académico</label>
+                            <InputSelect id="material" class="form-select" @bind-Value="modelo.IdMaterial">
+                                <option value="0">Selecciona…</option>
+                                @foreach (MaterialAcademicoDTO m in MaterialesVisibles)
+                                {
+                                    <option value="@m.IdMaterial">@m.Titulo</option>
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="() => modelo.IdMaterial" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label requerido" for="titulo">Título del anuncio</label>
+                            <InputTexto id="titulo" class="form-control" maxlength="120" @bind-Value="modelo.Titulo"
+                                       placeholder="Ej. Cálculo de una variable — Stewart 8va ed." />
+                            <ValidationMessage For="() => modelo.Titulo" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="descripcion">Descripción</label>
+                            <AreaTexto id="descripcion" class="form-control" rows="4" @bind-Value="modelo.Descripcion"
+                                           placeholder="Estado, ediciones, si incluye algo adicional…" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ru-card ru-card-body">
+                    <h2 class="h3 mb-3">2. Condición y precio</h2>
+                    <div class="mb-3">
+                        @foreach (string cond in Formato.Condiciones)
+                        {
+                            <input type="radio" class="btn-check" name="condicion" id="c-@cond"
+                                   checked="@(modelo.Condicion == cond)" @onchange="() => modelo.Condicion = cond" />
+                            <label class="btn btn-outline-primary me-2 mb-2" for="c-@cond">@Formato.Texto(cond)</label>
+                        }
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label requerido" for="precio">Precio</label>
+                            <div class="input-group">
+                                <span class="input-group-text">S/</span>
+                                <InputNumero id="precio" class="form-control" @bind-Value="modelo.Precio" min="0" step="0.50" />
+                            </div>
+                            <ValidationMessage For="() => modelo.Precio" />
+                        </div>
+                    </div>
+                </div>
+
+                @* ---------- Fotos (RF-02): se envían como URLs en AnuncioDTO.Imagenes ---------- *@
+                <div class="ru-card ru-card-body mt-4">
+                    <h2 class="h3 mb-1">3. Fotos</h2>
+                    @if (EsEdicion)
+                    {
+                        <p class="small-muted mb-3">Las fotos se registran al publicar el anuncio.</p>
+                        @if (imagenesActuales.Any())
+                        {
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach (string url in imagenesActuales)
+                                {
+                                    <img src="@url" alt="Foto del anuncio" class="rounded border" style="width:96px;height:96px;object-fit:cover" />
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="small-muted">Este anuncio no tiene fotos.</div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="small-muted mb-3">Pega el enlace de cada foto (jpg, png o webp, hasta 5 MB). Máximo @MaximoFotos fotos; la primera es la portada.</p>
+                        @for (int i = 0; i < modelo.Fotos.Count; i++)
+                        {
+                            FotoModelo foto = modelo.Fotos[i];
+                            <div class="input-group mb-2">
+                                <span class="input-group-text"><i class="bi bi-image"></i></span>
+                                <InputTexto class="form-control" @bind-Value="foto.Url" placeholder="https://…/foto.jpg" aria-label="@($"URL de la foto {i + 1}")" />
+                                <button type="button" class="btn btn-light text-danger" title="Quitar foto" @onclick="() => modelo.Fotos.Remove(foto)"><i class="bi bi-x-lg"></i></button>
+                            </div>
+                        }
+                        @if (modelo.Fotos.Count < MaximoFotos)
+                        {
+                            <button type="button" class="btn btn-outline-primary btn-sm" @onclick="() => modelo.Fotos.Add(new FotoModelo())"><i class="bi bi-plus-lg me-1"></i> Agregar foto</button>
+                        }
+                    }
+                </div>
+            </div>
+
+            @* ---------- Vista previa ---------- *@
+            <div class="col-lg-4">
+                <div class="position-sticky" style="top:80px">
+                    <div class="small-muted mb-2">Vista previa</div>
+                    <AnuncioCard Anuncio="VistaPrevia" />
+                    <div class="d-grid gap-2 mt-3">
+                        <BotonEnviar Texto="@(EsEdicion ? "Guardar cambios" : "Publicar anuncio")" Procesando="@Procesando"
+                                     Icono="@(EsEdicion ? "bi-check-lg" : "bi-megaphone")" />
+                        <NavLink class="btn btn-light" href="mis-anuncios">Cancelar</NavLink>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </EditForm>
+}
+
+@code {
+    [Parameter] public int? Id { get; set; }
+
+    private bool EsEdicion => Id.HasValue;
+    private AnuncioModelo modelo = new();
+    private List<CategoriaMaterialDTO> categorias = [];
+    private List<MaterialAcademicoDTO> materiales = [];
+    private int idCategoria;
+    private bool cargando = true;
+    private List<string> imagenesActuales = [];
+
+    // Mismo máximo que valida la capa de negocio (ImagenProductoBLImpl).
+    private const int MaximoFotos = 5;
+
+    private List<string> UrlsFotos => modelo.Fotos
+        .Select(f => f.Url.Trim())
+        .Where(u => u.Length > 0)
+        .ToList();
+
+    private IEnumerable<MaterialAcademicoDTO> MaterialesVisibles =>
+        materiales.Where(m => idCategoria == 0 || m.IdCategoria == idCategoria).OrderBy(m => m.Titulo);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        cargando = true;
+        int idUsuario = await IdUsuarioAsync();
+        await Ejecutar(async () =>
+        {
+            categorias = (await CategoriaService.Listar()).Where(c => c.Activo).ToList();
+            materiales = await AcademicoService.ListarMateriales();
+            modelo = new AnuncioModelo();
+            if (EsEdicion)
+            {
+                AnuncioDTO? a = await AnuncioService.Obtener(Id!.Value);
+                if (a is null || a.IdVendedor != idUsuario)
+                {
+                    throw new ServicioException("El anuncio no existe o no es tuyo.");
+                }
+                modelo = new AnuncioModelo
+                {
+                    IdMaterial = a.IdMaterial,
+                    Titulo = a.Titulo ?? "",
+                    Descripcion = a.Descripcion ?? "",
+                    Condicion = a.Condicion ?? "USADO",
+                    Precio = a.Precio,
+                    Estado = a.Estado ?? "DISPONIBLE",
+                    FechaPublicacion = a.FechaPublicacion
+                };
+                idCategoria = a.IdCategoria;
+                imagenesActuales = a.Imagenes;
+            }
+        });
+        cargando = false;
+    }
+
+    private void CambiarCategoria(ChangeEventArgs e)
+    {
+        idCategoria = int.TryParse(e.Value?.ToString(), out int id) ? id : 0;
+        if (!MaterialesVisibles.Any(m => m.IdMaterial == modelo.IdMaterial))
+        {
+            modelo.IdMaterial = 0;
+        }
+    }
+
+    private AnuncioDTO VistaPrevia
+    {
+        get
+        {
+            MaterialAcademicoDTO? material = materiales.FirstOrDefault(m => m.IdMaterial == modelo.IdMaterial);
+            return new AnuncioDTO
+            {
+                Titulo = string.IsNullOrWhiteSpace(modelo.Titulo) ? "Título de tu anuncio" : modelo.Titulo,
+                Precio = modelo.Precio,
+                Condicion = modelo.Condicion,
+                NombreCategoria = material?.NombreCategoria,
+                TituloMaterial = material?.Titulo,
+                Imagenes = EsEdicion ? imagenesActuales : UrlsFotos
+            };
+        }
+    }
+
+    private async Task Guardar()
+    {
+        int idUsuario = await IdUsuarioAsync();
+        AnuncioDTO dto = new()
+        {
+            IdAnuncio = Id ?? 0,
+            Titulo = modelo.Titulo.Trim(),
+            Descripcion = modelo.Descripcion.Trim(),
+            Condicion = modelo.Condicion,
+            Precio = modelo.Precio,
+            Estado = modelo.Estado,
+            FechaPublicacion = modelo.FechaPublicacion,
+            IdMaterial = modelo.IdMaterial,
+            IdVendedor = idUsuario,
+            Imagenes = EsEdicion ? [] : UrlsFotos
+        };
+        bool ok = EsEdicion
+            ? await Ejecutar(() => AnuncioService.Actualizar(dto))
+            : await Ejecutar(() => AnuncioService.Publicar(dto));
+        if (ok)
+        {
+            Nav.NavigateTo("mis-anuncios");
+        }
+    }
+
+    private class AnuncioModelo
+    {
+        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "Elige el material académico.")]
+        public int IdMaterial { get; set; }
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Escribe un título.")]
+        public string Titulo { get; set; } = "";
+
+        public string Descripcion { get; set; } = "";
+        public string Condicion { get; set; } = "USADO";
+
+        [System.ComponentModel.DataAnnotations.Range(0.1, 100000, ErrorMessage = "El precio debe ser mayor que cero.")]
+        public decimal Precio { get; set; }
+
+        public string Estado { get; set; } = "DISPONIBLE";
+        public string? FechaPublicacion { get; set; }
+
+        /// <summary>Fotos del anuncio nuevo; empieza con un campo vacío.</summary>
+        public List<FotoModelo> Fotos { get; set; } = [new FotoModelo()];
+    }
+
+    private class FotoModelo
+    {
+        public string Url { get; set; } = "";
+    }
+}

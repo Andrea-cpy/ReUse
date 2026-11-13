@@ -1,0 +1,100 @@
+@inherits PaginaBase
+@implements IDisposable
+@inject INotificacionService NotificacionService
+@inject NavigationManager Nav
+
+@* Campana de la barra superior. RF-12: al cargar (y al cambiar de página) consulta
+   GET /notificaciones/recordatorios, que deja un RECORDATORIO_CITA por cada cita confirmada
+   de las próximas 24 h, y muestra cuántas notificaciones hay sin leer. *@
+
+<div class="position-relative">
+    <button type="button" class="ru-icon-btn border-0 bg-transparent" title="Notificaciones" @onclick="Alternar">
+        <i class="bi @(recordatorios.Any() ? "bi-bell-fill text-warning" : "bi-bell")"></i>
+        @if (noLeidas > 0)
+        {
+            <span class="punto">@(noLeidas > 9 ? "9+" : noLeidas.ToString())</span>
+        }
+    </button>
+
+    @if (abierto)
+    {
+        <div style="position:fixed;inset:0;z-index:1040" @onclick="() => abierto = false"></div>
+        <div class="ru-card shadow position-absolute end-0 mt-2" style="width:340px;z-index:1050">
+            <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+                <span class="fw-semibold">Notificaciones</span>
+                <span class="small-muted">@noLeidas sin leer</span>
+            </div>
+            @if (recordatorios.Any())
+            {
+                <div class="p-3 border-bottom bg-warning-subtle">
+                    <div class="small fw-semibold mb-2"><i class="bi bi-alarm me-1"></i> Citas en las próximas 24 h</div>
+                    @foreach (RecordatorioCitaDTO r in recordatorios)
+                    {
+                        <NavLink class="d-block small text-body text-decoration-none mb-1" href="@($"transacciones/{r.IdTransaccion}")" @onclick="() => abierto = false">
+                            <strong>@Formato.FechaHora(r.FechaHora)</strong> · @r.TituloAnuncio
+                            <span class="small-muted d-block"><i class="bi bi-geo-alt"></i> @r.PuntoEntrega · con @r.Contraparte</span>
+                        </NavLink>
+                    }
+                </div>
+            }
+            @if (ultimas.Any())
+            {
+                foreach (NotificacionDTO n in ultimas)
+                {
+                    <div class="px-3 py-2 border-bottom small">
+                        <div class="fw-semibold">@n.Mensaje</div>
+                        <div class="small-muted">@Formato.FechaHora(n.FechaHora)</div>
+                    </div>
+                }
+            }
+            else if (!recordatorios.Any())
+            {
+                <div class="p-3 small-muted small">No tienes notificaciones nuevas.</div>
+            }
+            <NavLink class="d-block text-center p-2 small" href="notificaciones" @onclick="() => abierto = false">Ver todas</NavLink>
+        </div>
+    }
+</div>
+
+@code {
+    private List<RecordatorioCitaDTO> recordatorios = [];
+    private List<NotificacionDTO> ultimas = [];
+    private int noLeidas;
+    private bool abierto;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Nav.LocationChanged += AlNavegar;
+        await Cargar();
+    }
+
+    private async Task Cargar()
+    {
+        int idUsuario = await IdUsuarioAsync();
+        if (idUsuario <= 0) return;
+        try
+        {
+            Task<List<RecordatorioCitaDTO>> tareaRecordatorios = NotificacionService.Recordatorios(idUsuario);
+            Task<List<NotificacionDTO>> tareaNotificaciones = NotificacionService.Listar(idUsuario);
+            recordatorios = await tareaRecordatorios;
+            List<NotificacionDTO> todas = await tareaNotificaciones;
+            noLeidas = todas.Count(n => n.Estado == "NO_LEIDA");
+            ultimas = todas.Where(n => n.Estado == "NO_LEIDA").Take(4).ToList();
+        }
+        catch (ServicioException)
+        {
+            // La campana no debe romper la página si el backend no responde.
+        }
+    }
+
+    private async Task Alternar()
+    {
+        abierto = !abierto;
+        if (abierto) await Cargar();
+    }
+
+    private void AlNavegar(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e) =>
+        _ = InvokeAsync(async () => { await Cargar(); StateHasChanged(); });
+
+    public void Dispose() => Nav.LocationChanged -= AlNavegar;
+}

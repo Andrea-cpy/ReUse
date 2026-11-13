@@ -1,0 +1,88 @@
+@page "/admin/puntos-entrega"
+@inherits PaginaBase
+@inject IPuntoEntregaService PuntoEntregaService
+
+@* RF-05: puntos de entrega → GET /puntos-entrega y DELETE /puntos-entrega/{id}.
+   La eliminación es lógica (activo = 0) y PuntoEntregaBL la rechaza si hay citas pendientes en ese punto. *@
+
+<PageTitle>Puntos de entrega · Admin ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="Puntos de entrega" Subtitulo="Lugares seguros del campus donde los estudiantes coordinan sus entregas.">
+    <Acciones>
+        <NavLink class="btn btn-primary" href="admin/puntos-entrega/nuevo"><i class="bi bi-plus-lg me-1"></i> Nuevo punto</NavLink>
+    </Acciones>
+</EncabezadoPagina>
+
+<Alertas Error="@Error" Exito="@Exito" />
+
+<BarraBusqueda @bind-Texto="texto" Placeholder="Nombre o referencia" Resultados="@Visibles.Count()" />
+
+@if (cargando)
+{
+    <Cargando />
+}
+else if (Visibles.Any())
+{
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
+        @foreach (PuntoEntregaDTO p in Visibles)
+        {
+            <div class="col">
+                <div class="ru-card ru-card-body h-100 d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="ru-avatar"><i class="bi bi-geo-alt"></i></span>
+                    </div>
+                    <div class="fw-semibold">@p.Nombre</div>
+                    <div class="small-muted mb-3">@p.Referencia</div>
+                    <div class="mt-auto d-flex gap-2">
+                        @if (!string.IsNullOrWhiteSpace(p.Ubicacion))
+                        {
+                            <a class="btn btn-light btn-sm" href="@p.Ubicacion" target="_blank" rel="noopener"><i class="bi bi-map"></i> Mapa</a>
+                        }
+                        <NavLink class="btn btn-light btn-sm" href="@($"admin/puntos-entrega/{p.IdPuntoEntrega}/editar")"><i class="bi bi-pencil"></i> Editar</NavLink>
+                        <button class="btn btn-light btn-sm text-danger ms-auto" title="Eliminar" @onclick="() => { aEliminar = p; mostrarEliminar = true; }"><i class="bi bi-trash"></i></button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="ru-card"><EstadoVacio Icono="bi-geo-alt" Titulo="Sin puntos de entrega" Mensaje="Prueba con otro texto o registra un punto nuevo." /></div>
+}
+
+<ModalConfirmacion @bind-Visible="mostrarEliminar" Titulo="Eliminar punto de entrega" TextoConfirmar="Eliminar" ClaseBoton="btn-danger" OnConfirmar="Eliminar">
+    <p class="mb-2">¿Eliminar «<strong>@(aEliminar?.Nombre)</strong>»?</p>
+    <p class="small-muted mb-0">Dejará de aparecer al programar nuevas citas. No se puede eliminar si tiene citas pendientes.</p>
+</ModalConfirmacion>
+
+@code {
+    private List<PuntoEntregaDTO> puntos = [];
+    private PuntoEntregaDTO? aEliminar;
+    private bool mostrarEliminar;
+    private string texto = "";
+    private bool cargando = true;
+
+    private IEnumerable<PuntoEntregaDTO> Visibles => puntos
+        .Where(p => string.IsNullOrWhiteSpace(texto) || $"{p.Nombre} {p.Referencia}".Contains(texto.Trim(), StringComparison.OrdinalIgnoreCase))
+        .OrderBy(p => p.Nombre);
+
+    protected override async Task OnInitializedAsync() => await Cargar();
+
+    private async Task Cargar()
+    {
+        string? exito = Exito;
+        await Ejecutar(async () => puntos = await PuntoEntregaService.Listar());
+        Exito ??= exito;
+        cargando = false;
+    }
+
+
+    private async Task Eliminar()
+    {
+        if (aEliminar is null) return;
+        PuntoEntregaDTO p = aEliminar;
+        if (await Ejecutar(() => PuntoEntregaService.Eliminar(p.IdPuntoEntrega), $"Se eliminó «{p.Nombre}»."))
+            await Cargar();
+    }
+}

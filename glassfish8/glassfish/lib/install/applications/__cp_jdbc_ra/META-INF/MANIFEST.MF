@@ -1,0 +1,11 @@
+Manifest-Version: 1.0
+Created-By: Maven Archiver 3.6.5
+Java-Version: 21
+Build-Jdk-Spec: 21
+Implementation-Title: Distribution Module for JDBC Resource Adapter
+Implementation-Version: 8.0.5
+Implementation-Vendor: Eclipse Foundation
+probe-provider-class-names: com.sun.gjc.monitoring.StatementCacheProbePr
+ ovider,com.sun.gjc.monitoring.SQLTraceProbeProvider,com.sun.gjc.monitor
+ ing.StatementLeakProbeProvider
+

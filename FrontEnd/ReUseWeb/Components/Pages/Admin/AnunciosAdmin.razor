@@ -1,0 +1,138 @@
+@page "/admin/anuncios"
+@inherits PaginaBase
+@inject IAnuncioService AnuncioService
+
+@* RF-14: moderación de anuncios → GET /anuncios?todos=true y PUT /anuncios/{id}/moderar?accion=OBSERVAR|HABILITAR|ARCHIVAR.
+   Archivar es un borrado lógico: el anuncio sale del catálogo pero se conserva con su historial. *@
+
+<PageTitle>Anuncios · Admin ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="Anuncios" Subtitulo="Supervisa las publicaciones. Los anuncios reportados quedan OBSERVADOS hasta que los revises." />
+
+<Alertas Error="@Error" Exito="@Exito" />
+
+<ul class="nav nav-pills mb-3 gap-1">
+    @foreach (string e in pestanas)
+    {
+        <li class="nav-item">
+            <button class="nav-link @(filtro == e ? "active" : "")" @onclick="() => filtro = e">
+                @(e == "" ? "Todos" : Formato.Texto(e)) <span class="badge text-bg-light ms-1">@(e == "" ? anuncios.Count : anuncios.Count(a => a.Estado == e))</span>
+            </button>
+        </li>
+    }
+</ul>
+
+<BarraBusqueda @bind-Texto="texto" Placeholder="Título, vendedor o categoría" Resultados="@Visibles.Count()" />
+
+<div class="ru-card">
+    @if (cargando)
+    {
+        <Cargando />
+    }
+    else if (Visibles.Any())
+    {
+        <div class="table-responsive">
+            <table class="table ru-table">
+                <thead>
+                    <tr><th>Anuncio</th><th>Vendedor</th><th>Categoría</th><th>Precio</th><th>Estado</th><th>Publicado</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (AnuncioDTO a in Visibles)
+                    {
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <ImagenMaterial Categoria="@a.NombreCategoria" Url="@a.Imagenes.FirstOrDefault()" Tamano="mini" />
+                                    <NavLink class="fw-semibold text-body" href="@($"anuncios/{a.IdAnuncio}")">@a.Titulo</NavLink>
+                                </div>
+                            </td>
+                            <td><NavLink class="text-body" href="@($"admin/usuarios/{a.IdVendedor}")">@(a.NombreVendedor ?? $"Usuario #{a.IdVendedor}")</NavLink></td>
+                            <td>@a.NombreCategoria</td>
+                            <td class="text-nowrap">@Formato.Soles(a.Precio)</td>
+                            <td><BadgeEstado Estado="@a.Estado" /></td>
+                            <td class="small-muted text-nowrap">@Formato.Fecha(a.FechaPublicacion)</td>
+                            <td class="text-end text-nowrap">
+                                @if (a.Estado == "OBSERVADO")
+                                {
+                                    <button class="btn btn-outline-primary btn-sm" @onclick="@(() => Preparar(a, "HABILITAR"))">Habilitar</button>
+                                }
+                                else if (a.Estado == "DISPONIBLE")
+                                {
+                                    <button class="btn btn-outline-warning btn-sm" @onclick="@(() => Preparar(a, "OBSERVAR"))">Observar</button>
+                                }
+                                @if (a.Estado is "DISPONIBLE" or "OBSERVADO")
+                                {
+                                    <button class="btn btn-outline-danger btn-sm ms-1" @onclick="@(() => Preparar(a, "ARCHIVAR"))">Archivar</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <EstadoVacio Icono="bi-megaphone" Titulo="Sin anuncios" Mensaje="No hay anuncios con este estado." />
+    }
+</div>
+
+<ModalConfirmacion Visible="seleccionado is not null" VisibleChanged="@(v => { if (!v) seleccionado = null; })"
+                   Titulo="@TituloAccion" TextoConfirmar="Confirmar"
+                   ClaseBoton="@(accion == "HABILITAR" ? "btn-primary" : "btn-danger")"
+                   Mensaje="@MensajeAccion" OnConfirmar="Moderar" />
+
+@code {
+    private readonly string[] pestanas = { "", "DISPONIBLE", "OBSERVADO", "RESERVADO", "VENDIDO", "ARCHIVADO" };
+    private List<AnuncioDTO> anuncios = [];
+    private string filtro = "";
+    private string texto = "";
+    private AnuncioDTO? seleccionado;
+    private string accion = "";
+    private bool cargando = true;
+
+    private IEnumerable<AnuncioDTO> Visibles => anuncios
+        .Where(a => filtro == "" || a.Estado == filtro)
+        .Where(a => string.IsNullOrWhiteSpace(texto) ||
+                    $"{a.Titulo} {a.NombreVendedor} {a.NombreCategoria}".Contains(texto.Trim(), StringComparison.OrdinalIgnoreCase))
+        .OrderByDescending(a => a.Estado == "OBSERVADO").ThenByDescending(a => a.FechaPublicacion);
+
+    private string TituloAccion => accion switch
+    {
+        "OBSERVAR" => "Marcar como observado",
+        "ARCHIVAR" => "Archivar anuncio",
+        _ => "Habilitar anuncio"
+    };
+
+    private string MensajeAccion => accion switch
+    {
+        "OBSERVAR" => $"«{seleccionado?.Titulo}» dejará de mostrarse en el catálogo hasta que lo habilites.",
+        "ARCHIVAR" => $"«{seleccionado?.Titulo}» se archivará: sale del catálogo sin borrarse. Se avisará al vendedor.",
+        _ => $"«{seleccionado?.Titulo}» volverá a estar DISPONIBLE en el catálogo."
+    };
+
+    protected override async Task OnInitializedAsync() => await Cargar();
+
+    private async Task Cargar()
+    {
+        string? exito = Exito;
+        await Ejecutar(async () => anuncios = await AnuncioService.ListarTodos());
+        Exito ??= exito;
+        cargando = false;
+    }
+
+    private void Preparar(AnuncioDTO anuncio, string nuevaAccion)
+    {
+        seleccionado = anuncio;
+        accion = nuevaAccion;
+    }
+
+    private async Task Moderar()
+    {
+        if (seleccionado is null) return;
+        AnuncioDTO anuncio = seleccionado;
+        seleccionado = null;
+        if (await Ejecutar(() => AnuncioService.Moderar(anuncio.IdAnuncio, accion), $"Se aplicó «{Formato.Texto(accion)}» a «{anuncio.Titulo}»."))
+            await Cargar();
+    }
+}

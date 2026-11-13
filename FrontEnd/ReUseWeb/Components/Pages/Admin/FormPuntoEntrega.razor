@@ -1,0 +1,86 @@
+@page "/admin/puntos-entrega/nuevo"
+@page "/admin/puntos-entrega/{Id:int}/editar"
+@inherits PaginaBase
+@inject IPuntoEntregaService PuntoEntregaService
+@inject NavigationManager Nav
+
+@* RF-05: registrar (POST /puntos-entrega) y modificar (PUT /puntos-entrega/{id}) *@
+
+<PageTitle>@(Id.HasValue ? "Editar" : "Nuevo") punto de entrega · Admin ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="@(Id.HasValue ? "Editar punto de entrega" : "Nuevo punto de entrega")"
+                  Volver="admin/puntos-entrega" TextoVolver="Volver a puntos de entrega" />
+
+<Alertas Error="@Error" />
+
+<div class="row">
+    <div class="col-lg-7">
+        <EditForm Model="modelo" OnValidSubmit="Guardar" FormName="punto">
+            <DataAnnotationsValidator />
+            <div class="ru-card ru-card-body">
+                <p class="ru-nota-requeridos mb-2">Campos obligatorios</p>
+                <div class="mb-3">
+                    <label class="form-label requerido" for="nombre">Nombre</label>
+                    <InputTexto id="nombre" class="form-control" placeholder="Ej. Biblioteca Central" @bind-Value="modelo.Nombre" />
+                    <ValidationMessage For="() => modelo.Nombre" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="referencia">Referencia</label>
+                    <InputTexto id="referencia" class="form-control" placeholder="Ej. Ingreso principal" @bind-Value="modelo.Referencia" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="ubicacion">Enlace de ubicación (Google Maps)</label>
+                    <InputTexto id="ubicacion" class="form-control" placeholder="https://www.google.com/maps/…" @bind-Value="modelo.Ubicacion" />
+                </div>
+                <div class="d-flex justify-content-end gap-2 mt-4">
+                    <NavLink class="btn btn-light align-self-start" href="admin/puntos-entrega">Cancelar</NavLink>
+                    <div class="text-end"><BotonEnviar Texto="Guardar" Procesando="@Procesando" /></div>
+                </div>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int? Id { get; set; }
+
+    private PuntoModelo modelo = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        modelo = new PuntoModelo();
+        if (Id.HasValue)
+        {
+            await Ejecutar(async () =>
+            {
+                PuntoEntregaDTO p = await PuntoEntregaService.Obtener(Id.Value) ?? throw new ServicioException("No existe el punto de entrega.");
+                modelo = new PuntoModelo { Nombre = p.Nombre ?? "", Referencia = p.Referencia ?? "", Ubicacion = p.Ubicacion ?? "", Activo = p.Activo };
+            });
+        }
+    }
+
+    private async Task Guardar()
+    {
+        PuntoEntregaDTO dto = new()
+        {
+            IdPuntoEntrega = Id ?? 0,
+            Nombre = modelo.Nombre.Trim(),
+            Referencia = modelo.Referencia.Trim(),
+            Ubicacion = modelo.Ubicacion.Trim(),
+            Activo = modelo.Activo
+        };
+        bool ok = Id.HasValue
+            ? await Ejecutar(() => PuntoEntregaService.Actualizar(dto))
+            : await Ejecutar(() => PuntoEntregaService.Registrar(dto));
+        if (ok) Nav.NavigateTo("admin/puntos-entrega");
+    }
+
+    private class PuntoModelo
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "El nombre es obligatorio.")]
+        public string Nombre { get; set; } = "";
+        public string Referencia { get; set; } = "";
+        public string Ubicacion { get; set; } = "";
+        public bool Activo { get; set; } = true;
+    }
+}

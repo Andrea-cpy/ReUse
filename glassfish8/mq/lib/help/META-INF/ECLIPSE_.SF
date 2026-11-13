@@ -1,0 +1,150 @@
+Signature-Version: 1.0
+Created-By: 11.0.24 (Eclipse Adoptium)
+SHA-256-Digest-Manifest: OyxKWBpR82eeolgvtsAKcvHkJUYb7lFhulcODawEhT4=
+SHA-256-Digest-Manifest-Main-Attributes: 0YLUQfgVBMzi1caXyfAspXT34fFrre0
+ PWzgBzN9dclY=
+
+Name: en/broker_dest_basic.htm
+SHA-256-Digest: 7mbmjhMd7nj0s4obwP1EO4AjaKCBc1qo85MMJM1M52A=
+
+Name: images/ObjectStoreX16X.gif
+SHA-256-Digest: J6xmwl7bd6R1D/QeX/e/Iq/xwyMs89cyAgj79NP7SHA=
+
+Name: en/broker_configuration.htm
+SHA-256-Digest: osW9HqE47/X8VcFSvYWqQxVtdoA6Ba0LP1vmsXrMQMM=
+
+Name: en/imq_index.htm
+SHA-256-Digest: aufavTeAKaVBVMJkc7prOCly0ngz6iQIlEXdBNusqUc=
+
+Name: en/MasterTOC.xml
+SHA-256-Digest: U3BwBi4+4OwBXopsi2tL0/n4jrVoKtqdWbtQqXuLATU=
+
+Name: en/connfact_rel.htm
+SHA-256-Digest: PkCaaYVYe21rEf/wYkuKvxLHjVKppoIQMZAuMBAWmzs=
+
+Name: en/add_broker_destination.htm
+SHA-256-Digest: G/1vnkHejtobNXepdrLRtDkscYvVcJAcd8fzboLuGS8=
+
+Name: en/conndis_broker.htm
+SHA-256-Digest: Wq0A0WFSEhr3AbYG1MaGI3XEhbELM9mXJZ+y2tO91Xs=
+
+Name: en/broker_index.htm
+SHA-256-Digest: H6asnCTEEwuUxQqZ1GxFe8psft6kKSaeiORi9CIlRu0=
+
+Name: en/connfact_queue.htm
+SHA-256-Digest: AHnQRbFi0KiINNHXRnMfEi1CuLWQsr6OS+q8jxfPeaU=
+
+Name: images/AppIcon16xCDE.gif
+SHA-256-Digest: /702zRYOqPazgacmFOPcHoWYnv9Tll520rUCfTF2KzA=
+
+Name: en/connfact_jmsx.htm
+SHA-256-Digest: hst4L1PEgk34RlmUgRHX6Kw8XKxbelL5B3+vQueNsNI=
+
+Name: en/broker_dest_durable.htm
+SHA-256-Digest: v4fRG7Oq3GSZrs7tjMNknkPcvBtAp7tKMMy2K7DSevw=
+
+Name: en/broker_destination_properties.htm
+SHA-256-Digest: c0Qf3no/bwq2TjGqMrFQoXsGbPQUBsrPBubg+tS7eWU=
+
+Name: en/add_broker.htm
+SHA-256-Digest: 1wxbdZ1xby61iHmUaTFEI8y3Mkj7+1uyHPENQXXuy1Q=
+
+Name: en/Master.jhm
+SHA-256-Digest: 5HwvSjIyB1CRugAxjPE2v/jdhnq8VZ/6suszbGUNx4U=
+
+Name: en/add_connfact_rel.htm
+SHA-256-Digest: MHTrm1aJnF29vSs7WIGSP0befxuG0uzrhnGDBnQKbJ8=
+
+Name: en/connfact_message_header_overrides.htm
+SHA-256-Digest: UAIoiwcokV+FmKSsmzVWfujHQcGHd2xyg9XFlpKqb18=
+
+Name: en/overview.htm
+SHA-256-Digest: dbMZpqZN5sI945OC+lU4JqaWhJlmRpqKV9UM3dQRAPc=
+
+Name: en/add_connfact_handling.htm
+SHA-256-Digest: ybvoa/gP0QPsly9fZ3bBsaX+qBO6PgmK69c8v5K93io=
+
+Name: en/connfact_handling.htm
+SHA-256-Digest: Wb1Yel81gZF2PsITjDjNlDqs+kiXnZycFTqgkTpIeMA=
+
+Name: en/broker_config_logging.htm
+SHA-256-Digest: kP2TxJmmo8gNLqSvcXrm4SqQNyK63gfrNppphVGvvVc=
+
+Name: images/console.gif
+SHA-256-Digest: xSIALLTjvtxEe9AtmwybG+AxgxISJej91PiCQlmKz0Y=
+
+Name: en/broker_config_messaging.htm
+SHA-256-Digest: DFKdTXNzuwFfoOK3dKFjPs/JKZTG96Vv9wd8NUzPH1g=
+
+Name: en/add_destination_obj.htm
+SHA-256-Digest: naOnarMgQQNzpSGOg0RzmtscXPYvup/jP//tU2DNpFE=
+
+Name: images/BrokerX16X.gif
+SHA-256-Digest: rv5o/wQyp2rHQOZKYMKcy3rdrSuFB+1GUT6n/gTE/0E=
+
+Name: en/object_store_properties.htm
+SHA-256-Digest: dmGeR/rgV95JtEWdHRh547gT6xMTSvOWwDQOj2DJq4g=
+
+Name: en/conndis_object_store.htm
+SHA-256-Digest: 88eTsPC6Dv9c4YEV+yvy1NfNo4UrTnHe+Z4LzJlP8f4=
+
+Name: en/add_connection_fact.htm
+SHA-256-Digest: t85ZGxOMTLMBFg8lF2wzV/jwW0DA4XZ9uMQI+v3XX5U=
+
+Name: en/ide.css
+SHA-256-Digest: 1S/sZEuMvld+eHw8R9Y/9ctjfJ01OtLtOZH/IKSVDUU=
+
+Name: en/service_properties.htm
+SHA-256-Digest: 3s4ZQuuJVo4VpyZzPdECewQrbwaDHxra3TSgzVxhTUs=
+
+Name: images/ObjectStore16x.gif
+SHA-256-Digest: R7xFz5uDaurEvbfbHXOY8U8KPD9IM0YIt+Wnrfx1HdI=
+
+Name: en/add_connfact_handling_old.htm
+SHA-256-Digest: XcQewVJTIEuo788tMnXfgcyhq/7y2pCbDgsEjOFbVGA=
+
+Name: en/os_index.htm
+SHA-256-Digest: 9OkF6bO+BBdhupXYaxNcS93lf11fyPmvMUAM73CbjAA=
+
+Name: en/broker_information.htm
+SHA-256-Digest: sCNm1vGPxtzjRLGTVn2Gzv5v8IHy9i924PJh+6jkw5c=
+
+Name: en/add_connfact_jmsx.htm
+SHA-256-Digest: 1uZ3/E9hDM5Jxt6hRNmAHXjSJDzEqEbGFBY4b3qSSBo=
+
+Name: images/Broker16X.gif
+SHA-256-Digest: qhyjoEGvnhoIWTshCmCpoY9ae1bV4LTrCTLwKaNbNfc=
+
+Name: en/add_connfact_queue.htm
+SHA-256-Digest: Qa7eCLS/6Dgm8rjd44ieBnZ7jZs5TU7EbUJUVDAwTRU=
+
+Name: en/broker_config_basic.htm
+SHA-256-Digest: UTbfbPrRhXg8ffOLCIqv0ulTyXd1+CCWu4q4Wig/Su0=
+
+Name: en/destination_obj_properties.htm
+SHA-256-Digest: hIDuMVx2j0GkRMA57VsUAKhIi2HgkJDg7GV6JHrHcNs=
+
+Name: en/add_connfact_message_header_overrides.htm
+SHA-256-Digest: 4BDKtACsUbu7EUignbjmauXeqBkvXZoPyosgt1wI5Qk=
+
+Name: en/message_server_syntax.htm
+SHA-256-Digest: QFSJCfrij0zahGNXd7WnJABsJzht+kcjyJInC+IACR0=
+
+Name: en/add_connfact_clientid.htm
+SHA-256-Digest: pa1hFcSvckuj40vK0pg23DSbYqTDEBemyH8VD6YZ/oY=
+
+Name: en/add_object_store.htm
+SHA-256-Digest: HXfaLU/H72R/KcxY17OYeYaR4lUnFpsB5NjSxgBSt1g=
+
+Name: en/connfact_handling_old.htm
+SHA-256-Digest: TXmnvMUs8gRq5SEtszxoqV1r3i2oJGbuIrZOM7+kUuA=
+
+Name: en/connection_factory_prop.htm
+SHA-256-Digest: M+I4x1pbJD22wPMXDGh45qDrJ4FCU7MHHV00ZBMv9r4=
+
+Name: Master.hs
+SHA-256-Digest: fqrCqYvNKUtr+1FSlYxGIrruv+57Kjn6qjPfcfvYVpY=
+
+Name: en/connfact_clientid.htm
+SHA-256-Digest: CLay8zSXSDEyhv2Y8HYOQXlS+P5/gDVD8Mw1FpIKpew=
+

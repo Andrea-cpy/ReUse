@@ -1,0 +1,21 @@
+@* Muestra el error (regla de negocio devuelta por el backend) o el éxito de la última acción *@
+
+@if (!string.IsNullOrEmpty(Error))
+{
+    <div class="alert alert-danger d-flex align-items-start gap-2" role="alert">
+        <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+        <div>@Error</div>
+    </div>
+}
+@if (!string.IsNullOrEmpty(Exito))
+{
+    <div class="alert alert-success d-flex align-items-start gap-2" role="status">
+        <i class="bi bi-check-circle-fill mt-1"></i>
+        <div>@Exito</div>
+    </div>
+}
+
+@code {
+    [Parameter] public string? Error { get; set; }
+    [Parameter] public string? Exito { get; set; }
+}

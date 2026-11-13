@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- RF-04 / RF-15: reporte de transacciones (JasperReports 7). Datos: JRBeanCollectionDataSource de FilaTransaccion.
+     Despues de modificarlo, ejecutar CompilarReportes para regenerar el .jasper. -->
+<jasperReport name="ReporteTransacciones" language="java" pageWidth="842" pageHeight="595" orientation="Landscape"
+              columnWidth="782" leftMargin="30" rightMargin="30" topMargin="28" bottomMargin="28"
+              whenNoDataType="AllSectionsNoDetail">
+	<style name="Base" default="true" fontName="DejaVu Sans" fontSize="8.5" forecolor="#1F2A2E"/>
+	<style name="Encabezado" style="Base" mode="Opaque" forecolor="#FFFFFF" backcolor="#1D6B52" bold="true" vTextAlign="Middle">
+		<box leftPadding="4" rightPadding="4"/>
+	</style>
+	<style name="Celda" style="Base" vTextAlign="Middle">
+		<box leftPadding="4" rightPadding="4"/>
+	</style>
+	<parameter name="TITULO" class="java.lang.String"/>
+	<parameter name="FILTROS" class="java.lang.String"/>
+	<parameter name="GENERADO_POR" class="java.lang.String"/>
+	<parameter name="FECHA_GENERACION" class="java.lang.String"/>
+	<parameter name="TOTAL_COMPLETADAS" class="java.lang.Integer"/>
+	<parameter name="TOTAL_EN_CURSO" class="java.lang.Integer"/>
+	<parameter name="TOTAL_CANCELADAS" class="java.lang.Integer"/>
+	<parameter name="MONTO_COMPLETADO" class="java.lang.Double"/>
+	<field name="id" class="java.lang.Integer"/>
+	<field name="anuncio" class="java.lang.String"/>
+	<field name="vendedor" class="java.lang.String"/>
+	<field name="comprador" class="java.lang.String"/>
+	<field name="estado" class="java.lang.String"/>
+	<field name="fechaInicio" class="java.lang.String"/>
+	<field name="fechaFin" class="java.lang.String"/>
+	<field name="monto" class="java.lang.Double"/>
+	<variable name="MONTO_LISTADO" calculation="Sum" class="java.lang.Double">
+		<expression><![CDATA[$F{monto}]]></expression>
+	</variable>
+	<title height="74">
+		<element kind="rectangle" x="0" y="0" width="782" height="50" backcolor="#1D6B52" mode="Opaque">
+			<pen lineWidth="0.0"/>
+		</element>
+		<element kind="staticText" x="14" y="6" width="300" height="20" forecolor="#F2C14E" fontSize="15.0" bold="true" style="Base">
+			<text><![CDATA[ReUse]]></text>
+		</element>
+		<element kind="staticText" x="14" y="27" width="420" height="16" forecolor="#E7F3EE" style="Base">
+			<text><![CDATA[Marketplace académico PUCP · Programación 3 (1INF30)]]></text>
+		</element>
+		<element kind="textField" x="380" y="8" width="388" height="20" forecolor="#FFFFFF" fontSize="14.0" bold="true" hTextAlign="Right" style="Base">
+			<expression><![CDATA[$P{TITULO}]]></expression>
+		</element>
+		<element kind="textField" x="380" y="28" width="388" height="16" forecolor="#E7F3EE" hTextAlign="Right" style="Base">
+			<expression><![CDATA["Generado el " + $P{FECHA_GENERACION} + " por " + $P{GENERADO_POR}]]></expression>
+		</element>
+		<element kind="textField" x="0" y="56" width="782" height="14" forecolor="#6B7A80" style="Base">
+			<expression><![CDATA["Filtros: " + $P{FILTROS}]]></expression>
+		</element>
+	</title>
+	<columnHeader height="20">
+		<element kind="staticText" x="0" y="0" width="36" height="20" style="Encabezado"><text><![CDATA[#]]></text></element>
+		<element kind="staticText" x="36" y="0" width="230" height="20" style="Encabezado"><text><![CDATA[Anuncio]]></text></element>
+		<element kind="staticText" x="266" y="0" width="130" height="20" style="Encabezado"><text><![CDATA[Vendedor]]></text></element>
+		<element kind="staticText" x="396" y="0" width="130" height="20" style="Encabezado"><text><![CDATA[Comprador]]></text></element>
+		<element kind="staticText" x="526" y="0" width="96" height="20" style="Encabezado"><text><![CDATA[Estado]]></text></element>
+		<element kind="staticText" x="622" y="0" width="58" height="20" style="Encabezado"><text><![CDATA[Inicio]]></text></element>
+		<element kind="staticText" x="680" y="0" width="58" height="20" style="Encabezado"><text><![CDATA[Cierre]]></text></element>
+		<element kind="staticText" x="738" y="0" width="44" height="20" hTextAlign="Right" style="Encabezado"><text><![CDATA[S/]]></text></element>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Prevent">
+			<element kind="rectangle" x="0" y="0" width="782" height="20" mode="Opaque" backcolor="#F5F7F6">
+				<printWhenExpression><![CDATA[$V{REPORT_COUNT} % 2 == 0]]></printWhenExpression>
+				<pen lineWidth="0.0"/>
+			</element>
+			<element kind="textField" x="0" y="0" width="36" height="20" style="Celda"><expression><![CDATA[$F{id}]]></expression></element>
+			<element kind="textField" x="36" y="0" width="230" height="20" bold="true" textAdjust="ScaleFont" style="Celda"><expression><![CDATA[$F{anuncio}]]></expression></element>
+			<element kind="textField" x="266" y="0" width="130" height="20" textAdjust="ScaleFont" style="Celda"><expression><![CDATA[$F{vendedor}]]></expression></element>
+			<element kind="textField" x="396" y="0" width="130" height="20" textAdjust="ScaleFont" style="Celda"><expression><![CDATA[$F{comprador}]]></expression></element>
+			<element kind="textField" x="526" y="0" width="96" height="20" bold="true" forecolor="#1D6B52" style="Celda"><expression><![CDATA[$F{estado}]]></expression></element>
+			<element kind="textField" x="622" y="0" width="58" height="20" style="Celda"><expression><![CDATA[$F{fechaInicio}]]></expression></element>
+			<element kind="textField" x="680" y="0" width="58" height="20" style="Celda"><expression><![CDATA[$F{fechaFin}]]></expression></element>
+			<element kind="textField" x="738" y="0" width="44" height="20" hTextAlign="Right" pattern="#,##0.00" style="Celda"><expression><![CDATA[$F{monto}]]></expression></element>
+			<element kind="line" x="0" y="19" width="782" height="1">
+				<pen lineWidth="0.5" lineColor="#E1E7E4"/>
+			</element>
+		</band>
+	</detail>
+	<pageFooter height="20">
+		<element kind="staticText" x="0" y="4" width="500" height="14" forecolor="#6B7A80" fontSize="7.5" style="Base">
+			<text><![CDATA[ReUse · Montos en soles: oferta aceptada o, si no la hubo, precio publicado]]></text>
+		</element>
+		<element kind="textField" x="582" y="4" width="160" height="14" forecolor="#6B7A80" fontSize="7.5" hTextAlign="Right" style="Base">
+			<expression><![CDATA["Página " + $V{PAGE_NUMBER} + " de"]]></expression>
+		</element>
+		<element kind="textField" x="742" y="4" width="40" height="14" forecolor="#6B7A80" fontSize="7.5" evaluationTime="Report" style="Base">
+			<expression><![CDATA[" " + $V{PAGE_NUMBER}]]></expression>
+		</element>
+	</pageFooter>
+	<summary height="64">
+		<element kind="staticText" x="0" y="12" width="200" height="16" fontSize="10.0" bold="true" style="Base">
+			<text><![CDATA[Resumen]]></text>
+		</element>
+		<element kind="textField" x="0" y="32" width="190" height="26" mode="Opaque" backcolor="#E7F3EE" fontSize="9.0" vTextAlign="Middle" style="Base">
+			<expression><![CDATA["Completadas: " + $P{TOTAL_COMPLETADAS}]]></expression>
+			<box leftPadding="8"/>
+		</element>
+		<element kind="textField" x="198" y="32" width="190" height="26" mode="Opaque" backcolor="#FDF3DC" fontSize="9.0" vTextAlign="Middle" style="Base">
+			<expression><![CDATA["En curso: " + $P{TOTAL_EN_CURSO} + " · Canceladas: " + $P{TOTAL_CANCELADAS}]]></expression>
+			<box leftPadding="8"/>
+		</element>
+		<element kind="textField" x="396" y="32" width="190" height="26" mode="Opaque" backcolor="#EEF1F2" fontSize="9.0" vTextAlign="Middle" style="Base">
+			<expression><![CDATA["Monto listado: S/ " + new java.text.DecimalFormat("#,##0.00").format($V{MONTO_LISTADO} == null ? 0d : $V{MONTO_LISTADO})]]></expression>
+			<box leftPadding="8"/>
+		</element>
+		<element kind="textField" x="594" y="32" width="188" height="26" mode="Opaque" backcolor="#1D6B52" forecolor="#FFFFFF" fontSize="9.0" bold="true" vTextAlign="Middle" style="Base">
+			<expression><![CDATA["Vendido: S/ " + new java.text.DecimalFormat("#,##0.00").format($P{MONTO_COMPLETADO})]]></expression>
+			<box leftPadding="8"/>
+		</element>
+	</summary>
+</jasperReport>

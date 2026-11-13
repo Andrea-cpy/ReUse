@@ -1,0 +1,27 @@
+@* Encabezado estándar de cada página: título, subtítulo, enlace "Volver" y acciones a la derecha *@
+
+<div class="ru-page-header">
+    <div>
+        @if (!string.IsNullOrEmpty(Volver))
+        {
+            <NavLink class="ru-volver" href="@Volver"><i class="bi bi-arrow-left"></i> @TextoVolver</NavLink>
+        }
+        <h1 class="mb-0">@Titulo</h1>
+        @if (!string.IsNullOrEmpty(Subtitulo))
+        {
+            <p>@Subtitulo</p>
+        }
+    </div>
+    @if (Acciones is not null)
+    {
+        <div class="d-flex flex-wrap gap-2">@Acciones</div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Titulo { get; set; } = "";
+    [Parameter] public string? Subtitulo { get; set; }
+    [Parameter] public string? Volver { get; set; }
+    [Parameter] public string TextoVolver { get; set; } = "Volver";
+    [Parameter] public RenderFragment? Acciones { get; set; }
+}

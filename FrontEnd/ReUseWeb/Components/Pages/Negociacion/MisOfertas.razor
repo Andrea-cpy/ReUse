@@ -1,0 +1,147 @@
+@page "/mis-ofertas"
+@inherits PaginaBase
+@inject IOfertaService OfertaService
+@inject NavigationManager Nav
+
+@* RF-17 (vista del comprador): GET /ofertas?comprador=ID, retirar (DELETE) y responder contraofertas (PUT) *@
+
+<PageTitle>Mis ofertas · ReUse</PageTitle>
+
+<EncabezadoPagina Titulo="Mis ofertas" Subtitulo="Ofertas que hiciste a otros vendedores." />
+
+<Alertas Error="@Error" Exito="@Exito" />
+
+<ul class="nav nav-pills mb-3 gap-1">
+    @foreach (string estado in pestanas)
+    {
+        <li class="nav-item">
+            <button class="nav-link @(filtro == estado ? "active" : "")" @onclick="() => filtro = estado">
+                @(estado == "" ? "Todas" : Formato.Texto(estado))
+                <span class="badge text-bg-light ms-1">@ofertas.Count(o => estado == "" || o.Estado == estado)</span>
+            </button>
+        </li>
+    }
+</ul>
+
+<div class="ru-card">
+    @if (cargando)
+    {
+        <Cargando />
+    }
+    else if (Visibles.Any())
+    {
+        <div class="table-responsive">
+            <table class="table ru-table">
+                <thead>
+                    <tr>
+                        <th>Anuncio</th>
+                        <th>Precio publicado</th>
+                        <th>Monto</th>
+                        <th>Estado</th>
+                        <th>Fecha</th>
+                        <th class="text-end"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (OfertaDTO o in Visibles)
+                    {
+                        <tr>
+                            <td><NavLink class="fw-semibold text-body text-decoration-none" href="@($"anuncios/{o.IdAnuncio}")">@o.TituloAnuncio</NavLink></td>
+                            <td class="small-muted">@Formato.Soles(o.PrecioAnuncio)</td>
+                            <td class="fw-semibold">
+                                @Formato.Soles(o.MontoPropuesto)
+                                @if (o.Estado == "CONTRAOFERTADA")
+                                {
+                                    <div class="small text-warning-emphasis fw-normal">Contraoferta del vendedor</div>
+                                }
+                            </td>
+                            <td><BadgeEstado Estado="@o.Estado" /></td>
+                            <td class="small-muted">@Formato.FechaHora(o.Fecha)</td>
+                            <td class="text-end text-nowrap">
+                                @switch (o.Estado)
+                                {
+                                    case "PENDIENTE":
+                                        <button class="btn btn-light btn-sm text-danger" @onclick="() => { seleccionada = o; mostrarRetirar = true; }">Retirar</button>
+                                        break;
+                                    case "CONTRAOFERTADA":
+                                        <button class="btn btn-outline-danger btn-sm me-1" disabled="@Procesando" @onclick="() => RechazarContraoferta(o)">Rechazar</button>
+                                        <button class="btn btn-primary btn-sm" disabled="@Procesando" @onclick="() => { seleccionada = o; mostrarAceptar = true; }">Aceptar</button>
+                                        break;
+                                    case "ACEPTADA":
+                                        <NavLink class="btn btn-outline-primary btn-sm" href="transacciones">Ver transacciones</NavLink>
+                                        break;
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <EstadoVacio Icono="bi-cash-coin" Titulo="No tienes ofertas en este estado" Mensaje="Explora el catálogo y propón un precio al vendedor.">
+            <NavLink class="btn btn-primary" href="">Ir al catálogo</NavLink>
+        </EstadoVacio>
+    }
+</div>
+
+<ModalConfirmacion @bind-Visible="mostrarRetirar" Titulo="Retirar oferta" TextoConfirmar="Retirar" ClaseBoton="btn-danger"
+                   Mensaje="@($"¿Retirar tu oferta por «{seleccionada?.TituloAnuncio}»?")" OnConfirmar="Retirar" />
+
+<ModalConfirmacion @bind-Visible="mostrarAceptar" Titulo="Aceptar contraoferta" TextoConfirmar="Aceptar" OnConfirmar="AceptarContraoferta">
+    <p class="mb-0">Aceptarás pagar <strong>@Formato.Soles(seleccionada?.MontoPropuesto ?? 0)</strong> por «@(seleccionada?.TituloAnuncio)».
+        Se abrirá la transacción para coordinar la entrega.</p>
+</ModalConfirmacion>
+
+@code {
+    private readonly string[] pestanas = { "", "PENDIENTE", "CONTRAOFERTADA", "ACEPTADA", "RECHAZADA" };
+    private string filtro = "";
+    private List<OfertaDTO> ofertas = [];
+    private OfertaDTO? seleccionada;
+    private bool mostrarRetirar;
+    private bool mostrarAceptar;
+    private bool cargando = true;
+    private int idUsuario;
+
+    private IEnumerable<OfertaDTO> Visibles =>
+        ofertas.Where(o => filtro == "" || o.Estado == filtro).OrderByDescending(o => o.Fecha);
+
+    protected override async Task OnInitializedAsync()
+    {
+        idUsuario = await IdUsuarioAsync();
+        await Cargar();
+    }
+
+    private async Task Cargar()
+    {
+        cargando = true;
+        string? exito = Exito;
+        await Ejecutar(async () => ofertas = await OfertaService.ListarPorComprador(idUsuario));
+        Exito ??= exito;
+        cargando = false;
+    }
+
+    private async Task Retirar()
+    {
+        if (seleccionada is null) return;
+        if (await Ejecutar(() => OfertaService.Retirar(seleccionada.IdOferta), "Oferta retirada."))
+            await Cargar();
+    }
+
+    private async Task AceptarContraoferta()
+    {
+        if (seleccionada is null) return;
+        TransaccionCreadaDTO? creada = null;
+        if (await Ejecutar(async () => creada = await OfertaService.AceptarContraoferta(seleccionada.IdOferta)) && creada is not null)
+        {
+            Nav.NavigateTo($"transacciones/{creada.IdTransaccion}");
+        }
+    }
+
+    private async Task RechazarContraoferta(OfertaDTO oferta)
+    {
+        if (await Ejecutar(() => OfertaService.RechazarContraoferta(oferta.IdOferta), "Contraoferta rechazada."))
+            await Cargar();
+    }
+}

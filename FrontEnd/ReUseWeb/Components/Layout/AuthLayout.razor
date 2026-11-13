@@ -1,0 +1,32 @@
+@inherits LayoutComponentBase
+
+@* Layout de las pantallas de acceso (login, registro, verificación) *@
+
+<div class="ru-auth">
+    <section class="ru-auth-panel">
+        <div class="d-flex align-items-center gap-2 fs-4 fw-bold">
+            <span class="ru-avatar" style="background:rgba(255,255,255,.15);color:#fff"><i class="bi bi-recycle"></i></span>
+            ReUse
+        </div>
+        <div>
+            <div class="lema mb-4">Dale una segunda vida a tus materiales académicos.</div>
+            <ul class="list-unstyled punto-lista">
+                <li><i class="bi bi-check-circle me-2"></i>Compra y vende solo entre estudiantes PUCP verificados.</li>
+                <li><i class="bi bi-check-circle me-2"></i>Coordina la entrega en puntos seguros dentro del campus.</li>
+                <li><i class="bi bi-check-circle me-2"></i>Gana reputación e insignias con cada transacción.</li>
+            </ul>
+        </div>
+        <div></div>
+    </section>
+    <section class="ru-auth-form">
+        <div class="contenido">
+            @Body
+        </div>
+    </section>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    Ocurrió un error inesperado.
+    <a href="." class="reload">Recargar</a>
+    <span class="dismiss">🗙</span>
+</div>

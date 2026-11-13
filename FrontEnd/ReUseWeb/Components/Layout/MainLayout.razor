@@ -1,0 +1,92 @@
+@inherits LayoutComponentBase
+@inject NavigationManager Nav
+@implements IDisposable
+
+@* Layout principal del estudiante PUCP: barra lateral + barra superior + contenido *@
+
+<div class="ru-app">
+    <aside class="ru-sidebar @(menuAbierto ? "abierto" : "")">
+        <NavMenu />
+    </aside>
+    @if (menuAbierto)
+    {
+        <div class="ru-overlay" @onclick="() => menuAbierto = false"></div>
+    }
+
+    <div class="ru-main">
+        <header class="ru-topbar">
+            <button class="btn btn-light ru-menu-toggle ru-icon-btn" title="Menú" @onclick="() => menuAbierto = !menuAbierto">
+                <i class="bi bi-list"></i>
+            </button>
+
+            <div class="buscador">
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                    <input class="form-control border-start-0" placeholder="Buscar libros, calculadoras, maquetas…"
+                           @bind="busqueda" @onkeydown="BuscarConEnter" />
+                </div>
+            </div>
+
+            <div class="ms-auto d-flex align-items-center gap-1">
+                <NavLink class="btn btn-primary btn-sm d-none d-md-inline-flex align-items-center gap-1 me-2" href="mis-anuncios/nuevo">
+                    <i class="bi bi-plus-lg"></i> Publicar
+                </NavLink>
+                <NavLink class="ru-icon-btn" href="mensajes" title="Mensajes">
+                    <i class="bi bi-chat-dots"></i>
+                </NavLink>
+                <AuthorizeView>
+                    <Authorized>
+                        <CampanaNotificaciones />
+                        <NavLink class="d-flex align-items-center gap-2 text-decoration-none text-body ms-2" href="perfil">
+                            <span class="ru-avatar">@Formato.Iniciales(context.User.NombreCompleto())</span>
+                            <span class="d-none d-lg-block lh-sm">
+                                <span class="fw-semibold d-block small">@Formato.PrimerNombre(context.User.NombreCompleto())</span>
+                                <span class="small-muted">@context.User.CodigoPucp()</span>
+                            </span>
+                        </NavLink>
+                    </Authorized>
+                    <NotAuthorized>
+                        <NavLink class="btn btn-outline-primary btn-sm ms-2" href="login">Iniciar sesión</NavLink>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </div>
+        </header>
+
+        <main class="ru-content">
+            @Body
+        </main>
+    </div>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    Ocurrió un error inesperado.
+    <a href="." class="reload">Recargar</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+@code {
+    private bool menuAbierto;
+    private string busqueda = "";
+
+    private void CerrarMenu(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        menuAbierto = false;
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose() => Nav.LocationChanged -= CerrarMenu;
+
+    protected override void OnInitialized()
+    {
+        // Cierra el menú lateral (en móvil) cada vez que se navega a otra página
+        Nav.LocationChanged += CerrarMenu;
+    }
+
+    private void BuscarConEnter(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            Nav.NavigateTo($"catalogo?q={Uri.EscapeDataString(busqueda)}");
+        }
+    }
+}
